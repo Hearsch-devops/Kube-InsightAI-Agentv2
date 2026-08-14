@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chatbot</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Font Awesome for send/bot icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="chat-container">
+    <!-- Header -->
+    <header class="chat-header">
+      <div class="bot-info">
+        <i class="fa-solid fa-robot bot-avatar"></i>
+        <div>
+          <h2>AI Assistant</h2>
+          <span class="status"><span class="dot"></span> Online</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat Messages Body -->
+    <div class="chat-body" id="chatBody">
+      <div class="message bot-message">
+        <div class="message-content">
+          Hello! How can I help you today?
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Form -->
+    <form class="chat-input-area" id="chatForm">
+      <input 
+        type="text" 
+        id="userInput" 
+        placeholder="Type a message..." 
+        autocomplete="off" 
+        required
+      />
+      <button type="submit" id="sendBtn">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
