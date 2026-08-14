@@ -1,0 +1,14 @@
+.git
+.gitignore
+
+README.md
+
+node_modules
+
+*.log
+
+temp/
+
+.env
+
+Dockerfile
