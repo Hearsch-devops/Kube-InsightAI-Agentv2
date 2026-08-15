@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage
 
 from app.agent.graph import graph
 
@@ -15,16 +16,29 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest):
 
     try:
-        result = graph.invoke({
+        result = await graph.ainvoke({
             "message": request.message,
+            "messages": [
+                HumanMessage(content=request.message)
+            ],
             "response": ""
         })
 
+        # Get final response from graph
+        messages = result.get("messages", [])
+
+        if messages:
+            final_message = messages[-1]
+
+            return {
+                "response": final_message.content
+            }
+
         return {
-            "response": result["response"]
+            "response": result.get("response", "")
         }
 
     except Exception as e:

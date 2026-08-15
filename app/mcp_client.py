@@ -13,40 +13,23 @@ MCP_SERVER_URL = os.getenv(
 
 @asynccontextmanager
 async def get_mcp_session():
-    """
-    Create and initialize a connection to the Calculator MCP server.
-    """
-
     async with streamable_http_client(MCP_SERVER_URL) as (
         read_stream,
         write_stream,
     ):
         async with ClientSession(read_stream, write_stream) as session:
-
             await session.initialize()
-
             yield session
 
 
 async def list_mcp_tools():
-    """
-    Return the tools exposed by the MCP server.
-    """
-
     async with get_mcp_session() as session:
-
         result = await session.list_tools()
-
         return result.tools
 
 
 async def call_mcp_tool(tool_name: str, arguments: dict):
-    """
-    Call an MCP tool and return its result.
-    """
-
     async with get_mcp_session() as session:
-
         result = await session.call_tool(
             tool_name,
             arguments=arguments,
