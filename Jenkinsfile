@@ -59,6 +59,20 @@ pipeline {
             }
         }
 
+        stage('Build MCP Image') {
+            steps {
+                echo "Building ${MCP_IMAGE}:${IMAGE_TAG}"
+
+                sh '''
+                    docker build \
+                        -f Dockerfile.mcp \
+                        -t ${MCP_IMAGE}:${IMAGE_TAG} \
+                        -t ${MCP_IMAGE}:latest \
+                        .
+                '''
+            }
+        }
+
         stage('Docker Login') {
             steps {
                 echo 'Logging into Docker Hub...'
@@ -79,27 +93,6 @@ pipeline {
                 }
             }
         }
-		
-		stage('Set Image Tag') {
-            steps {
-                script {
-
-                    env.SHORT_COMMIT = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
-
-                    env.IMAGE_TAG = "${env.SHORT_COMMIT}-${env.BUILD_NUMBER}"
-
-                    env.DEPLOY_TIME = sh(
-                        script: "date '+%d %b %Y %H:%M UTC'",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Image : ${IMAGE_NAME}:${IMAGE_TAG}"
-                }
-            }
-        }
 
         stage('Push Docker Image') {
             steps {
@@ -111,15 +104,26 @@ pipeline {
                 '''
             }
         }
+
+        stage('Push MCP Image') {
+            steps {
+
+                sh '''
+                    docker push ${MCP_IMAGE}:${IMAGE_TAG}
+                    docker push ${MCP_IMAGE}:latest
+                '''
+            }
+        }
     }
 
     post {
 
         success {
-            echo "======================================"
+            echo "========================================"
             echo "CalcCast CI completed successfully!"
-            echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "======================================"
+            echo "Application: ${APP_IMAGE}:${IMAGE_TAG}"
+            echo "MCP:         ${MCP_IMAGE}:${IMAGE_TAG}"
+            echo "========================================"
         }
 
         failure {
