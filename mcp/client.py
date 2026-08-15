@@ -1,10 +1,14 @@
+import os
 from contextlib import asynccontextmanager
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 
-MCP_SERVER_URL = "http://192.168.48.169:8001/mcp"
+MCP_SERVER_URL = os.getenv(
+    "MCP_SERVER_URL",
+    "http://192.168.48.169:8001/mcp",
+)
 
 
 @asynccontextmanager
