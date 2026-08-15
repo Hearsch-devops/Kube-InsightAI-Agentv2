@@ -61,7 +61,7 @@ pipeline {
 
         stage('Build MCP Image') {
             steps {
-                echo "Building ${MCP_IMAGE}:${IMAGE_TAG}"
+                echo "Building MCP image: ${MCP_IMAGE}:${IMAGE_TAG}"
 
                 sh '''
                     docker build \
