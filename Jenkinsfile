@@ -122,8 +122,8 @@ pipeline {
         success {
             echo "========================================"
             echo "CalcCast CI completed successfully!"
-            echo "Application: ${APP_IMAGE}:${IMAGE_TAG}"
-            echo "MCP:         ${MCP_IMAGE}:${IMAGE_TAG}"
+            echo "Application: 95337/calccast-agent:${BUILD_NUMBER}"
+            echo "MCP:         95337/calccast-mcp:${BUILD_NUMBER}"
             echo "========================================"
         }
 
