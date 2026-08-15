@@ -5,6 +5,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "95337/calccast-agent"
+        MCP_IMAGE = "95337/calccast-mcp"
         IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
