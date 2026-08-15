@@ -15,7 +15,6 @@ async def main():
     async with streamable_http_client(MCP_SERVER_URL) as (
         read_stream,
         write_stream,
-        _,
     ):
         async with ClientSession(read_stream, write_stream) as session:
 
@@ -28,6 +27,7 @@ async def main():
             tools = await session.list_tools()
 
             print("\nAvailable MCP tools:")
+
             for tool in tools.tools:
                 print(f" - {tool.name}: {tool.description}")
 

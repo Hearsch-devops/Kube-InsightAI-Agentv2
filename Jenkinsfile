@@ -47,7 +47,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build application Image') {
             steps {
                 echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -101,7 +101,6 @@ pipeline {
 
                 sh '''
                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                    docker push ${IMAGE_NAME}:latest
                 '''
             }
         }
@@ -111,7 +110,6 @@ pipeline {
 
                 sh '''
                     docker push ${MCP_IMAGE}:${IMAGE_TAG}
-                    docker push ${MCP_IMAGE}:latest
                 '''
             }
         }
