@@ -1,47 +1,43 @@
 import os
 
-import requests
 from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 PROJECT = os.getenv("PROJECT_NAME")
 
-URL = "https://llmfoundry.straive.com/gemini/v1beta/openai/chat/completions"
+BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
 
 
-def get_llm_response(message: str) -> str:
+def get_chat_model():
+    """
+    Create the LangChain chat model connected to LLMFoundry.
+    """
+
     if not TOKEN:
         raise ValueError("LLMFOUNDRY_TOKEN is not configured")
 
     if not PROJECT:
         raise ValueError("PROJECT_NAME is not configured")
 
-    headers = {
-        "Authorization": f"Bearer {TOKEN}:{PROJECT}",
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "model": "models/gemini-2.5-flash",
-        "messages": [
-            {
-                "role": "user",
-                "content": message,
-            }
-        ],
-    }
-
-    response = requests.post(
-        URL,
-        headers=headers,
-        json=payload,
-        timeout=30,
+    return ChatOpenAI(
+        model="models/gemini-2.5-flash",
+        base_url=BASE_URL,
+        api_key=f"{TOKEN}:{PROJECT}",
+        temperature=0,
     )
 
-    response.raise_for_status()
 
-    result = response.json()
+def get_llm_response(message: str) -> str:
+    """
+    Existing simple LLM call.
+    Keeps our current CalcCast behavior working.
+    """
 
-    return result["choices"][0]["message"]["content"]
+    llm = get_chat_model()
+
+    response = llm.invoke(message)
+
+    return response.content
