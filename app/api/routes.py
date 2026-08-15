@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.llm.llm import get_llm_response
+from app.agent.graph import graph
 
 router = APIRouter()
 
@@ -18,14 +18,17 @@ class ChatResponse(BaseModel):
 def chat(request: ChatRequest):
 
     try:
-        response = get_llm_response(request.message)
+        result = graph.invoke({
+            "message": request.message,
+            "response": ""
+        })
 
         return {
-            "response": response
+            "response": result["response"]
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=str(e),
+            detail=str(e)
         )
