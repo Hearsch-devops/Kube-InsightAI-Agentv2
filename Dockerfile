@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY app/ ./app/
 
 # Copy frontend
-COPY html/ ./html/
+COPY frontend/ ./frontend/
 
 # Expose FastAPI port
 EXPOSE 8000
