@@ -4,17 +4,20 @@ from langgraph.graph import StateGraph, START, END
 
 from app.agent.state import AgentState
 from app.llm.llm import get_chat_model
-from app.mcp.client import call_mcp_tool
+from mcp.client import call_mcp_tool
 
 
-# ---------------------------------------------------------
-# Calculator MCP tool wrappers
-# ---------------------------------------------------------
+# =========================================================
+# MCP Calculator Tool Wrappers
+# =========================================================
 
 async def calculator_add(a: float, b: float):
     result = await call_mcp_tool(
         "add",
-        {"a": a, "b": b}
+        {
+            "a": a,
+            "b": b,
+        },
     )
 
     return result.structured_content["result"]
@@ -23,7 +26,10 @@ async def calculator_add(a: float, b: float):
 async def calculator_subtract(a: float, b: float):
     result = await call_mcp_tool(
         "subtract",
-        {"a": a, "b": b}
+        {
+            "a": a,
+            "b": b,
+        },
     )
 
     return result.structured_content["result"]
@@ -32,7 +38,10 @@ async def calculator_subtract(a: float, b: float):
 async def calculator_multiply(a: float, b: float):
     result = await call_mcp_tool(
         "multiply",
-        {"a": a, "b": b}
+        {
+            "a": a,
+            "b": b,
+        },
     )
 
     return result.structured_content["result"]
@@ -41,15 +50,18 @@ async def calculator_multiply(a: float, b: float):
 async def calculator_divide(a: float, b: float):
     result = await call_mcp_tool(
         "divide",
-        {"a": a, "b": b}
+        {
+            "a": a,
+            "b": b,
+        },
     )
 
     return result.structured_content["result"]
 
 
-# ---------------------------------------------------------
-# LangChain tools
-# ---------------------------------------------------------
+# =========================================================
+# Convert MCP functions into LangChain Tools
+# =========================================================
 
 calculator_tools = [
     StructuredTool.from_function(
@@ -75,18 +87,18 @@ calculator_tools = [
 ]
 
 
-# ---------------------------------------------------------
+# =========================================================
 # LLM
-# ---------------------------------------------------------
+# =========================================================
 
 llm = get_chat_model()
 
 llm_with_tools = llm.bind_tools(calculator_tools)
 
 
-# ---------------------------------------------------------
-# LLM node
-# ---------------------------------------------------------
+# =========================================================
+# LLM Node
+# =========================================================
 
 async def call_llm(state: AgentState):
 
@@ -99,9 +111,9 @@ async def call_llm(state: AgentState):
     }
 
 
-# ---------------------------------------------------------
-# MCP tool node
-# ---------------------------------------------------------
+# =========================================================
+# MCP Tool Node
+# =========================================================
 
 async def call_tools(state: AgentState):
 
@@ -142,9 +154,9 @@ async def call_tools(state: AgentState):
     }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Routing
-# ---------------------------------------------------------
+# =========================================================
 
 def route_after_llm(state: AgentState):
 
@@ -156,9 +168,9 @@ def route_after_llm(state: AgentState):
     return END
 
 
-# ---------------------------------------------------------
-# LangGraph
-# ---------------------------------------------------------
+# =========================================================
+# Build LangGraph
+# =========================================================
 
 builder = StateGraph(AgentState)
 
