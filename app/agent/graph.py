@@ -1,6 +1,6 @@
-from langchain_core.messages import ToolMessage
 from langchain_core.tools import StructuredTool
 from langgraph.graph import StateGraph, START, END
+from langgraph.prebuilt import ToolNode
 
 from app.agent.state import AgentState
 from app.llm.llm import get_chat_model
@@ -88,6 +88,13 @@ calculator_tools = [
 
 
 # =========================================================
+# LangGraph ToolNode
+# =========================================================
+
+tool_node = ToolNode(calculator_tools)
+
+
+# =========================================================
 # LLM
 # =========================================================
 
@@ -112,57 +119,6 @@ async def call_llm(state: AgentState):
 
 
 # =========================================================
-# MCP Tool Node
-# =========================================================
-
-async def call_tools(state: AgentState):
-
-    last_message = state["messages"][-1]
-
-    print("\n========== MCP TOOL CALL ==========")
-
-    tool_messages = []
-
-    for tool_call in last_message.tool_calls:
-
-        tool_name = tool_call["name"]
-        arguments = tool_call["args"]
-        tool_call_id = tool_call["id"]
-
-        print(f"Tool   : {tool_name}")
-        print(f"Args   : {arguments}")
-
-        if tool_name == "add":
-            result = await calculator_add(**arguments)
-
-        elif tool_name == "subtract":
-            result = await calculator_subtract(**arguments)
-
-        elif tool_name == "multiply":
-            result = await calculator_multiply(**arguments)
-
-        elif tool_name == "divide":
-            result = await calculator_divide(**arguments)
-
-        else:
-            result = f"Unknown tool: {tool_name}"
-
-        print(f"Result : {result}")
-        print("===================================\n")
-
-        tool_messages.append(
-            ToolMessage(
-                content=str(result),
-                tool_call_id=tool_call_id,
-            )
-        )
-
-    return {
-        "messages": tool_messages
-    }
-
-
-# =========================================================
 # Routing
 # =========================================================
 
@@ -183,7 +139,7 @@ def route_after_llm(state: AgentState):
 builder = StateGraph(AgentState)
 
 builder.add_node("llm", call_llm)
-builder.add_node("tools", call_tools)
+builder.add_node("tools", tool_node)
 
 builder.add_edge(START, "llm")
 
