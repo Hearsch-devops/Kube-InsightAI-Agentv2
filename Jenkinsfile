@@ -6,6 +6,7 @@ pipeline {
     environment {
         IMAGE_NAME = "95337/calccast-agent"
         MCP_IMAGE = "95337/calccast-mcp"
+        WEATHER_IMAGE = "95337/calccast-weather"
         IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
@@ -74,6 +75,20 @@ pipeline {
             }
         }
 
+        stage('Build Weather Image') {
+            steps {
+                echo "Building Weather MCP image: ${WEATHER_IMAGE}:${IMAGE_TAG}"
+
+                sh '''
+                    docker build \
+                        -f Dockerfile.weather \
+                        -t ${WEATHER_IMAGE}:${IMAGE_TAG} \
+                        -t ${WEATHER_IMAGE}:latest \
+                        .
+                '''
+            }
+        }
+
         stage('Docker Login') {
             steps {
                 echo 'Logging into Docker Hub...'
@@ -113,6 +128,16 @@ pipeline {
                 '''
             }
         }
+
+        stage('Push Weather Image') {
+            steps {
+                echo "Pushing ${WEATHER_IMAGE}:${IMAGE_TAG}..."
+
+                sh '''
+                    docker push ${WEATHER_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
     }
 
     post {
@@ -122,6 +147,7 @@ pipeline {
             echo "CalcCast CI completed successfully!"
             echo "Application: 95337/calccast-agent:${BUILD_NUMBER}"
             echo "MCP:         95337/calccast-mcp:${BUILD_NUMBER}"
+            echo "Weather MCP: 95337/calccast-weather:${BUILD_NUMBER}"
             echo "========================================"
         }
 
