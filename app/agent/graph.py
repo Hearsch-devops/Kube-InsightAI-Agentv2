@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph, START, END
 
 from app.agent.state import AgentState
 from app.llm.llm import get_chat_model
-from mcp.client import call_mcp_tool
+from app.mcp_client import call_mcp_tool
 
 
 # =========================================================
@@ -119,6 +119,8 @@ async def call_tools(state: AgentState):
 
     last_message = state["messages"][-1]
 
+    print("\n========== MCP TOOL CALL ==========")
+
     tool_messages = []
 
     for tool_call in last_message.tool_calls:
@@ -126,6 +128,9 @@ async def call_tools(state: AgentState):
         tool_name = tool_call["name"]
         arguments = tool_call["args"]
         tool_call_id = tool_call["id"]
+
+        print(f"Tool   : {tool_name}")
+        print(f"Args   : {arguments}")
 
         if tool_name == "add":
             result = await calculator_add(**arguments)
@@ -141,6 +146,9 @@ async def call_tools(state: AgentState):
 
         else:
             result = f"Unknown tool: {tool_name}"
+
+        print(f"Result : {result}")
+        print("===================================\n")
 
         tool_messages.append(
             ToolMessage(

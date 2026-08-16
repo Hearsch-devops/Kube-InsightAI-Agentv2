@@ -1,3 +1,4 @@
+import traceback
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -24,29 +25,23 @@ async def chat(request: ChatRequest):
 
         result = await graph.ainvoke(
             {
-                "message": request.message,
                 "messages": [
                     HumanMessage(content=request.message)
-                ],
-                "response": "",
+                ]
             }
         )
 
-        messages = result.get("messages", [])
+        messages = result["messages"]
 
-        if messages:
-
-            final_message = messages[-1]
-
-            return {
-                "response": final_message.content
-            }
+        final_message = messages[-1]
 
         return {
-            "response": result.get("response", "")
+            "response": final_message.content
         }
 
     except Exception as e:
+
+        traceback.print_exc()
 
         raise HTTPException(
             status_code=500,
