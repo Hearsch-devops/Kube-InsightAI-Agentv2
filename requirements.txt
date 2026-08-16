@@ -6,3 +6,4 @@ langgraph
 requests
 pytest
 langchain-openai
+mcp
