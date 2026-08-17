@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calccast-agent
+  namespace: calccast
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calccast-agent
+  template:
+    metadata:
+      labels:
+        app: calccast-agent
+    spec:
+      containers:
+        - name: calccast-agent
+          image: 95337/calccast-agent:25
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: CALCULATOR_MCP_URL
+              value: "http://calccast-mcp:8001/mcp"
+
+            - name: WEATHER_MCP_URL
+              value: "http://calccast-weather:8002/mcp"
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calccast-agent
+  namespace: calccast
+spec:
+  selector:
+    app: calccast-agent
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: NodePort
