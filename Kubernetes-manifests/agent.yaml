@@ -15,13 +15,25 @@ spec:
     spec:
       containers:
         - name: calccast-agent
-          image: 95337/calccast-agent:25
+          image: 95337/calccast-agent:28
           imagePullPolicy: Always
 
           ports:
             - containerPort: 8000
 
           env:
+            - name: LLMFOUNDRY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: calccast-llm
+                  key: LLMFOUNDRY_TOKEN
+
+            - name: PROJECT_NAME
+              valueFrom:
+                  secretKeyRef:
+                    name: calccast-llm
+                    key: PROJECT_NAME
+
             - name: CALCULATOR_MCP_URL
               value: "http://calccast-mcp:8001/mcp"
 

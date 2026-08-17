@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: weather-mcp
-          image: 95337/calccast-weather:25
+          image: 95337/calccast-weather:28
           imagePullPolicy: Always
           ports:
             - containerPort: 8002
