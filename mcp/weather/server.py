@@ -1,9 +1,9 @@
 import requests
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 
-mcp = FastMCP("Weather MCP Server")
+mcp = MCPServer("Weather MCP Server")
 
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -16,10 +16,7 @@ def get_weather(city: str) -> dict:
     Get the current weather for a city.
     """
 
-    # -----------------------------------------------------
     # Step 1: Convert city name to latitude/longitude
-    # -----------------------------------------------------
-
     geocoding_response = requests.get(
         GEOCODING_URL,
         params={
@@ -45,10 +42,7 @@ def get_weather(city: str) -> dict:
     latitude = location["latitude"]
     longitude = location["longitude"]
 
-    # -----------------------------------------------------
     # Step 2: Get current weather
-    # -----------------------------------------------------
-
     weather_response = requests.get(
         WEATHER_URL,
         params={
@@ -70,7 +64,6 @@ def get_weather(city: str) -> dict:
     weather_response.raise_for_status()
 
     weather = weather_response.json()
-
     current = weather["current"]
 
     return {
@@ -87,4 +80,9 @@ def get_weather(city: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    mcp.run(
+        transport="streamable-http",
+        host="0.0.0.0",
+        port=8002,
+        json_response=True,
+    )
