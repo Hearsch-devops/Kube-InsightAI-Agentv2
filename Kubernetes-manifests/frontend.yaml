@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calccast-frontend
+  namespace: calccast
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: calccast-frontend
+
+  template:
+    metadata:
+      labels:
+        app: calccast-frontend
+
+    spec:
+      containers:
+        - name: calccast-frontend
+          image: 95337/calccast-frontend:BUILD_TAG
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 80
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+
+            limits:
+              cpu: 250m
+              memory: 128Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calccast-frontend
+  namespace: calccast
+
+spec:
+  selector:
+    app: calccast-frontend
+
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+
+  type: NodePort
