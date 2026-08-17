@@ -56,7 +56,6 @@ pipeline {
                 sh '''
                     docker build \
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                        -t ${IMAGE_NAME}:latest \
                         .
                 '''
             }
@@ -70,7 +69,6 @@ pipeline {
                     docker build \
                         -f Dockerfile.mcp \
                         -t ${MCP_IMAGE}:${IMAGE_TAG} \
-                        -t ${MCP_IMAGE}:latest \
                         .
                 '''
             }
@@ -94,7 +92,6 @@ pipeline {
                     docker build \
                         -f Dockerfile.weather \
                         -t ${WEATHER_IMAGE}:${IMAGE_TAG} \
-                        -t ${WEATHER_IMAGE}:latest \
                         .
                 '''
             }
@@ -108,7 +105,6 @@ pipeline {
                     docker build \
                         -f Dockerfile.frontend \
                         -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                        -t ${FRONTEND_IMAGE}:latest \
                         .
                 '''
             }
