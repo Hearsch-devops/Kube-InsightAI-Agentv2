@@ -4,7 +4,7 @@ const userInput = document.getElementById("userInput");
 const chatBody = document.getElementById("chatBody");
 
 // Backend API
-const API_URL = "http://127.0.0.1:8000/chat";
+const API_URL = "/api/chat";
 
 // Keep track of conversation messages in the UI
 const conversationHistory = [];
