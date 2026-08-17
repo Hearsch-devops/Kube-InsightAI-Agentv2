@@ -83,9 +83,9 @@ async def weather_get_weather(city: str):
     if result.is_error:
         return result.content[0].text
 
-    import json
-
-    weather_data = json.loads(result.content[0].text)
+    weather_data = json.loads(
+        result.content[0].text
+    )
 
     return weather_data
 
