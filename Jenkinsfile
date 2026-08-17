@@ -75,6 +75,16 @@ pipeline {
             }
         }
 
+        stage('Prepare Weather CA') {
+            steps {
+                echo 'Preparing trusted CA bundle for Weather MCP...'
+
+                sh '''
+                    cp /etc/ssl/certs/ca-certificates.crt ./ca-certificates.crt
+                '''
+            }
+        }
+
         stage('Build Weather Image') {
             steps {
                 echo "Building Weather MCP image: ${WEATHER_IMAGE}:${IMAGE_TAG}"
@@ -157,6 +167,10 @@ pipeline {
 
         always {
             sh 'docker logout || true'
+            sh '''
+                rm -f ca-certificates.crt || true
+                docker logout || true
+            '''
         }
     }
 }
