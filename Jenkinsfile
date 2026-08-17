@@ -173,6 +173,19 @@ pipeline {
                 '''
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    sed -i "s|calccast-agent:.*|calccast-agent:${BUILD_NUMBER}|" Kubernetes-manifests/agent.yaml
+                    sed -i "s|calccast-mcp:.*|calccast-mcp:${BUILD_NUMBER}|" Kubernetes-manifests/calculator-mcp.yaml
+                    sed -i "s|calccast-weather:.*|calccast-weather:${BUILD_NUMBER}|" Kubernetes-manifests/weather-mcp.yaml
+                    sed -i "s|calccast-frontend:.*|calccast-frontend:${BUILD_NUMBER}|" Kubernetes-manifests/frontend.yaml
+
+                    kubectl apply -f Kubernetes-manifests/
+                '''
+            }
+        }
     }
 
     post {

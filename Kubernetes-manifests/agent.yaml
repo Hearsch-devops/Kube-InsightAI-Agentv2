@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: calccast-agent
-          image: 95337/calccast-agent:28
+          image: 95337/calccast-agent:BUILD_TAG
           imagePullPolicy: Always
 
           ports:

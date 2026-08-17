@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: calculator-mcp
-          image: 95337/calccast-mcp:28
+          image: 95337/calccast-mcp:BUILD_TAG
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
