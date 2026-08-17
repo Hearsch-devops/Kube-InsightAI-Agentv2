@@ -58,7 +58,6 @@ async def calculator_divide(a: float, b: float):
 
     return result.structured_content["result"]
 
-
 # =========================================================
 # Convert MCP functions into LangChain Tools
 # =========================================================
@@ -85,7 +84,6 @@ calculator_tools = [
         description="Divide the first number by the second.",
     ),
 ]
-
 
 # =========================================================
 # LangGraph ToolNode
