@@ -83,8 +83,11 @@ async def weather_get_weather(city: str):
     if result.is_error:
         return result.content[0].text
 
-    return result.content[0].text
+    import json
 
+    weather_data = json.loads(result.content[0].text)
+
+    return weather_data
 
 # =========================================================
 # Convert MCP functions into LangChain Tools
@@ -106,7 +109,11 @@ agent_tools = [
     StructuredTool.from_function(
         coroutine=calculator_multiply,
         name="multiply",
-        description="Multiply two numbers together.",
+        description=(
+            "Multiply two numbers. "
+            "Use this tool when a calculation is required, including "
+            "calculations using values returned by other tools."
+        ),
     ),
 
     StructuredTool.from_function(
@@ -118,7 +125,12 @@ agent_tools = [
     StructuredTool.from_function(
         coroutine=weather_get_weather,
         name="get_weather",
-        description="Get the current weather for a city.",
+        description=(
+            "Get the current weather for a city. "
+            "Returns structured weather data including temperature_c. "
+            "The temperature_c value can be passed to calculator tools "
+            "for further calculations."
+        ),
     ),
 ]
 
