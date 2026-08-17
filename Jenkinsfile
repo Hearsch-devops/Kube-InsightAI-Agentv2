@@ -7,6 +7,7 @@ pipeline {
         IMAGE_NAME = "95337/calccast-agent"
         MCP_IMAGE = "95337/calccast-mcp"
         WEATHER_IMAGE = "95337/calccast-weather"
+        FRONTEND_IMAGE = "95337/calccast-frontend"
         IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
@@ -99,6 +100,20 @@ pipeline {
             }
         }
 
+        stage('Build Frontend Image') {
+            steps {
+                echo "Building Frontend image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+
+                sh '''
+                    docker build \
+                        -f Dockerfile.frontend \
+                        -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                        -t ${FRONTEND_IMAGE}:latest \
+                        .
+                '''
+            }
+        }
+
         stage('Docker Login') {
             steps {
                 echo 'Logging into Docker Hub...'
@@ -117,6 +132,16 @@ pipeline {
                             --password-stdin
                     '''
                 }
+            }
+        }
+
+        stage('Push Frontend Image') {
+            steps {
+                echo "Pushing ${FRONTEND_IMAGE}:${IMAGE_TAG}..."
+
+                sh '''
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                '''
             }
         }
 
@@ -158,6 +183,7 @@ pipeline {
             echo "Application: 95337/calccast-agent:${BUILD_NUMBER}"
             echo "MCP:         95337/calccast-mcp:${BUILD_NUMBER}"
             echo "Weather MCP: 95337/calccast-weather:${BUILD_NUMBER}"
+            echo "Frontend:    95337/calccast-frontend:${BUILD_NUMBER}"
             echo "========================================"
         }
 
