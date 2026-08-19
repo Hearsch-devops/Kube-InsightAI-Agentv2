@@ -2,7 +2,6 @@ import json
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import StructuredTool
 from langgraph.graph import StateGraph, START, END
-
 from app.agent.state import AgentState
 from app.llm.llm import get_chat_model
 from app.mcp_client import (
@@ -10,7 +9,6 @@ from app.mcp_client import (
     CALCULATOR_MCP_URL,
     WEATHER_MCP_URL,
 )
-
 
 # =========================================================
 # MCP Calculator Tool Wrappers
@@ -28,7 +26,6 @@ async def calculator_add(a: float, b: float):
 
     return result.structured_content["result"]
 
-
 async def calculator_subtract(a: float, b: float):
     result = await call_mcp_tool(
         CALCULATOR_MCP_URL,
@@ -40,7 +37,6 @@ async def calculator_subtract(a: float, b: float):
     )
 
     return result.structured_content["result"]
-
 
 async def calculator_multiply(a: float, b: float):
     result = await call_mcp_tool(
@@ -54,7 +50,6 @@ async def calculator_multiply(a: float, b: float):
 
     return result.structured_content["result"]
 
-
 async def calculator_divide(a: float, b: float):
     result = await call_mcp_tool(
         CALCULATOR_MCP_URL,
@@ -66,7 +61,6 @@ async def calculator_divide(a: float, b: float):
     )
 
     return result.structured_content["result"]
-
 
 # =========================================================
 # MCP Weather Tool Wrapper
@@ -135,7 +129,6 @@ agent_tools = [
     ),
 ]
 
-
 # =========================================================
 # LLM
 # =========================================================
@@ -143,7 +136,6 @@ agent_tools = [
 llm = get_chat_model()
 
 llm_with_tools = llm.bind_tools(agent_tools)
-
 
 # =========================================================
 # LLM Node
@@ -158,7 +150,6 @@ async def call_llm(state: AgentState):
     return {
         "messages": [response]
     }
-
 
 # =========================================================
 # MCP Tool Node
@@ -213,7 +204,6 @@ async def call_tools(state: AgentState):
         "messages": tool_messages
     }
 
-
 # =========================================================
 # Routing
 # =========================================================
@@ -226,7 +216,6 @@ def route_after_llm(state: AgentState):
         return "tools"
 
     return END
-
 
 # =========================================================
 # Build LangGraph
