@@ -7,3 +7,4 @@ kube-insight-ai/
         ├── gitlab/
         ├── docker/
         └── terraform/
+        └── linux/
