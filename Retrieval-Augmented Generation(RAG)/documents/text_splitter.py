@@ -1,4 +1,4 @@
-from loader import load_documents
+from document_loader import load_documents
 
 
 CHUNK_SIZE = 1000
