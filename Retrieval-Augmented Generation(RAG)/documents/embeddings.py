@@ -7,7 +7,7 @@ from text_splitter import split_documents
 from document_loader import load_documents
 
 
-load_dotenv()
+load_dotenv("/home/ubuntu/ai-devops-agent/.env")
 
 
 MODEL_NAME = "models/gemini-embedding-001"
