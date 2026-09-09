@@ -25,19 +25,38 @@ def create_embeddings(chunks):
 
     texts = [chunk["content"] for chunk in chunks]
 
-    response = client.embeddings.create(
-        model=MODEL_NAME,
-        input=texts
-    )
+    all_embeddings = []
 
-    embeddings = [item.embedding for item in response.data]
+    batch_size = 100
 
-    return embeddings
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start:start + batch_size]
 
+        print(
+            f"Embedding batch: "
+            f"{start + 1}-{min(start + batch_size, len(texts))}"
+        )
+
+        response = client.embeddings.create(
+            model=MODEL_NAME,
+            input=batch
+        )
+
+        batch_embeddings = [item.embedding for item in response.data]
+
+        all_embeddings.extend(batch_embeddings)
+
+        print(
+            f"Embedded "
+            f"{min(start + batch_size, len(texts))}/{len(texts)} chunks"
+        )
+
+    return all_embeddings
 
 if __name__ == "__main__":
     documents = load_documents()
     chunks = split_documents(documents)
+
     embeddings = create_embeddings(chunks)
 
     print(f"Documents: {len(documents)}")
