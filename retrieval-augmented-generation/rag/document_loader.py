@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-DOCUMENTS_DIR = Path(__file__).parent / "kubernetes"
+DOCUMENTS_DIR = Path(__file__).parent.parent / "knowledge_base" / "kubernetes"
 
 
 def load_documents():
