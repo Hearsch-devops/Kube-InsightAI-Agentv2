@@ -6,6 +6,7 @@ from embeddings import create_embeddings
 CHROMA_PATH = "./chroma_db"
 COLLECTION_NAME = "kubernetes_docs"
 
+DISTANCE_THRESHOLD = 0.70
 
 def retrieve_documents(query, top_k=5):
     # Create ChromaDB client
