@@ -1,4 +1,3 @@
-
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatBody = document.getElementById("chatBody");
@@ -50,7 +49,7 @@ function removeTypingIndicator() {
   }
 }
 
-// Call CalcCast backend
+// Call Kube-InsightAI backend
 async function fetchBotReply(userMessage) {
   try {
     const response = await fetch(API_URL, {
@@ -59,7 +58,7 @@ async function fetchBotReply(userMessage) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: userMessage
+        question: userMessage
       })
     });
 
@@ -81,14 +80,14 @@ async function fetchBotReply(userMessage) {
 
     const data = await response.json();
 
-    if (!data.response) {
-      throw new Error("Backend returned an empty response.");
-    }
+	if (!data.answer) {
+	  throw new Error("Backend returned an empty response.");
+	}
 
-    return data.response;
+	return data.answer;
 
   } catch (error) {
-    console.error("CalcCast API Error:", error);
+    console.error("Kube-InsightAI API Error:", error);
 
     return `Error: ${error.message}`;
   }

@@ -26,7 +26,13 @@ def create_vector_store():
         path=str(CHROMA_PATH)
     )
 
-    collection = client.get_or_create_collection(
+    try:
+        client.delete_collection(name=COLLECTION_NAME)
+        print(f"Deleted existing collection: {COLLECTION_NAME}")
+    except Exception:
+        print(f"No existing collection found: {COLLECTION_NAME}")
+
+    collection = client.create_collection(
         name=COLLECTION_NAME
     )
 

@@ -6,4 +6,8 @@ langgraph
 requests
 pytest
 langchain-openai
-mcp
+langchain-core
+langchain-chroma
+chromadb
+openai
+httpx

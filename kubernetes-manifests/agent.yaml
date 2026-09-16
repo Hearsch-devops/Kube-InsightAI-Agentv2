@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: calccast-agent
-  namespace: calccast
+  name: kube-insightai-agent
+  namespace: kube-insightai
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: calccast-agent
+      app: kube-insightai-agent
   template:
     metadata:
       labels:
-        app: calccast-agent
+        app: kube-insightai-agent
     spec:
       containers:
-        - name: calccast-agent
-          image: 95337/calccast-agent:BUILD_TAG
+        - name: kube-insightai-agent
+          image: 95337/kube-insightai-agent:BUILD_TAG
           imagePullPolicy: Always
 
           ports:
@@ -25,40 +25,33 @@ spec:
             - name: LLMFOUNDRY_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: calccast-llm
+                  name: kube-insightai-llm
                   key: LLMFOUNDRY_TOKEN
 
             - name: PROJECT_NAME
               valueFrom:
-                  secretKeyRef:
-                    name: calccast-llm
-                    key: PROJECT_NAME
-
-            - name: CALCULATOR_MCP_URL
-              value: "http://calccast-mcp:8001/mcp"
-
-            - name: WEATHER_MCP_URL
-              value: "http://calccast-weather:8002/mcp"
+                secretKeyRef:
+                  name: kube-insightai-llm
+                  key: PROJECT_NAME
 
           resources:
             requests:
               cpu: 200m
-              memory: 256Mi
-
+              memory: 512Mi
             limits:
               cpu: 1000m
-              memory: 512Mi
+              memory: 1Gi
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: calccast-agent
-  namespace: calccast
+  name: kube-insightai-agent
+  namespace: kube-insightai
 spec:
   selector:
-    app: calccast-agent
+    app: kube-insightai-agent
   ports:
     - port: 8000
       targetPort: 8000
-  type: NodePort
+  type: ClusterIP

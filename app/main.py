@@ -1,29 +1,29 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from app.api.routes import router
+from lc_demos.langchain_rag_chain import rag_chain
 
-app = FastAPI(
-    title="CalcCast Agent",
-    description="AI Agent with LangGraph, LangChain and MCP",
-    version="1.0.0",
-)
+app = FastAPI(title="Kube-InsightAI")
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Development only
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-app.include_router(router)
+class ChatRequest(BaseModel):
+    question: str
+
+
+class ChatResponse(BaseModel):
+    answer: str
 
 
 @app.get("/")
-def root():
+def health_check():
     return {
-        "message": "CalcCast Agent is running",
-        "status": "healthy",
+        "status": "ok",
+        "service": "Kube-InsightAI",
     }
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+    answer = rag_chain.invoke(request.question)
+
+    return ChatResponse(answer=answer)

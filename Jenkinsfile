@@ -4,18 +4,16 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "95337/calccast-agent"
-        MCP_IMAGE = "95337/calccast-mcp"
-        WEATHER_IMAGE = "95337/calccast-weather"
-        FRONTEND_IMAGE = "95337/calccast-frontend"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        IMAGE_NAME    = "95337/kube-insightai-agent"
+        FRONTEND_IMAGE = "95337/kube-insightai-frontend"
+        IMAGE_TAG     = "${BUILD_NUMBER}"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo 'Checking out CalcCast source code...'
+                echo 'Checking out Kube-InsightAI source code...'
                 checkout scm
             }
         }
@@ -35,7 +33,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Running CalcCast tests...'
+                echo 'Running tests...'
 
                 sh '''
                     . .venv/bin/activate
@@ -49,9 +47,32 @@ pipeline {
             }
         }
 
-        stage('Build application Image') {
+        stage('Build RAG Knowledge Base') {
             steps {
-                echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                echo 'Building Kubernetes RAG knowledge base...'
+
+                withCredentials([
+                    string(
+                        credentialsId: 'llmfoundry_token',
+                        variable: 'LLMFOUNDRY_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        . .venv/bin/activate
+
+                        export LLMFOUNDRY_TOKEN="$LLMFOUNDRY_TOKEN"
+
+                        python -m retrieval-augmented-generation.rag.vector_store
+                    '''
+                }
+            }
+        }
+
+        stage('Build Application Image') {
+            steps {
+                echo "Building application image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
                 sh '''
                     docker build \
@@ -61,45 +82,9 @@ pipeline {
             }
         }
 
-        stage('Build MCP Image') {
-            steps {
-                echo "Building MCP image: ${MCP_IMAGE}:${IMAGE_TAG}"
-
-                sh '''
-                    docker build \
-                        -f Dockerfile.mcp \
-                        -t ${MCP_IMAGE}:${IMAGE_TAG} \
-                        .
-                '''
-            }
-        }
-
-        stage('Prepare Weather CA') {
-            steps {
-                echo 'Preparing trusted CA bundle for Weather MCP...'
-
-                sh '''
-                    cp /etc/ssl/certs/ca-certificates.crt ./ca-certificates.crt
-                '''
-            }
-        }
-
-        stage('Build Weather Image') {
-            steps {
-                echo "Building Weather MCP image: ${WEATHER_IMAGE}:${IMAGE_TAG}"
-
-                sh '''
-                    docker build \
-                        -f Dockerfile.weather \
-                        -t ${WEATHER_IMAGE}:${IMAGE_TAG} \
-                        .
-                '''
-            }
-        }
-
         stage('Build Frontend Image') {
             steps {
-                echo "Building Frontend image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+                echo "Building frontend image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
 
                 sh '''
                     docker build \
@@ -121,13 +106,22 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-
                     sh '''
                         echo "$DOCKER_PASS" | docker login \
                             -u "$DOCKER_USER" \
                             --password-stdin
                     '''
                 }
+            }
+        }
+
+        stage('Push Application Image') {
+            steps {
+                echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG}..."
+
+                sh '''
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
 
@@ -141,44 +135,35 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image') {
-            steps {
-                echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG}..."
-
-                sh '''
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-            }
-        }
-
-        stage('Push MCP Image') {
-            steps {
-
-                sh '''
-                    docker push ${MCP_IMAGE}:${IMAGE_TAG}
-                '''
-            }
-        }
-
-        stage('Push Weather Image') {
-            steps {
-                echo "Pushing ${WEATHER_IMAGE}:${IMAGE_TAG}..."
-
-                sh '''
-                    docker push ${WEATHER_IMAGE}:${IMAGE_TAG}
-                '''
-            }
-        }
-
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                    sed -i "s|calccast-agent:.*|calccast-agent:${BUILD_NUMBER}|" Kubernetes-manifests/agent.yaml
-                    sed -i "s|calccast-mcp:.*|calccast-mcp:${BUILD_NUMBER}|" Kubernetes-manifests/calculator-mcp.yaml
-                    sed -i "s|calccast-weather:.*|calccast-weather:${BUILD_NUMBER}|" Kubernetes-manifests/weather-mcp.yaml
-                    sed -i "s|calccast-frontend:.*|calccast-frontend:${BUILD_NUMBER}|" Kubernetes-manifests/frontend.yaml
+                echo 'Deploying Kube-InsightAI to Kubernetes...'
 
-                    kubectl apply -f Kubernetes-manifests/
+                sh '''
+                    set -eu
+
+                    # Replace image tag placeholders in the manifests.
+                    sed -i "s|BUILD_TAG|${IMAGE_TAG}|g" \
+                        kubernetes-manifests/agent.yaml \
+                        kubernetes-manifests/frontend.yaml
+
+                    # Create the namespace first.
+                    kubectl apply \
+                        -f kubernetes-manifests/namespace.yaml
+
+                    # Apply the application manifests.
+                    kubectl apply \
+                        -f kubernetes-manifests/agent.yaml \
+                        -f kubernetes-manifests/frontend.yaml
+
+                    # Wait for rollouts to complete.
+                    kubectl rollout status deployment/kube-insightai-agent \
+                        -n kube-insightai \
+                        --timeout=180s
+
+                    kubectl rollout status deployment/kube-insightai-frontend \
+                        -n kube-insightai \
+                        --timeout=180s
                 '''
             }
         }
@@ -188,25 +173,21 @@ pipeline {
 
         success {
             echo "========================================"
-            echo "CalcCast CI completed successfully!"
-            echo "Application: 95337/calccast-agent:${BUILD_NUMBER}"
-            echo "MCP:         95337/calccast-mcp:${BUILD_NUMBER}"
-            echo "Weather MCP: 95337/calccast-weather:${BUILD_NUMBER}"
-            echo "Frontend:    95337/calccast-frontend:${BUILD_NUMBER}"
+            echo "Kube-InsightAI CI/CD completed!"
+            echo "Application: ${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Frontend:    ${FRONTEND_IMAGE}:${IMAGE_TAG}"
             echo "========================================"
         }
 
         failure {
-            echo "CalcCast CI pipeline failed."
+            echo "Kube-InsightAI pipeline failed."
         }
 
         always {
-            sh 'docker logout || true'
             sh '''
-                rm -f ca-certificates.crt || true
                 docker logout || true
+                rm -f ca-certificates.crt || true
             '''
         }
     }
 }
-

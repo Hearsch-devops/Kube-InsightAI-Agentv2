@@ -1,24 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: calccast-frontend
-  namespace: calccast
+  name: kube-insightai-frontend
+  namespace: kube-insightai
 spec:
   replicas: 1
-
   selector:
     matchLabels:
-      app: calccast-frontend
-
+      app: kube-insightai-frontend
   template:
     metadata:
       labels:
-        app: calccast-frontend
-
+        app: kube-insightai-frontend
     spec:
       containers:
-        - name: calccast-frontend
-          image: 95337/calccast-frontend:BUILD_TAG
+        - name: kube-insightai-frontend
+          image: 95337/kube-insightai-frontend:BUILD_TAG
           imagePullPolicy: Always
 
           ports:
@@ -28,7 +25,6 @@ spec:
             requests:
               cpu: 50m
               memory: 64Mi
-
             limits:
               cpu: 250m
               memory: 128Mi
@@ -37,16 +33,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: calccast-frontend
-  namespace: calccast
-
+  name: kube-insightai-frontend
+  namespace: kube-insightai
 spec:
   selector:
-    app: calccast-frontend
-
+    app: kube-insightai-frontend
   ports:
     - port: 80
       targetPort: 80
       nodePort: 30080
-
   type: NodePort
