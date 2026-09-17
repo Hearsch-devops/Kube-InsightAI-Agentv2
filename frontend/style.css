@@ -367,4 +367,27 @@ body {
     font-size: 0.93rem;
     padding: 11px 13px;
   }
+
+  /* Prevent horizontal overflow in the chat window */
+  .chat-body {
+    overflow-x: hidden;
+  }
+
+  .bot-message .message-content {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Keep code blocks inside the message bubble */
+  .bot-message .message-content pre {
+    max-width: 100%;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  /* Prevent tables from expanding the chat window */
+  .bot-message .message-content table {
+    max-width: 100%;
+  }
 }
