@@ -15,7 +15,16 @@ function appendMessage(sender, text) {
 
   const contentDiv = document.createElement("div");
   contentDiv.classList.add("message-content");
-  contentDiv.textContent = text;
+
+  // Render Markdown for bot responses
+  if (sender === "bot" && window.marked && window.DOMPurify) {
+    contentDiv.innerHTML = DOMPurify.sanitize(
+      marked.parse(text)
+    );
+  } else {
+    // Display user messages as plain text
+    contentDiv.textContent = text;
+  }
 
   messageDiv.appendChild(contentDiv);
   chatBody.appendChild(messageDiv);
@@ -67,12 +76,13 @@ async function fetchBotReply(userMessage) {
 
       try {
         const errorData = await response.json();
+
         errorMessage =
           errorData.detail ||
           errorData.error ||
           errorMessage;
       } catch {
-        // Ignore JSON parsing error
+        // Ignore JSON parsing errors
       }
 
       throw new Error(errorMessage);
@@ -80,15 +90,14 @@ async function fetchBotReply(userMessage) {
 
     const data = await response.json();
 
-	if (!data.answer) {
-	  throw new Error("Backend returned an empty response.");
-	}
+    if (!data.answer) {
+      throw new Error("Backend returned an empty response.");
+    }
 
-	return data.answer;
+    return data.answer;
 
   } catch (error) {
     console.error("Kube-InsightAI API Error:", error);
-
     return `Error: ${error.message}`;
   }
 }
@@ -127,7 +136,7 @@ chatForm.addEventListener("submit", async (e) => {
   // Remove typing indicator
   removeTypingIndicator();
 
-  // Render bot response
+  // Render bot response with Markdown
   appendMessage("bot", botReply);
 
   // Store bot response locally
