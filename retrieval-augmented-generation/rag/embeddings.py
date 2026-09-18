@@ -67,11 +67,7 @@ def create_embeddings(chunks):
                     print(f"Embedded {end}/{len(texts)} chunks")
                     break
 
-                except (
-                    httpx.TimeoutException,
-                    httpx.NetworkError,
-                    httpx.HTTPStatusError,
-                ) as exc:
+                except httpx.HTTPError as exc:
                     if attempt == MAX_RETRIES:
                         raise RuntimeError(
                             f"Embedding batch {start + 1}-{end} failed "
@@ -84,9 +80,7 @@ def create_embeddings(chunks):
                         f"Embedding request failed "
                         f"(attempt {attempt}/{MAX_RETRIES}): {exc}"
                     )
-                    print(
-                        f"Retrying in {wait_seconds} seconds..."
-                    )
+                    print(f"Retrying in {wait_seconds} seconds...")
 
                     time.sleep(wait_seconds)
 
