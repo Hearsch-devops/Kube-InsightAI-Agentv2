@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kube-insightai-agent
+  name: kube-insightaiv2-agent
   namespace: kube-insightai
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kube-insightai-agent
+      app: kube-insightaiv2-agent
   template:
     metadata:
       labels:
-        app: kube-insightai-agent
+        app: kube-insightaiv2-agent
     spec:
       containers:
-        - name: kube-insightai-agent
-          image: 95337/kube-insightai-agent:BUILD_TAG
+        - name: kube-insightaiv2-agent
+          image: 95337/kube-insightaiv2-agent:BUILD_TAG
           imagePullPolicy: Always
 
           ports:
@@ -46,11 +46,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-insightai-agent
+  name: kube-insightaiv2-agent
   namespace: kube-insightai
 spec:
   selector:
-    app: kube-insightai-agent
+    app: kube-insightaiv2-agent
   ports:
     - port: 8000
       targetPort: 8000

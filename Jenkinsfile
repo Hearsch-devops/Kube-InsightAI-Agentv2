@@ -3,8 +3,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME     = "95337/kube-insightai-agent"
-        FRONTEND_IMAGE = "95337/kube-insightai-frontend"
+        IMAGE_NAME     = "95337/kube-insightaiv2-agent"
+        FRONTEND_IMAGE = "95337/kube-insightaiv2-frontend"
         IMAGE_TAG      = "${BUILD_NUMBER}"
         PROJECT_NAME   = "kube-insight-ai"
     }
