@@ -1,12 +1,12 @@
-
 pipeline {
 
     agent any
 
     environment {
-        IMAGE_NAME    = "95337/kube-insightai-agent"
+        IMAGE_NAME     = "95337/kube-insightai-agent"
         FRONTEND_IMAGE = "95337/kube-insightai-frontend"
-        IMAGE_TAG     = "${BUILD_NUMBER}"
+        IMAGE_TAG      = "${BUILD_NUMBER}"
+        PROJECT_NAME   = "kube-insight-ai"
     }
 
     stages {
@@ -23,10 +23,13 @@ pipeline {
                 echo 'Installing Python dependencies...'
 
                 sh '''
+                    set -eu
+
                     python3 -m venv .venv
                     . .venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
+
+                    python -m pip install --upgrade pip
+                    python -m pip install -r requirements.txt
                 '''
             }
         }
@@ -36,6 +39,7 @@ pipeline {
                 echo 'Running tests...'
 
                 sh '''
+                    set -eu
                     . .venv/bin/activate
 
                     if [ -d "tests" ] && [ "$(find tests -name "*.py" | wc -l)" -gt 0 ]; then
@@ -62,9 +66,10 @@ pipeline {
 
                         . .venv/bin/activate
 
-                        export LLMFOUNDRY_TOKEN="$LLMFOUNDRY_TOKEN"
+                        export PROJECT_NAME="$PROJECT_NAME"
 
-                        python -m retrieval-augmented-generation.rag.vector_store
+                        cd retrieval-augmented-generation
+                        python -m rag.vector_store
                     '''
                 }
             }
@@ -72,9 +77,11 @@ pipeline {
 
         stage('Build Application Image') {
             steps {
-                echo "Building application image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Building backend image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
                 sh '''
+                    set -eu
+
                     docker build \
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \
                         .
@@ -84,9 +91,11 @@ pipeline {
 
         stage('Build Frontend Image') {
             steps {
-                echo "Building frontend image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+                echo "Building dashboard image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
 
                 sh '''
+                    set -eu
+
                     docker build \
                         -f Dockerfile.frontend \
                         -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
@@ -107,8 +116,10 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                        set -eu
+
                         echo "$DOCKER_PASS" | docker login \
-                            -u "$DOCKER_USER" \
+                            --username "$DOCKER_USER" \
                             --password-stdin
                     '''
                 }
@@ -117,9 +128,10 @@ pipeline {
 
         stage('Push Application Image') {
             steps {
-                echo "Pushing ${IMAGE_NAME}:${IMAGE_TAG}..."
+                echo "Pushing backend image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
                 sh '''
+                    set -eu
                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
@@ -127,9 +139,10 @@ pipeline {
 
         stage('Push Frontend Image') {
             steps {
-                echo "Pushing ${FRONTEND_IMAGE}:${IMAGE_TAG}..."
+                echo "Pushing dashboard image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
 
                 sh '''
+                    set -eu
                     docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
                 '''
             }
@@ -142,26 +155,28 @@ pipeline {
                 sh '''
                     set -eu
 
-                    # Replace image tag placeholders in the manifests.
+                    # Replace image placeholders with the current build number.
                     sed -i "s|BUILD_TAG|${IMAGE_TAG}|g" \
                         kubernetes-manifests/agent.yaml \
                         kubernetes-manifests/frontend.yaml
 
-                    # Create the namespace first.
+                    # Create namespace.
                     kubectl apply \
                         -f kubernetes-manifests/namespace.yaml
 
-                    # Apply the application manifests.
+                    # Deploy backend and frontend.
                     kubectl apply \
                         -f kubernetes-manifests/agent.yaml \
                         -f kubernetes-manifests/frontend.yaml
 
-                    # Wait for rollouts to complete.
-                    kubectl rollout status deployment/kube-insightai-agent \
+                    # Wait for deployments.
+                    kubectl rollout status \
+                        deployment/kube-insightai-agent \
                         -n kube-insightai \
                         --timeout=180s
 
-                    kubectl rollout status deployment/kube-insightai-frontend \
+                    kubectl rollout status \
+                        deployment/kube-insightai-frontend \
                         -n kube-insightai \
                         --timeout=180s
                 '''
@@ -174,8 +189,8 @@ pipeline {
         success {
             echo "========================================"
             echo "Kube-InsightAI CI/CD completed!"
-            echo "Application: ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "Frontend:    ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+            echo "Backend:  ${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Frontend: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
             echo "========================================"
         }
 
