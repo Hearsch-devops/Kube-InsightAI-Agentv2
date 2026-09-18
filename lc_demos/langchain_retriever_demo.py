@@ -6,7 +6,7 @@ from langchain_chroma import Chroma
 from lc_demos.langchain_embeddings import GeminiEmbeddings
 
 # Load environment variables
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 

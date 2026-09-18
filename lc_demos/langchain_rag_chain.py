@@ -64,7 +64,7 @@ User Question:
 # 3. Configure the LLM
 # --------------------------------------------------
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 

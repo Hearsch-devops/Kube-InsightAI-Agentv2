@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kube-InsightAI | Kubernetes Diagnostics</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">⌁</div>
+            <div>
+                <h2>Kube-InsightAI</h2>
+                <span>V2.0 • BETA</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <p class="nav-label">WORKSPACE</p>
+
+            <a href="#" class="nav-item active" data-page="overview">
+                <span>▦</span> Dashboard
+            </a>
+
+            <a href="#" class="nav-item" data-page="clusters">
+                <span>▤</span> Clusters
+            </a>
+
+            <a href="#" class="nav-item" data-page="query">
+                <span>▱</span> Query
+            </a>
+
+            <p class="nav-label">SYSTEM</p>
+
+            <a href="#" class="nav-item" data-page="settings">
+                <span>⚙</span> Settings
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="connection-status">
+                <span class="status-dot"></span>
+                <div>
+                    <strong>Local Cluster</strong>
+                    <small>Connection: Demo</small>
+                </div>
+            </div>
+            <div class="version">Kube-InsightAI V2.0</div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <p class="breadcrumb">WORKSPACE / OVERVIEW</p>
+                <h1>Kubernetes Diagnostics</h1>
+                <p class="subtitle">Monitor, troubleshoot, and optimize your cluster</p>
+            </div>
+
+            <div class="topbar-actions">
+                <span class="environment-badge">
+                    <span class="status-dot"></span> DEMO ENVIRONMENT
+                </span>
+                <button class="icon-button" id="refreshButton" title="Refresh dashboard">↻</button>
+            </div>
+        </header>
+
+        <!-- Page Navigation -->
+        <div class="page-tabs">
+            <button class="page-tab active" data-tab="overview">▦ Overview</button>
+            <button class="page-tab" data-tab="monitoring">⌁ Monitoring</button>
+            <button class="page-tab" data-tab="logs">▤ Logs</button>
+            <button class="page-tab" data-tab="recommendations">♧ Recommendations</button>
+            <button class="page-tab" data-tab="history">◷ History</button>
+            <button class="page-tab" id="exportButton">⇩ Export</button>
+        </div>
+
+        <!-- Dashboard Content -->
+        <section id="dashboardView" class="page-view">
+
+            <!-- Cluster Health -->
+            <section class="panel health-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-eyebrow">CLUSTER OVERVIEW</p>
+                        <h2>Cluster Health</h2>
+                    </div>
+                    <span class="live-badge"><span class="status-dot"></span> LIVE PREVIEW</span>
+                </div>
+
+                <div class="health-grid">
+
+                    <div class="health-score">
+                        <div class="health-ring">
+                            <div class="health-ring-inner">
+                                <strong id="healthScore">73</strong>
+                                <span>/ 100</span>
+                            </div>
+                        </div>
+                        <span class="health-label" id="healthLabel">Degraded</span>
+                    </div>
+
+                    <div class="alert-metrics">
+                        <div class="alert-row">
+                            <div class="alert-title critical">◉ <span>Critical Alerts</span></div>
+                            <strong id="criticalAlerts">2</strong>
+                        </div>
+                        <div class="alert-track">
+                            <div class="alert-fill critical-fill" style="width: 40%"></div>
+                        </div>
+
+                        <div class="alert-row">
+                            <div class="alert-title warning">△ <span>Warning Alerts</span></div>
+                            <strong id="warningAlerts">5</strong>
+                        </div>
+                        <div class="alert-track">
+                            <div class="alert-fill warning-fill" style="width: 40%"></div>
+                        </div>
+
+                        <div class="usage-grid">
+                            <div class="usage-card">
+                                <span class="usage-icon purple">▣</span>
+                                <strong id="cpuUsage">68%</strong>
+                                <small>CPU Usage</small>
+                            </div>
+                            <div class="usage-card">
+                                <span class="usage-icon cyan">▰</span>
+                                <strong id="memoryUsage">74%</strong>
+                                <small>Memory Usage</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cluster-stats">
+                        <div class="stat-row">
+                            <span>▤ &nbsp; Nodes</span>
+                            <div><b class="success-text">4 ready</b><b class="danger-text">1 down</b></div>
+                        </div>
+                        <div class="stat-row">
+                            <span>⌁ &nbsp; Version</span>
+                            <b class="outline-badge">v1.34.8</b>
+                        </div>
+                        <div class="stat-row">
+                            <span>◷ &nbsp; Uptime</span>
+                            <b>45d 12h 34m</b>
+                        </div>
+                        <div class="stat-row pod-capacity">
+                            <span>Pod Capacity <b>47/110</b></span>
+                            <div class="capacity-track">
+                                <div style="width:43%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Resource Cards -->
+            <div class="resource-grid">
+
+                <div class="resource-card">
+                    <div class="resource-top">
+                        <div class="resource-icon purple-bg">⬡</div>
+                        <span class="resource-percentage">70%</span>
+                    </div>
+                    <h3>Pods</h3>
+                    <p class="resource-count"><strong>7</strong> / 10 healthy</p>
+                    <div class="mini-progress"><div style="width:70%"></div></div>
+                    <div class="resource-status-list">
+                        <div><span class="status-dot"></span> api-gateway <b>Running</b></div>
+                        <div><span class="status-dot"></span> auth-service <b>Running</b></div>
+                        <div class="unhealthy"><span>△</span> payment-processor <b>CrashLoopBackOff</b></div>
+                    </div>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-top">
+                        <div class="resource-icon cyan-bg">▤</div>
+                        <span class="resource-percentage">83%</span>
+                    </div>
+                    <h3>Services</h3>
+                    <p class="resource-count"><strong>5</strong> / 6 healthy</p>
+                    <div class="mini-progress"><div style="width:83%"></div></div>
+                    <div class="resource-status-list">
+                        <div><span class="status-dot"></span> api-gateway <b>Active</b></div>
+                        <div><span class="status-dot"></span> auth-service <b>Active</b></div>
+                        <div class="unhealthy"><span>×</span> payment-processor <b>Error</b></div>
+                    </div>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-top">
+                        <div class="resource-icon blue-bg">☁</div>
+                        <span class="resource-percentage danger-text">67%</span>
+                    </div>
+                    <h3>Deployments</h3>
+                    <p class="resource-count"><strong>4</strong> / 6 healthy</p>
+                    <div class="mini-progress"><div style="width:67%"></div></div>
+                    <div class="resource-status-list">
+                        <div><span class="status-dot"></span> api-gateway <b>Available</b></div>
+                        <div><span class="status-dot"></span> auth-service <b>Available</b></div>
+                        <div class="unhealthy"><span>×</span> payment-processor <b>Failed</b></div>
+                    </div>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-top">
+                        <div class="resource-icon pink-bg">◎</div>
+                        <span class="resource-percentage danger-text">67%</span>
+                    </div>
+                    <h3>Ingresses</h3>
+                    <p class="resource-count"><strong>2</strong> / 3 healthy</p>
+                    <div class="mini-progress"><div style="width:67%"></div></div>
+                    <div class="resource-status-list">
+                        <div><span class="status-dot"></span> main-ingress <b>Active</b></div>
+                        <div><span class="status-dot"></span> admin-ingress <b>Active</b></div>
+                        <div class="unhealthy"><span>◷</span> staging-ingress <b>Pending</b></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Lower Dashboard -->
+            <div class="bottom-grid">
+
+                <section class="panel activity-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="section-eyebrow">SYSTEM EVENTS</p>
+                            <h2>Recent Activity</h2>
+                        </div>
+                        <button class="text-button">View all →</button>
+                    </div>
+
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <span class="activity-icon danger">!</span>
+                            <div><strong>Pod failure detected</strong><p>payment-processor entered CrashLoopBackOff</p><small>2 minutes ago</small></div>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-icon warning">△</span>
+                            <div><strong>Node resource warning</strong><p>worker-node1 memory usage above threshold</p><small>8 minutes ago</small></div>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-icon success">✓</span>
+                            <div><strong>Deployment updated</strong><p>api-gateway rollout completed successfully</p><small>15 minutes ago</small></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel quick-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="section-eyebrow">AI OPERATIONS</p>
+                            <h2>Quick Actions</h2>
+                        </div>
+                    </div>
+
+                    <button class="quick-action" data-assistant-query="Show me the current critical issues in my cluster">
+                        <span>◉</span> Analyze critical issues <b>→</b>
+                    </button>
+                    <button class="quick-action" data-assistant-query="Why is payment-processor in CrashLoopBackOff?">
+                        <span>⌕</span> Investigate failed pods <b>→</b>
+                    </button>
+                    <button class="quick-action" data-assistant-query="Show me the health of my Kubernetes cluster">
+                        <span>⌁</span> Run health check <b>→</b>
+                    </button>
+                </section>
+
+            </div>
+
+        </section>
+
+        <!-- Other page content -->
+        <section id="secondaryView" class="page-view hidden">
+            <section class="panel placeholder-panel">
+                <div class="placeholder-icon">⌁</div>
+                <h2 id="secondaryTitle">Monitoring</h2>
+                <p>This module will be connected to live Kubernetes data in a future phase.</p>
+                <button class="primary-button" id="backToOverview">← Back to Overview</button>
+            </section>
+        </section>
+
+    </main>
+</div>
+
+<!-- Floating AI Assistant -->
+<button class="assistant-launcher" id="assistantLauncher" aria-label="Open Kube-InsightAI Assistant">
+	<form class="assistant-input-area" id="assistantForm">
+    <input
+			type="text"
+			id="assistantInput"
+			placeholder="Ask about your cluster..."
+			autocomplete="off"
+			required
+		>
+
+		<button
+			type="submit"
+			id="assistantSendButton"
+			aria-label="Send message"
+		>
+			↑
+		</button>
+	</form>
+
+	<div class="assistant-footer">
+		Powered by LangGraph + RAG
+	</div>
+    <span>✦</span>
+</button>
+
+<div class="assistant-tooltip">Ask Kube-InsightAI</div>
+
+<!-- Floating AI Assistant -->
+<button
+    class="assistant-launcher"
+    id="assistantLauncher"
+    aria-label="Open Kube-InsightAI Assistant"
+>
+    <span>✦</span>
+</button>
+
+<div class="assistant-tooltip">Ask Kube-InsightAI</div>
+
+<!-- AI Assistant Panel -->
+<aside
+    class="assistant-panel"
+    id="assistantPanel"
+    aria-label="Kube-InsightAI Assistant"
+>
+    <div class="assistant-header">
+        <div class="assistant-brand">
+            <div class="assistant-avatar">✦</div>
+            <div>
+                <h3>Kube-InsightAI</h3>
+                <span><i></i> Assistant • V2.0</span>
+            </div>
+        </div>
+
+        <button
+            id="closeAssistant"
+            class="close-button"
+            aria-label="Close assistant"
+        >
+            ×
+        </button>
+    </div>
+
+    <div class="assistant-messages" id="assistantMessages">
+        <div class="assistant-message assistant-bot-message">
+            <strong>Hello! I'm Kube-InsightAI.</strong>
+            <p>
+                I can help you understand Kubernetes concepts and troubleshoot
+                issues using the available knowledge base.
+            </p>
+        </div>
+    </div>
+
+    <!-- Assistant Input -->
+    <form class="assistant-input-area" id="assistantForm">
+        <input
+            type="text"
+            id="assistantInput"
+            placeholder="Ask about your cluster..."
+            autocomplete="off"
+            required
+        />
+
+        <button
+            type="submit"
+            id="assistantSendButton"
+            aria-label="Send message"
+        >
+            ↑
+        </button>
+    </form>
+
+    <div class="assistant-footer">
+        Powered by LangGraph + RAG
+    </div>
+</aside>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

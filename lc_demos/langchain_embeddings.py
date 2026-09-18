@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_core.embeddings import Embeddings
 
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")

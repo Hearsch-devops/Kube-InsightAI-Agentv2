@@ -15,7 +15,7 @@ from llm_rerank_retrieval import retrieve_candidates, rerank_candidates
 BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
 JUDGE_MODEL = "models/gemini-2.5-flash"
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 

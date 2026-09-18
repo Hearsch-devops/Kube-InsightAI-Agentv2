@@ -6,7 +6,7 @@ from openai import OpenAI
 from .retriever import retrieve_documents
 
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 
 BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"

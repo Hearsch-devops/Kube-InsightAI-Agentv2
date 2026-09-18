@@ -30,7 +30,7 @@ TOP_K = 5
 # Load environment
 # --------------------------------------------------
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 

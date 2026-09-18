@@ -1,8 +1,14 @@
 FROM nginx:alpine
 
+# Main frontend files
 COPY frontend/index.html /usr/share/nginx/html/index.html
 COPY frontend/script.js /usr/share/nginx/html/script.js
 COPY frontend/style.css /usr/share/nginx/html/style.css
+
+# Dashboard files
+COPY frontend/dashboard /usr/share/nginx/html/dashboard
+
+# Nginx configuration
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

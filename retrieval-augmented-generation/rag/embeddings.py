@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from .text_splitter import split_documents
 from .document_loader import load_documents
 
-load_dotenv("/home/ubuntu/ai-devops-agent/.env")
+load_dotenv()
 
 MODEL_NAME = "models/gemini-embedding-001"
 BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
