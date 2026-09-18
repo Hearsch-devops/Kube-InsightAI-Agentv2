@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kube-InsightAI Agent</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Font Awesome for send/bot icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="chat-container">
+    <!-- Header -->
+    <header class="chat-header">
+      <div class="bot-info">
+        <i class="fa-solid fa-robot bot-avatar"></i>
+        <div>
+          <h2>Kube-InsightAI Assistant</h2>
+        </div>
+      </div>
+    </header>
+
+    <!-- Chat Messages Body -->
+    <div class="chat-body" id="chatBody">
+      <div class="message bot-message">
+        <div class="message-content">
+          Hello! I'm Kube-InsightAI. I can help you troubleshoot Kubernetes issues using my knowledge base.
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Form -->
+    <form class="chat-input-area" id="chatForm">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Type a message..."
+        autocomplete="off"
+        required
+      />
+      <button type="submit" id="sendBtn">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script src="script.js"></script>
+  </body>
+</body>
+</html>
