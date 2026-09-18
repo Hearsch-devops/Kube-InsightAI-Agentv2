@@ -171,12 +171,12 @@ pipeline {
 
                     # Wait for deployments.
                     kubectl rollout status \
-                        deployment/kube-insightai-agent \
+                        deployment/kube-insightaiv2-agent \
                         -n kube-insightai \
                         --timeout=180s
 
                     kubectl rollout status \
-                        deployment/kube-insightai-frontend \
+                        deployment/kube-insightaiv2-frontend \
                         -n kube-insightai \
                         --timeout=180s
                 '''
