@@ -144,18 +144,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	function appendAssistantMessage(sender, text) {
 		const message = document.createElement("div");
-
+	
 		message.className =
 			sender === "user"
 				? "assistant-message assistant-user-message"
 				: "assistant-message assistant-bot-message";
-
+	
 		if (sender === "user") {
+			// Display user messages as plain text
 			message.textContent = text;
 		} else {
-			message.textContent = text;
+			// Render AI responses as sanitized Markdown
+			if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+				message.innerHTML = DOMPurify.sanitize(marked.parse(text));
+			} else {
+				// Fallback if the libraries are unavailable
+				message.textContent = text;
+				console.warn("Markdown libraries are not available.");
+			}
 		}
-
+	
 		assistantMessages.appendChild(message);
 		assistantMessages.scrollTop = assistantMessages.scrollHeight;
 	}
