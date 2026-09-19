@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-insightai-agent
+  namespace: kube-insightai
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-insightai-read-only
+rules:
+  # Pods and pod logs
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Services, endpoints, namespaces, and events
+  - apiGroups: [""]
+    resources:
+      - services
+      - endpoints
+      - namespaces
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+
+  # ConfigMaps, excluding Secrets
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Nodes
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Deployments and ReplicaSets
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Jobs and CronJobs
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+
+  # EndpointSlices
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-insightai-read-only-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-insightai-read-only
+subjects:
+  - kind: ServiceAccount
+    name: kube-insightai-agent
+    namespace: kube-insightai

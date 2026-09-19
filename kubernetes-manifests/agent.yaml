@@ -13,6 +13,8 @@ spec:
       labels:
         app: kube-insightaiv2-agent
     spec:
+      serviceAccountName: kube-insightai-agent
+
       containers:
         - name: kube-insightaiv2-agent
           image: 95337/kube-insightaiv2-agent:BUILD_TAG
