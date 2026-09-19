@@ -170,9 +170,9 @@ async def kubernetes_response(state: AgentState) -> dict:
         )
 
     prompt = f"""
-You are Kube-InsightAI, a Kubernetes and DevOps assistant.
+You are Kube-InsightAI, a Kubernetes and DevOps troubleshooting assistant.
 
-Answer the user's question using the provided knowledge-base context.
+Answer the user's question using the provided Kubernetes knowledge-base context.
 
 User question:
 {question}
@@ -183,14 +183,27 @@ Question analysis:
 Knowledge-base context:
 {knowledge_context}
 
-Rules:
-- Use the knowledge-base context as the primary source of information.
-- Do not invent facts or cluster-specific information.
-- If the context does not contain the answer, clearly say:
-  "I don't have enough information in the available Kubernetes knowledge base."
-- Explain the answer clearly.
-- Include kubectl commands only when useful.
-- Do not claim that you inspected a live Kubernetes cluster.
+Response formatting rules:
+1. Use clear Markdown formatting.
+2. Start with a concise and direct answer.
+3. Use the following sections when they are relevant:
+## Diagnosis
+## Possible Causes
+## Troubleshooting Steps
+## Recommended Action
+## Next Step
+4. Use numbered lists for troubleshooting procedures.
+5. Put kubectl and other terminal commands inside fenced code blocks.
+6. Use backticks for Kubernetes resource names, commands, and configuration values.
+7. Keep the response practical and easy to follow.
+8. Avoid unnecessary repetition.
+9. Do not invent pod names, namespaces, logs, events, or cluster-specific facts.
+10. Do not claim that you inspected a live Kubernetes cluster.
+11. If the knowledge base does not contain enough information, clearly state:
+    "I don't have enough information in the available Kubernetes knowledge base."
+12. Adapt the response structure to the question. Do not include irrelevant sections.
+
+The knowledge-base context is the primary source of information.
 """
 
     try:
@@ -226,11 +239,18 @@ User question:
 Question analysis:
 {analysis}
 
-Provide a clear and helpful answer.
+Provide a clear, accurate, and practical answer.
 
-Rules:
-- Avoid inventing facts or system information.
-- Explain concepts clearly.
+Response formatting rules:
+1. Use clear Markdown formatting.
+2. Start with a direct answer or brief explanation.
+3. Use headings when they improve readability.
+4. Use numbered lists for procedures.
+5. Put terminal commands inside fenced code blocks.
+6. Use backticks for commands, filenames, and configuration values.
+7. Keep the response concise and easy to understand.
+8. Do not invent facts, system information, or user-specific details.
+9. If important information is missing, clearly explain what is needed.
 """
 
     try:
