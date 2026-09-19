@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kube-insightaiv2-frontend
-  namespace: kube-insightai
+  namespace: kube-insightaiv2
 spec:
   replicas: 1
   selector:
@@ -34,7 +34,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kube-insightaiv2-frontend
-  namespace: kube-insightai
+  namespace: kube-insightaiv2
 spec:
   selector:
     app: kube-insightaiv2-frontend
