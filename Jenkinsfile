@@ -166,6 +166,7 @@ pipeline {
 
                     # Deploy backend and frontend.
                     kubectl apply \
+                        -f kubernetes-manifests/kube-insightai-rbac.yaml \
                         -f kubernetes-manifests/agent.yaml \
                         -f kubernetes-manifests/frontend.yaml
 
