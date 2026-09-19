@@ -37,14 +37,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	const API_URL = "/api/chat";
 
-    // Assistant open / close
-    assistantLauncher.addEventListener("click", () => {
-        assistantPanel.classList.toggle("open");
-    });
+	// Open the assistant panel
+	assistantLauncher.addEventListener("click", () => {
+		assistantPanel.classList.add("open");
+	});
 
-    closeAssistant.addEventListener("click", () => {
-        assistantPanel.classList.remove("open");
-    });
+	// Close the assistant panel
+	closeAssistant.addEventListener("click", () => {
+		assistantPanel.classList.remove("open");
+	});
 
     // Sidebar navigation
     document.querySelectorAll(".nav-item").forEach(item => {
