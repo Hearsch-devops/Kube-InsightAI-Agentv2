@@ -294,38 +294,13 @@
     </main>
 </div>
 
-<!-- Floating AI Assistant -->
-<button class="assistant-launcher" id="assistantLauncher" aria-label="Open Kube-InsightAI Assistant">
-	<form class="assistant-input-area" id="assistantForm">
-    <input
-			type="text"
-			id="assistantInput"
-			placeholder="Ask about your cluster..."
-			autocomplete="off"
-			required
-		>
-
-		<button
-			type="submit"
-			id="assistantSendButton"
-			aria-label="Send message"
-		>
-			↑
-		</button>
-	</form>
-
-	<div class="assistant-footer">
-		Powered by LangGraph + RAG
-	</div>
-    <span>✦</span>
-</button>
-
 <div class="assistant-tooltip">Ask Kube-InsightAI</div>
 
 <!-- Floating AI Assistant -->
 <button
     class="assistant-launcher"
     id="assistantLauncher"
+    type="button"
     aria-label="Open Kube-InsightAI Assistant"
 >
     <span>✦</span>
@@ -361,8 +336,7 @@
         <div class="assistant-message assistant-bot-message">
             <strong>Hello! I'm Kube-InsightAI.</strong>
             <p>
-                I can help you understand Kubernetes concepts and troubleshoot
-                issues using the available knowledge base.
+                Ask about your Kubernetes cluster...
             </p>
         </div>
     </div>
@@ -376,7 +350,6 @@
             autocomplete="off"
             required
         />
-
         <button
             type="submit"
             id="assistantSendButton"
@@ -385,10 +358,6 @@
             ↑
         </button>
     </form>
-
-    <div class="assistant-footer">
-        Powered by LangGraph + RAG
-    </div>
 </aside>
 <link rel="stylesheet" href="dashboard.css">
 <script src="dashboard.js"></script>

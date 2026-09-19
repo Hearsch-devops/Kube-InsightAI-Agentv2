@@ -17,6 +17,24 @@ document.addEventListener("DOMContentLoaded", () => {
 	const assistantSendButton = document.getElementById("assistantSendButton");
 	const assistantMessages = document.getElementById("assistantMessages");
 
+	console.log("Assistant launcher:", assistantLauncher);
+	console.log("Assistant panel:", assistantPanel);
+	console.log("Close button:", closeAssistant);
+
+	if (assistantLauncher && assistantPanel) {
+		assistantLauncher.addEventListener("click", () => {
+			console.log("Assistant launcher clicked");
+			assistantPanel.classList.toggle("open");
+			console.log("Panel classes:", assistantPanel.className);
+		});
+	}
+	
+	if (closeAssistant && assistantPanel) {
+		closeAssistant.addEventListener("click", () => {
+			assistantPanel.classList.remove("open");
+		});
+	}
+
 	const API_URL = "/api/chat";
 
     // Assistant open / close
