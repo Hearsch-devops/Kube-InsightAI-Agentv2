@@ -32,7 +32,7 @@ rules:
       - list
       - watch
 
-  # ConfigMaps, excluding Secrets
+  # ConfigMaps
   - apiGroups: [""]
     resources:
       - configmaps

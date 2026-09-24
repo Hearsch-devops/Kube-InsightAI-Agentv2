@@ -7,7 +7,9 @@ from langgraph.graph import END, START, StateGraph
 
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
+from app.mcp.client import MCPClient
 from lc_demos.langchain_retriever_demo import retriever
+from lc_demos.langchain_rag_chain import format_documents
 
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,25 @@ KUBERNETES_KEYWORDS = (
     "node",
 )
 
+LIVE_CLUSTER_KEYWORDS = (
+    "running pods",
+    "pod status",
+    "pod logs",
+    "logs of",
+    "deployment status",
+    "deployment health",
+    "running deployments",
+    "cluster events",
+    "kubernetes events",
+    "events in",
+    "what is running",
+    "which pods",
+    "which deployments",
+    "services",
+    "service status",
+    "running services",
+    "which services",
+)
 
 def extract_question(state: AgentState) -> str:
     """Extract the latest user question from the graph state."""
@@ -73,51 +94,6 @@ Question:
             "error": "Unable to analyze the question.",
         }
 
-
-def route_question(state: AgentState) -> dict:
-    """Route the question to the appropriate response workflow."""
-
-    question = extract_question(state).lower()
-
-    if any(keyword in question for keyword in KUBERNETES_KEYWORDS):
-        route: Literal["kubernetes", "general"] = "kubernetes"
-    else:
-        route = "general"
-
-    logger.info("Question routed to: %s", route)
-
-    return {"route": route}
-
-
-def format_documents(documents: list) -> tuple[str, list[str]]:
-    """Convert retrieved documents into LLM context and source information."""
-
-    context_parts = []
-    sources = []
-
-    for index, document in enumerate(documents, start=1):
-        metadata = getattr(document, "metadata", {}) or {}
-        content = str(getattr(document, "page_content", ""))
-
-        source = str(metadata.get("source", "unknown"))
-        chunk = str(metadata.get("chunk_index", "unknown"))
-
-        context_parts.append(
-            f"""
---- Document {index} ---
-Source: {source}
-Chunk: {chunk}
-
-{content}
-""".strip()
-        )
-
-        if source not in sources:
-            sources.append(source)
-
-    return "\n\n".join(context_parts), sources
-
-
 async def retrieve_context(state: AgentState) -> dict:
     """Retrieve relevant Kubernetes SOP content from the vector database."""
 
@@ -126,13 +102,17 @@ async def retrieve_context(state: AgentState) -> dict:
     try:
         logger.info("Retrieving RAG context for question")
 
-        # Run the synchronous retriever in a worker thread.
         documents = await asyncio.to_thread(
             retriever.invoke,
             question,
         )
 
-        context, sources = format_documents(documents)
+        context = format_documents(documents)
+
+        sources = [
+            doc.metadata.get("source", "unknown")
+            for doc in documents
+        ]
 
         logger.info(
             "Retrieved %d documents from the knowledge base",
@@ -153,6 +133,272 @@ async def retrieve_context(state: AgentState) -> dict:
             "error": "Unable to retrieve information from the knowledge base.",
         }
 
+    except Exception:
+        logger.exception("RAG context retrieval failed")
+
+        return {
+            "context": "",
+            "sources": [],
+            "error": "Unable to retrieve information from the knowledge base.",
+        }
+
+def route_question(state: AgentState) -> dict:
+    """Route the question to the appropriate response workflow."""
+
+    question = extract_question(state).lower()
+
+    live_cluster_intent = (
+        any(keyword in question for keyword in LIVE_CLUSTER_KEYWORDS)
+        or (
+            "pod" in question
+            and ("running" in question or "status" in question)
+        )
+        or (
+            "deployment" in question
+            and (
+                "running" in question
+                or "status" in question
+                or "health" in question
+            )
+        )
+        or (
+            "event" in question
+            and (
+                "cluster" in question
+                or "kubernetes" in question
+                or "namespace" in question
+            )
+        )
+        or "show me the logs" in question
+        or "get the logs" in question
+    )
+
+    if live_cluster_intent:
+        route: Literal["mcp", "kubernetes", "general"] = "mcp"
+
+    elif any(keyword in question for keyword in KUBERNETES_KEYWORDS):
+        route = "kubernetes"
+
+    else:
+        route = "general"
+
+    logger.info("Question routed to: %s", route)
+
+    return {"route": route}
+
+async def mcp_response(state: AgentState) -> dict:
+    """Retrieve live Kubernetes information using MCP."""
+
+    question = extract_question(state)
+
+    client = MCPClient()
+
+    try:
+        logger.info("Connecting to Kubernetes MCP server")
+
+        await client.connect()
+
+        question_lower = question.lower()
+
+        # Select the MCP tool based on the user's Kubernetes intent.
+        # More specific intents are checked before generic pod keywords.
+        if any(
+            keyword in question_lower
+            for keyword in (
+                "log",
+                "logs",
+                "logging",
+            )
+        ):
+            logger.info("MCP log request detected")
+
+            # First retrieve the current pod list so we do not
+            # hardcode a pod name.
+            pod_result = await client.call_tool(
+                "list_pods",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+            if pod_result.is_error:
+                raise RuntimeError(
+                    f"Unable to list pods before retrieving logs: {pod_result}"
+                )
+
+            pod_context = pod_result.structured_content.get(
+                "result",
+                "",
+            )
+
+            # Resolve the requested pod using a simple deterministic match.
+            requested_pod = None
+
+            if "agent" in question_lower:
+                for line in pod_context.splitlines():
+                    if line.startswith("Pod:") and "agent" in line.lower():
+                        requested_pod = line.replace("Pod:", "").strip()
+                        break
+
+            elif "frontend" in question_lower:
+                for line in pod_context.splitlines():
+                    if line.startswith("Pod:") and "frontend" in line.lower():
+                        requested_pod = line.replace("Pod:", "").strip()
+                        break
+
+            if not requested_pod:
+                raise ValueError(
+                    "I could not identify which pod you want logs from."
+                )
+
+            logger.info(
+                "Resolved pod for log request: %s",
+                requested_pod,
+            )
+
+            result = await client.call_tool(
+                "get_pod_logs",
+                {
+                    "pod_name": requested_pod,
+                    "namespace": "kube-insightaiv2",
+                    "tail_lines": 100,
+                },
+            )
+
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "deployment",
+                "deployments",
+            )
+        ):
+            logger.info("MCP tool selected: list_deployments")
+
+            result = await client.call_tool(
+                "list_deployments",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "service",
+                "services",
+            )
+        ):
+            logger.info("MCP tool selected: list_services")
+
+            result = await client.call_tool(
+                "list_services",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "event",
+                "events",
+            )
+        ):
+            logger.info("MCP tool selected: list_events")
+
+            result = await client.call_tool(
+                "list_events",
+                {
+                    "namespace": "kube-insightaiv2",
+                    "limit": 20,
+                },
+            )
+
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "pod",
+                "pods",
+                "running",
+                "status",
+            )
+        ):
+            logger.info("MCP tool selected: list_pods")
+
+            result = await client.call_tool(
+                "list_pods",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+        else:
+            logger.info("MCP tool selected: list_pods")
+
+            result = await client.call_tool(
+                "list_pods",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+        if result.is_error:
+            raise RuntimeError(
+                f"MCP tool returned an error: {result}"
+            )
+
+        mcp_context = result.structured_content.get(
+            "result",
+            "",
+        )
+
+        prompt = f"""
+You are Kube-InsightAI, a Kubernetes and DevOps assistant.
+
+Answer the user's question using the live Kubernetes information
+retrieved through MCP.
+
+User question:
+{question}
+
+Live Kubernetes information:
+{mcp_context}
+
+Rules:
+1. Clearly distinguish live cluster information from general knowledge.
+2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
+3. Use Markdown formatting.
+4. Use headings when useful.
+5. Keep the response practical and concise.
+6. If the live information does not contain enough information to answer,
+   clearly say so.
+7. Do not claim to have inspected information that was not provided by MCP.
+8. Preserve Kubernetes resource names, URLs, IP addresses,
+   timestamps, status values, and log lines exactly as provided.
+9. Never alter, correct, normalize, or paraphrase literal log content.
+10. When presenting logs, place the original log lines inside a code block.
+"""
+
+        llm = get_chat_model()
+        response = await llm.ainvoke(prompt)
+        answer = str(response.content)
+
+        return {
+            "messages": [AIMessage(content=answer)],
+            "answer": answer,
+            "context": mcp_context,
+            "sources": ["MCP: Kubernetes cluster"],
+        }
+
+    except Exception:
+        logger.exception("MCP response generation failed")
+
+        return {
+            "error": "Unable to retrieve live Kubernetes information.",
+        }
+
+    finally:
+        await client.close()
 
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
@@ -284,8 +530,12 @@ def build_graph():
 
     builder.add_node("analyze", analyze_question)
     builder.add_node("router", route_question)
+
     builder.add_node("retrieve_context", retrieve_context)
     builder.add_node("kubernetes", kubernetes_response)
+
+    builder.add_node("mcp", mcp_response)
+
     builder.add_node("general", general_response)
 
     builder.add_edge(START, "analyze")
@@ -296,12 +546,15 @@ def build_graph():
         choose_route,
         {
             "kubernetes": "retrieve_context",
+            "mcp": "mcp",
             "general": "general",
         },
     )
 
     builder.add_edge("retrieve_context", "kubernetes")
+
     builder.add_edge("kubernetes", END)
+    builder.add_edge("mcp", END)
     builder.add_edge("general", END)
 
     return builder.compile()

@@ -150,7 +150,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                echo 'Deploying Kube-InsightAI to Kubernetes...'
+                echo 'Deploying Kube-InsightAI V2 to Kubernetes...'
 
                 sh '''
                     set -eu
@@ -164,20 +164,28 @@ pipeline {
                     kubectl apply \
                         -f kubernetes-manifests/namespace.yaml
 
-                    # Deploy backend and frontend.
+                    # Apply ServiceAccount and RBAC permissions.
                     kubectl apply \
-                        -f kubernetes-manifests/agent.yaml \
+                        -f kubernetes-manifests/kube-insightai-rbac.yaml
+
+                    # Deploy backend.
+                    kubectl apply \
+                        -f kubernetes-manifests/agent.yaml
+
+                    # Deploy frontend.
+                    kubectl apply \
                         -f kubernetes-manifests/frontend.yaml
 
-                    # Wait for deployments.
+                    # Wait for backend rollout.
                     kubectl rollout status \
                         deployment/kube-insightaiv2-agent \
-                        -n kube-insightai \
+                        -n kube-insightaiv2 \
                         --timeout=180s
 
+                    # Wait for frontend rollout.
                     kubectl rollout status \
                         deployment/kube-insightaiv2-frontend \
-                        -n kube-insightai \
+                        -n kube-insightaiv2 \
                         --timeout=180s
                 '''
             }
