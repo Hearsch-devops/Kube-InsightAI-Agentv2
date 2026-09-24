@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements-mcp.txt .
+
+RUN pip install --no-cache-dir -r requirements-mcp.txt
+
+# Copy Kubernetes MCP server
+COPY app/mcp/server.py /app/mcp/server.py
+
+# MCP HTTP server
+EXPOSE 8001
+
+CMD ["python", "/app/mcp/server.py"]
