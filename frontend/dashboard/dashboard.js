@@ -1,51 +1,51 @@
-
 // Kube-InsightAI V2.0 — Dashboard interactions
 // Dashboard mock data + live Kube-InsightAI assistant
 // Backend: FastAPI → LangGraph → RAG
 
 document.addEventListener("DOMContentLoaded", () => {
-	const backToOverview = document.getElementById("backToOverview");
+        const backToOverview = document.getElementById("backToOverview");
     const assistantLauncher = document.getElementById("assistantLauncher");
     const assistantPanel = document.getElementById("assistantPanel");
     const closeAssistant = document.getElementById("closeAssistant");
     const refreshButton = document.getElementById("refreshButton");
+    const namespaceSelector = document.getElementById("namespaceSelector");
     const dashboardView = document.getElementById("dashboardView");
     const secondaryView = document.getElementById("secondaryView");
     const secondaryTitle = document.getElementById("secondaryTitle");
     const assistantForm = document.getElementById("assistantForm");
-	const assistantInput = document.getElementById("assistantInput");
-	const assistantSendButton = document.getElementById("assistantSendButton");
-	const assistantMessages = document.getElementById("assistantMessages");
+        const assistantInput = document.getElementById("assistantInput");
+        const assistantSendButton = document.getElementById("assistantSendButton");
+        const assistantMessages = document.getElementById("assistantMessages");
 
-	console.log("Assistant launcher:", assistantLauncher);
-	console.log("Assistant panel:", assistantPanel);
-	console.log("Close button:", closeAssistant);
+        console.log("Assistant launcher:", assistantLauncher);
+        console.log("Assistant panel:", assistantPanel);
+        console.log("Close button:", closeAssistant);
 
-	if (assistantLauncher && assistantPanel) {
-		assistantLauncher.addEventListener("click", () => {
-			console.log("Assistant launcher clicked");
-			assistantPanel.classList.toggle("open");
-			console.log("Panel classes:", assistantPanel.className);
-		});
-	}
-	
-	if (closeAssistant && assistantPanel) {
-		closeAssistant.addEventListener("click", () => {
-			assistantPanel.classList.remove("open");
-		});
-	}
+        if (assistantLauncher && assistantPanel) {
+                assistantLauncher.addEventListener("click", () => {
+                        console.log("Assistant launcher clicked");
+                        assistantPanel.classList.toggle("open");
+                        console.log("Panel classes:", assistantPanel.className);
+                });
+        }
 
-	const API_URL = "/api/chat";
+        if (closeAssistant && assistantPanel) {
+                closeAssistant.addEventListener("click", () => {
+                        assistantPanel.classList.remove("open");
+                });
+        }
 
-	// Open the assistant panel
-	assistantLauncher.addEventListener("click", () => {
-		assistantPanel.classList.add("open");
-	});
+        const API_URL = "/api/chat";
 
-	// Close the assistant panel
-	closeAssistant.addEventListener("click", () => {
-		assistantPanel.classList.remove("open");
-	});
+        // Open the assistant panel
+        assistantLauncher.addEventListener("click", () => {
+                assistantPanel.classList.add("open");
+        });
+
+        // Close the assistant panel
+        closeAssistant.addEventListener("click", () => {
+                assistantPanel.classList.remove("open");
+        });
 
     // Sidebar navigation
     document.querySelectorAll(".nav-item").forEach(item => {
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Top tabs
+// Top tabs
     document.querySelectorAll(".page-tab[data-tab]").forEach(tab => {
         tab.addEventListener("click", () => {
             document.querySelectorAll(".page-tab").forEach(t => {
@@ -89,6 +89,57 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+// Load Kubernetes namespaces
+    async function loadNamespaces() {
+        if (!namespaceSelector) return;
+
+        try {
+            namespaceSelector.innerHTML = `<option value="">Loading...</option>`;
+
+            const response = await fetch("/api/cluster/namespaces");
+
+            if (!response.ok) {
+                throw new Error("Failed to load namespaces.");
+            }
+
+            const data = await response.json();
+
+            namespaceSelector.innerHTML = "";
+
+            if (!data.namespaces || data.namespaces.length === 0) {
+                namespaceSelector.innerHTML =
+                    `<option value="">No namespaces found</option>`;
+                return;
+            }
+
+            data.namespaces.forEach(namespace => {
+                const option = document.createElement("option");
+
+                option.value = namespace.name;
+                option.textContent = namespace.name;
+
+                namespaceSelector.appendChild(option);
+            });
+
+            const preferredNamespace = data.namespaces.find(
+                namespace => namespace.name === "kube-insightaiv2"
+            );
+
+            if (preferredNamespace) {
+                namespaceSelector.value = preferredNamespace.name;
+            } else {
+                namespaceSelector.selectedIndex = 0;
+            }
+
+        } catch (error) {
+            console.error("Failed to load namespaces:", error);
+
+            namespaceSelector.innerHTML =
+                `<option value="">Unable to load</option>`;
+        }
+    }
+
+    // Overview
     function showOverview() {
         dashboardView.classList.remove("hidden");
         secondaryView.classList.add("hidden");
@@ -139,136 +190,139 @@ document.addEventListener("DOMContentLoaded", () => {
         URL.revokeObjectURL(url);
     });
 
-	// ==========================================
-	// AI ASSISTANT INTEGRATION
-	// ==========================================
+        // ==========================================
+        // AI ASSISTANT INTEGRATION
+        // ==========================================
 
-	function appendAssistantMessage(sender, text) {
-		const message = document.createElement("div");
-	
-		message.className =
-			sender === "user"
-				? "assistant-message assistant-user-message"
-				: "assistant-message assistant-bot-message";
-	
-		if (sender === "user") {
-			// Display user messages as plain text
-			message.textContent = text;
-		} else {
-			// Render AI responses as sanitized Markdown
-			if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
-				message.innerHTML = DOMPurify.sanitize(marked.parse(text));
-			} else {
-				// Fallback if the libraries are unavailable
-				message.textContent = text;
-				console.warn("Markdown libraries are not available.");
-			}
-		}
-	
-		assistantMessages.appendChild(message);
-		assistantMessages.scrollTop = assistantMessages.scrollHeight;
-	}
+        function appendAssistantMessage(sender, text) {
+                const message = document.createElement("div");
 
-	function showTypingIndicator() {
-		const typingMessage = document.createElement("div");
+                message.className =
+                        sender === "user"
+                                ? "assistant-message assistant-user-message"
+                                : "assistant-message assistant-bot-message";
 
-		typingMessage.id = "typingIndicator";
-		typingMessage.className = "assistant-message assistant-bot-message";
-		typingMessage.textContent = "Kube-InsightAI is thinking...";
+                if (sender === "user") {
+                        // Display user messages as plain text
+                        message.textContent = text;
+                } else {
+                        // Render AI responses as sanitized Markdown
+                        if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+                                message.innerHTML = DOMPurify.sanitize(marked.parse(text));
+                        } else {
+                                // Fallback if the libraries are unavailable
+                                message.textContent = text;
+                                console.warn("Markdown libraries are not available.");
+                        }
+                }
 
-		assistantMessages.appendChild(typingMessage);
-		assistantMessages.scrollTop = assistantMessages.scrollHeight;
-	}
+                assistantMessages.appendChild(message);
+                assistantMessages.scrollTop = assistantMessages.scrollHeight;
+        }
 
-	function removeTypingIndicator() {
-		const typingIndicator = document.getElementById("typingIndicator");
+        function showTypingIndicator() {
+                const typingMessage = document.createElement("div");
 
-		if (typingIndicator) {
-			typingIndicator.remove();
-		}
-	}
+                typingMessage.id = "typingIndicator";
+                typingMessage.className = "assistant-message assistant-bot-message";
+                typingMessage.textContent = "Kube-InsightAI is thinking...";
 
-	async function fetchBotReply(userMessage) {
-		try {
-			const response = await fetch(API_URL, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({
-					message: userMessage
-				})
-			});
+                assistantMessages.appendChild(typingMessage);
+                assistantMessages.scrollTop = assistantMessages.scrollHeight;
+        }
 
-			if (!response.ok) {
-				let errorMessage = "Backend request failed.";
+        function removeTypingIndicator() {
+                const typingIndicator = document.getElementById("typingIndicator");
 
-				try {
-					const errorData = await response.json();
+                if (typingIndicator) {
+                        typingIndicator.remove();
+                }
+        }
 
-					errorMessage =
-						errorData.detail ||
-						errorData.error ||
-						errorMessage;
-				} catch {
-					// Ignore JSON parsing errors
-				}
+        async function fetchBotReply(userMessage) {
+                try {
+                        const response = await fetch(API_URL, {
+                                method: "POST",
+                                headers: {
+                                        "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                        message: userMessage
+                                })
+                        });
 
-				throw new Error(errorMessage);
-			}
+                        if (!response.ok) {
+                                let errorMessage = "Backend request failed.";
 
-			const data = await response.json();
+                                try {
+                                        const errorData = await response.json();
 
-			if (!data.response) {
-				throw new Error("Backend returned an empty response.");
-			}
+                                        errorMessage =
+                                                errorData.detail ||
+                                                errorData.error ||
+                                                errorMessage;
+                                } catch {
+                                        // Ignore JSON parsing errors
+                                }
 
-			return data.response;
+                                throw new Error(errorMessage);
+                        }
 
-		} catch (error) {
-			console.error("Kube-InsightAI API Error:", error);
-			return `Error: ${error.message}`;
-		}
-	}
+                        const data = await response.json();
 
-	// Assistant form submission
-	assistantForm.addEventListener("submit", async event => {
-		event.preventDefault();
+                        if (!data.response) {
+                                throw new Error("Backend returned an empty response.");
+                        }
 
-		const message = assistantInput.value.trim();
+                        return data.response;
 
-		if (!message || assistantSendButton.disabled) {
-			return;
-		}
+                } catch (error) {
+                        console.error("Kube-InsightAI API Error:", error);
+                        return `Error: ${error.message}`;
+                }
+        }
 
-		appendAssistantMessage("user", message);
+        // Assistant form submission
+        assistantForm.addEventListener("submit", async event => {
+                event.preventDefault();
 
-		assistantInput.value = "";
-		assistantInput.disabled = true;
-		assistantSendButton.disabled = true;
+                const message = assistantInput.value.trim();
 
-		showTypingIndicator();
+                if (!message || assistantSendButton.disabled) {
+                        return;
+                }
 
-		const botReply = await fetchBotReply(message);
+                appendAssistantMessage("user", message);
 
-		removeTypingIndicator();
-		appendAssistantMessage("bot", botReply);
+                assistantInput.value = "";
+                assistantInput.disabled = true;
+                assistantSendButton.disabled = true;
 
-		assistantInput.disabled = false;
-		assistantSendButton.disabled = false;
-		assistantInput.focus();
-	});
+                showTypingIndicator();
 
-	// Quick actions → real AI assistant
-	document.querySelectorAll("[data-assistant-query]").forEach(button => {
-		button.addEventListener("click", async () => {
-			const query = button.dataset.assistantQuery;
+                const botReply = await fetchBotReply(message);
 
-			assistantPanel.classList.add("open");
-			assistantInput.value = query;
+                removeTypingIndicator();
+                appendAssistantMessage("bot", botReply);
 
-			// Automatically submit the quick action
-			assistantForm.requestSubmit();
-		});
-	});
+                assistantInput.disabled = false;
+                assistantSendButton.disabled = false;
+                assistantInput.focus();
+        });
+
+        // Quick actions → real AI assistant
+        document.querySelectorAll("[data-assistant-query]").forEach(button => {
+                button.addEventListener("click", async () => {
+                        const query = button.dataset.assistantQuery;
+
+                        assistantPanel.classList.add("open");
+                        assistantInput.value = query;
+
+                        // Automatically submit the quick action
+                        assistantForm.requestSubmit();
+                });
+        });
+
+        // Load Kubernetes namespaces
+        loadNamespaces();
 });
