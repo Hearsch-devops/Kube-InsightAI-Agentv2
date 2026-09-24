@@ -67,12 +67,45 @@
                 <p class="subtitle">Monitor, troubleshoot, and optimize your cluster</p>
             </div>
 
-            <div class="topbar-actions">
-                <span class="environment-badge">
-                    <span class="status-dot"></span> DEMO ENVIRONMENT
-                </span>
-                <button class="icon-button" id="refreshButton" title="Refresh dashboard">↻</button>
+            <div class="dashboard-filters">
+                <label for="clusterSelector">
+                    Cluster
+                    <select id="clusterSelector">
+                        <option value="local">Local Cluster</option>
+                    </select>
+                </label>
+
+                <label for="namespaceSelector">
+                    Namespace
+                    <select id="namespaceSelector">
+                        <option value="">Loading...</option>
+                    </select>
+                </label>
             </div>
+
+        <div class="topbar-actions">
+
+            <div class="selector-group">
+                <label for="clusterSelector">Cluster</label>
+                <select id="clusterSelector">
+                    <option value="local">Local Cluster</option>
+                </select>
+            </div>
+
+            <div class="selector-group">
+                <label for="namespaceSelector">Namespace</label>
+                <select id="namespaceSelector">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <span class="environment-badge">
+                <span class="status-dot"></span> DEMO ENVIRONMENT
+            </span>
+
+            <button class="icon-button" id="refreshButton" title="Refresh dashboard">↻</button>
+
+        </div>
         </header>
 
         <!-- Page Navigation -->
