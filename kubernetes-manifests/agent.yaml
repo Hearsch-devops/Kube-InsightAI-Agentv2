@@ -5,6 +5,10 @@ metadata:
   namespace: kube-insightaiv2
 spec:
   replicas: 1
+
+  strategy:
+    type: Recreate
+
   selector:
     matchLabels:
       app: kube-insightaiv2-agent
