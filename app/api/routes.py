@@ -90,6 +90,17 @@ def parse_mcp_result(result):
     if result is None:
         return None
 
+    # Prefer MCP structured content when available.
+    if hasattr(result, "structured_content"):
+        structured = result.structured_content
+
+        if isinstance(structured, dict) and "result" in structured:
+            return structured["result"]
+
+        if structured is not None:
+            return structured
+
+    # Fallback to text content for compatibility.
     if hasattr(result, "content"):
 
         for item in result.content:
@@ -105,7 +116,6 @@ def parse_mcp_result(result):
                     return text
 
     return result
-
 
 # ============================================================
 # Kubernetes Namespaces
