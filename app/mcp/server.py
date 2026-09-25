@@ -17,39 +17,31 @@ def get_kubernetes_client():
 
 # list_pods
 @server.tool()
-def list_pods(namespace: str = "default") -> str:
-    """
-    List Kubernetes pods in a namespace.
-
-    Args:
-        namespace: Kubernetes namespace to inspect.
-    """
-
+def list_pods(namespace: str | None = None) -> list[dict]:
     try:
         v1 = get_kubernetes_client()
 
-        pods = v1.list_namespaced_pod(
-            namespace=namespace
-        )
-
-        if not pods.items:
-            return f"No pods found in namespace '{namespace}'."
+        if namespace:
+            pods = v1.list_namespaced_pod(namespace)
+        else:
+            pods = v1.list_pod_for_all_namespaces()
 
         results = []
 
         for pod in pods.items:
-            results.append(
-                f"Pod: {pod.metadata.name}\n"
-                f"Status: {pod.status.phase}\n"
-            )
+            results.append({
+                "name": pod.metadata.name,
+                "namespace": pod.metadata.namespace,
+                "status": pod.status.phase if pod.status else "Unknown",
+                "node": pod.spec.node_name if pod.spec else None,
+            })
 
-        return "\n".join(results)
+        return results
 
     except Exception as exc:
-        return (
-            f"Kubernetes MCP error: "
-            f"{type(exc).__name__}: {exc}"
-        )
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
 
 # get_pod_logs
 @server.tool()
