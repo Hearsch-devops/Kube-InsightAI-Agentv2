@@ -133,7 +133,7 @@ def list_deployments(namespace: str | None = None) -> list[dict]:
         return [{
             "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
         }]
-        
+
 # list_events
 @server.tool()
 def list_events(namespace: str = "default", limit: int = 50) -> str:
@@ -206,56 +206,42 @@ def list_events(namespace: str = "default", limit: int = 50) -> str:
 
 # list_services
 @server.tool()
-def list_services(namespace: str = "default") -> str:
-    """
-    List Kubernetes services in a namespace.
-
-    Args:
-        namespace: Kubernetes namespace to inspect.
-    """
-
+def list_services(namespace: str | None = None) -> list[dict]:
     try:
         v1 = get_kubernetes_client()
 
-        services = v1.list_namespaced_service(
-            namespace=namespace
-        )
-
-        if not services.items:
-            return (
-                f"No services found in namespace "
-                f"'{namespace}'."
-            )
+        if namespace:
+            services = v1.list_namespaced_service(namespace)
+        else:
+            services = v1.list_service_for_all_namespaces()
 
         results = []
 
         for service in services.items:
-            service_name = service.metadata.name
-            service_type = service.spec.type
-            cluster_ip = service.spec.cluster_ip
-
             ports = []
 
-            if service.spec.ports:
+            if service.spec and service.spec.ports:
                 for port in service.spec.ports:
-                    ports.append(
-                        f"{port.port}/{port.protocol}"
-                    )
+                    ports.append({
+                        "port": port.port,
+                        "target_port": str(port.target_port),
+                        "protocol": port.protocol,
+                    })
 
-            results.append(
-                f"Service: {service_name}\n"
-                f"Type: {service_type}\n"
-                f"ClusterIP: {cluster_ip}\n"
-                f"Ports: {', '.join(ports) if ports else 'None'}\n"
-            )
+            results.append({
+                "name": service.metadata.name,
+                "namespace": service.metadata.namespace,
+                "type": service.spec.type if service.spec else "Unknown",
+                "cluster_ip": service.spec.cluster_ip if service.spec else None,
+                "ports": ports,
+            })
 
-        return "\n".join(results)
+        return results
 
     except Exception as exc:
-        return (
-            f"Kubernetes MCP error: "
-            f"{type(exc).__name__}: {exc}"
-        )
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
 
 # list_namespaces
 @server.tool()
