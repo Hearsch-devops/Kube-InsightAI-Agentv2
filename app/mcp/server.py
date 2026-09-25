@@ -14,6 +14,90 @@ def get_kubernetes_client():
 
     return client.CoreV1Api()
 
+# get_cluster_metrics
+@server.tool()
+def get_cluster_metrics() -> dict:
+    try:
+        v1 = get_kubernetes_client()
+        nodes = v1.list_node()
+
+        total_nodes = len(nodes.items)
+        ready_nodes = 0
+        not_ready_nodes = 0
+
+        total_cpu_capacity = 0
+        total_cpu_allocatable = 0
+        total_memory_capacity = 0
+        total_memory_allocatable = 0
+
+        node_details = []
+
+        for node in nodes.items:
+            node_name = node.metadata.name
+
+            capacity = node.status.capacity or {}
+            allocatable = node.status.allocatable or {}
+
+            cpu_capacity = capacity.get("cpu", "0")
+            cpu_allocatable = allocatable.get("cpu", "0")
+
+            memory_capacity = capacity.get("memory", "0")
+            memory_allocatable = allocatable.get("memory", "0")
+
+            total_cpu_capacity += int(cpu_capacity)
+            total_cpu_allocatable += int(cpu_allocatable)
+
+            total_memory_capacity += int(
+                memory_capacity.replace("Ki", "")
+            )
+            total_memory_allocatable += int(
+                memory_allocatable.replace("Ki", "")
+            )
+
+            ready = False
+
+            for condition in node.status.conditions or []:
+                if condition.type == "Ready":
+                    ready = condition.status == "True"
+                    break
+
+            if ready:
+                ready_nodes += 1
+            else:
+                not_ready_nodes += 1
+
+            node_details.append({
+                "name": node_name,
+                "ready": ready,
+                "cpu_capacity": cpu_capacity,
+                "cpu_allocatable": cpu_allocatable,
+                "memory_capacity": memory_capacity,
+                "memory_allocatable": memory_allocatable,
+            })
+
+        return {
+            "nodes": {
+                "total": total_nodes,
+                "ready": ready_nodes,
+                "not_ready": not_ready_nodes,
+            },
+            "resources": {
+                "cpu": {
+                    "capacity": f"{total_cpu_capacity}",
+                    "allocatable": f"{total_cpu_allocatable}",
+                },
+                "memory": {
+                    "capacity": f"{total_memory_capacity}Ki",
+                    "allocatable": f"{total_memory_allocatable}Ki",
+                },
+            },
+            "node_details": node_details,
+        }
+
+    except Exception as exc:
+        return {
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }
 
 # list_pods
 @server.tool()
