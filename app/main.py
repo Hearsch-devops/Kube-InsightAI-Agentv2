@@ -1,10 +1,8 @@
 import logging
 
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage
 
-from app.langgraph.graph import graph
+from app.api.routes import router
 
 
 logging.basicConfig(level=logging.INFO)
@@ -13,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Kube-InsightAI")
 
+app.include_router(router, prefix="/api")
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
