@@ -185,7 +185,8 @@ pipeline {
                     # Replace image placeholders with the current build number.
                     sed -i "s|BUILD_TAG|${IMAGE_TAG}|g" \
                         kubernetes-manifests/agent.yaml \
-                        kubernetes-manifests/frontend.yaml
+                        kubernetes-manifests/frontend.yaml \
+                        kubernetes-manifests/mcp.yaml
 
                     # Create namespace.
                     kubectl apply \
@@ -230,6 +231,7 @@ pipeline {
             echo "Kube-InsightAI CI/CD completed!"
             echo "Backend:  ${IMAGE_NAME}:${IMAGE_TAG}"
             echo "Frontend: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+            echo "Mcp-Server: ${MCP_IMAGE}:${IMAGE_TAG}"
             echo "========================================"
         }
 
