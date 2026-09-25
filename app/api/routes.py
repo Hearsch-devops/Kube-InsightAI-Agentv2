@@ -211,3 +211,30 @@ async def get_cluster_overview(
             status_code=500,
             detail=str(exc),
         )
+
+# ============================================================
+# Kubernetes Cluster Metrics
+# ============================================================
+
+@router.get("/cluster/metrics")
+async def get_cluster_metrics():
+
+    try:
+        result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "get_cluster_metrics",
+            {},
+        )
+
+        return parse_mcp_result(result)
+
+    except Exception as exc:
+
+        logger.exception(
+            "Failed to retrieve Kubernetes cluster metrics"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
