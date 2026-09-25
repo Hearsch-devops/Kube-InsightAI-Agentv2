@@ -124,39 +124,8 @@ async def get_namespaces():
 
         data = parse_mcp_result(result)
 
-        namespaces = []
-
-        if isinstance(data, str):
-
-            blocks = data.split("\n\n")
-
-            for block in blocks:
-
-                lines = block.strip().splitlines()
-
-                name = None
-                status = None
-
-                for line in lines:
-
-                    if line.startswith("Namespace:"):
-                        name = line.replace("Namespace:", "").strip()
-
-                    elif line.startswith("Status:"):
-                        status = line.replace("Status:", "").strip()
-
-                if name:
-                    namespaces.append({
-                        "name": name,
-                        "status": status,
-                    })
-
-        elif isinstance(data, list):
-
-            namespaces = data
-
         return {
-            "namespaces": namespaces
+            "namespaces": data
         }
 
     except Exception as exc:

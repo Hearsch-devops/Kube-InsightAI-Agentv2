@@ -286,7 +286,7 @@ def list_services(namespace: str = "default") -> str:
 
 # list_namespaces
 @server.tool()
-def list_namespaces() -> str:
+def list_namespaces() -> list[dict]:
     """
     List all Kubernetes namespaces.
     """
@@ -297,7 +297,7 @@ def list_namespaces() -> str:
         namespaces = v1.list_namespace()
 
         if not namespaces.items:
-            return "No namespaces found."
+            return []
 
         results = []
 
@@ -310,18 +310,22 @@ def list_namespaces() -> str:
                 else "Unknown"
             )
 
-            results.append(
-                f"Namespace: {name}\n"
-                f"Status: {status}\n"
-            )
+            results.append({
+                "name": name,
+                "status": status,
+            })
 
-        return "\n".join(results)
+        return results
 
     except Exception as exc:
-        return (
-            f"Kubernetes MCP error: "
-            f"{type(exc).__name__}: {exc}"
-        )
+        return [
+            {
+                "error": (
+                    f"Kubernetes MCP error: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+            }
+        ]
 
 if __name__ == "__main__":
     server.run(
