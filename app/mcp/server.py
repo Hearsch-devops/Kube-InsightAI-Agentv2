@@ -307,6 +307,56 @@ def list_services(namespace: str | None = None) -> list[dict]:
             "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
         }]
 
+# list_ingresses
+@server.tool()
+def list_ingresses(namespace: str | None = None) -> list[dict]:
+    try:
+        networking_v1 = client.NetworkingV1Api()
+
+        if namespace:
+            ingresses = networking_v1.list_namespaced_ingress(namespace)
+        else:
+            ingresses = networking_v1.list_ingress_for_all_namespaces()
+
+        results = []
+
+        for ingress in ingresses.items:
+            hosts = []
+
+            if ingress.spec and ingress.spec.rules:
+                for rule in ingress.spec.rules:
+                    if rule.host:
+                        hosts.append(rule.host)
+
+            addresses = []
+
+            if ingress.status and ingress.status.load_balancer:
+                for address in ingress.status.load_balancer.ingress or []:
+                    if address.ip:
+                        addresses.append(address.ip)
+                    elif address.hostname:
+                        addresses.append(address.hostname)
+
+            ingress_class = None
+
+            if ingress.spec:
+                ingress_class = ingress.spec.ingress_class_name
+
+            results.append({
+                "name": ingress.metadata.name,
+                "namespace": ingress.metadata.namespace,
+                "class": ingress_class,
+                "hosts": hosts,
+                "addresses": addresses,
+            })
+
+        return results
+
+    except Exception as exc:
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
+
 # list_namespaces
 @server.tool()
 def list_namespaces() -> list[dict]:
