@@ -21,7 +21,7 @@ spec:
 
       containers:
         - name: kube-insightaiv2-mcp
-          image: 95337/kube-insightaiv2-mcp:1
+          image: 95337/kube-insightaiv2-mcp-server:BUILD_TAG
           imagePullPolicy: Always
 
           ports:

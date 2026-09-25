@@ -5,6 +5,7 @@ pipeline {
     environment {
         IMAGE_NAME     = "95337/kube-insightaiv2-agent"
         FRONTEND_IMAGE = "95337/kube-insightaiv2-frontend"
+        MCP_IMAGE      = "95337/kube-insightaiv2-mcp-server"
         IMAGE_TAG      = "${BUILD_NUMBER}"
         PROJECT_NAME   = "kube-insight-ai"
     }
@@ -104,6 +105,21 @@ pipeline {
             }
         }
 
+        stage('Build Mcp-Server Image') {
+            steps {
+                echo "Building Mcp-Server image: ${MCP_IMAGE}:${IMAGE_TAG}"
+
+                sh '''
+                    set -eu
+
+                    docker build \
+                        -f Dockerfile.mcp \
+                        -t ${MCP_IMAGE}:${IMAGE_TAG} \
+                        .
+                '''
+            }
+        }
+
         stage('Docker Login') {
             steps {
                 echo 'Logging into Docker Hub...'
@@ -144,6 +160,17 @@ pipeline {
                 sh '''
                     set -eu
                     docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Push Mcp Server') {
+            steps {
+                echo "Pushing Mcp-Server image: ${MCP_IMAGE}:${IMAGE_TAG}"
+
+                sh '''
+                    set -eu
+                    docker push ${MCP_IMAGE}:${IMAGE_TAG}
                 '''
             }
         }
