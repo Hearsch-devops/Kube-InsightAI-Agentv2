@@ -123,7 +123,7 @@ def list_deployments(namespace: str = "default") -> str:
     """
 
     try:
-        config.load_kube_config()
+        config.load_incluster_config()
         apps_v1 = client.AppsV1Api()
 
         deployments = apps_v1.list_namespaced_deployment(
