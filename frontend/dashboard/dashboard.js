@@ -133,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Load overview for the selected namespace
             await loadClusterOverview();
+            await loadClusterMetrics();
 
         } catch (error) {
             console.error("Failed to load namespaces:", error);
@@ -170,6 +171,82 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("Failed to load cluster overview:", error);
+        }
+    }
+
+    async function loadClusterMetrics() {
+        try {
+            const response = await fetch("/api/cluster/metrics");
+    
+            if (!response.ok) {
+                throw new Error("Failed to load cluster metrics.");
+            }
+    
+            const data = await response.json();
+    
+            console.log("Live cluster metrics:", data);
+    
+            const totalNodes = data.nodes?.total ?? 0;
+            const readyNodes = data.nodes?.ready ?? 0;
+            const notReadyNodes = data.nodes?.not_ready ?? 0;
+    
+            const cpuCapacity = data.resources?.cpu?.capacity ?? "0";
+            const memoryAllocatable = data.resources?.memory?.allocatable ?? "0Ki";
+    
+            const readyNodesElement = document.getElementById("readyNodes");
+            const notReadyNodesElement = document.getElementById("notReadyNodes");
+            const cpuCapacityElement = document.getElementById("cpuCapacity");
+            const memoryAllocatableElement = document.getElementById("memoryAllocatable");
+    
+            if (readyNodesElement) {
+                readyNodesElement.textContent = `${readyNodes} ready`;
+            }
+    
+            if (notReadyNodesElement) {
+                notReadyNodesElement.textContent = `${notReadyNodes} down`;
+            }
+    
+            if (cpuCapacityElement) {
+                cpuCapacityElement.textContent = `${cpuCapacity} cores`;
+            }
+    
+            if (memoryAllocatableElement) {
+                const memoryKi = parseInt(
+                    String(memoryAllocatable).replace("Ki", ""),
+                    10
+                );
+    
+                const memoryGiB = memoryKi / (1024 * 1024);
+    
+                memoryAllocatableElement.textContent =
+                    `${memoryGiB.toFixed(2)} GiB`;
+            }
+    
+            updateHealthStatus(readyNodes, totalNodes);
+    
+        } catch (error) {
+            console.error("Failed to load cluster metrics:", error);
+        }
+    }
+
+    function updateHealthStatus(readyNodes, totalNodes) {
+        const healthLabel = document.getElementById("healthLabel");
+    
+        if (!healthLabel) {
+            return;
+        }
+    
+        if (totalNodes === 0) {
+            healthLabel.textContent = "Unavailable";
+            return;
+        }
+    
+        if (readyNodes === totalNodes) {
+            healthLabel.textContent = "Healthy";
+        } else if (readyNodes > 0) {
+            healthLabel.textContent = "Degraded";
+        } else {
+            healthLabel.textContent = "Unavailable";
         }
     }
 
@@ -420,6 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             await loadClusterOverview();
+            await loadClusterMetrics();
 
             refreshButton.title =
                 "Last refreshed: " +

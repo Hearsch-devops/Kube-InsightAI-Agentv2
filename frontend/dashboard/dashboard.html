@@ -171,21 +171,25 @@
                     <div class="cluster-stats">
                         <div class="stat-row">
                             <span>▤ &nbsp; Nodes</span>
-                            <div><b class="success-text">4 ready</b><b class="danger-text">1 down</b></div>
+                            <div>
+                                <b class="success-text" id="readyNodes">2 ready</b>
+                                <b class="danger-text" id="notReadyNodes">0 down</b>
+                            </div>
                         </div>
+                        
                         <div class="stat-row">
                             <span>⌁ &nbsp; Version</span>
-                            <b class="outline-badge">v1.34.8</b>
+                            <b class="outline-badge" id="clusterVersion">v1.34.8</b>
                         </div>
+                        
                         <div class="stat-row">
-                            <span>◷ &nbsp; Uptime</span>
-                            <b>45d 12h 34m</b>
+                            <span>◉ &nbsp; CPU Capacity</span>
+                            <b id="cpuCapacity">4 cores</b>
                         </div>
-                        <div class="stat-row pod-capacity">
-                            <span>Pod Capacity <b>47/110</b></span>
-                            <div class="capacity-track">
-                                <div style="width:43%"></div>
-                            </div>
+                        
+                        <div class="stat-row">
+                            <span>▰ &nbsp; Memory Allocatable</span>
+                            <b id="memoryAllocatable">9.47 GiB</b>
                         </div>
                     </div>
 
