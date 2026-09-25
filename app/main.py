@@ -11,19 +11,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Kube-InsightAI")
 
-app.include_router(router, prefix="/api")
-
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1)
-
-
-class ChatResponse(BaseModel):
-    response: str
-    route: str | None = None
-    analysis: str | None = None
-    sources: list[str] = []
-    error: str | None = None
-
 
 @app.get("/")
 async def health_check():
@@ -33,39 +20,4 @@ async def health_check():
     }
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Process a user question through the LangGraph and RAG workflow."""
-
-    logger.info("Received chat request")
-
-    try:
-        result = await graph.ainvoke(
-            {
-                "messages": [
-                    HumanMessage(content=request.message)
-                ],
-                "question": request.message,
-            }
-        )
-
-        answer = result.get("answer")
-
-        if not answer:
-            answer = "The agent could not generate a response."
-
-        return ChatResponse(
-            response=answer,
-            route=result.get("route"),
-            analysis=result.get("analysis"),
-            sources=result.get("sources", []),
-            error=result.get("error"),
-        )
-
-    except Exception:
-        logger.exception("Chat request failed")
-
-        return ChatResponse(
-            response="An error occurred while processing your request.",
-            error="Internal agent error",
-        )
+app.include_router(router, prefix="/api")
