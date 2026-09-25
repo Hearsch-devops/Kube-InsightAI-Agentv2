@@ -136,73 +136,53 @@ def list_deployments(namespace: str | None = None) -> list[dict]:
 
 # list_events
 @server.tool()
-def list_events(namespace: str = "default", limit: int = 50) -> str:
-    """
-    List recent Kubernetes events in a namespace.
-
-    Args:
-        namespace: Kubernetes namespace to inspect.
-        limit: Maximum number of events to return.
-    """
-
+def list_events(namespace: str | None = None) -> list[dict]:
     try:
         v1 = get_kubernetes_client()
 
-        events = v1.list_namespaced_event(
-            namespace=namespace
-        )
-
-        if not events.items:
-            return (
-                f"No events found in namespace "
-                f"'{namespace}'."
-            )
-
-        sorted_events = sorted(
-            events.items,
-            key=lambda event: (
-                event.last_timestamp
-                or event.event_time
-                or event.first_timestamp
-            ),
-            reverse=True,
-        )
+        if namespace:
+            events = v1.list_namespaced_event(namespace)
+        else:
+            events = v1.list_event_for_all_namespaces()
 
         results = []
 
-        for event in sorted_events[:limit]:
-            reason = event.reason or "Unknown"
-            event_type = event.type or "Normal"
-            message = event.message or "No message"
+        for event in events.items:
+            results.append({
+                "name": event.metadata.name,
+                "namespace": event.metadata.namespace,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "object": (
+                    event.involved_object.name
+                    if event.involved_object
+                    else None
+                ),
+                "object_kind": (
+                    event.involved_object.kind
+                    if event.involved_object
+                    else None
+                ),
+                "count": event.count,
+                "first_timestamp": (
+                    event.first_timestamp.isoformat()
+                    if event.first_timestamp
+                    else None
+                ),
+                "last_timestamp": (
+                    event.last_timestamp.isoformat()
+                    if event.last_timestamp
+                    else None
+                ),
+            })
 
-            involved_object = event.involved_object
-
-            object_name = (
-                involved_object.name
-                if involved_object
-                else "Unknown"
-            )
-
-            object_kind = (
-                involved_object.kind
-                if involved_object
-                else "Unknown"
-            )
-
-            results.append(
-                f"Type: {event_type}\n"
-                f"Reason: {reason}\n"
-                f"Object: {object_kind}/{object_name}\n"
-                f"Message: {message}\n"
-            )
-
-        return "\n".join(results)
+        return results
 
     except Exception as exc:
-        return (
-            f"Kubernetes MCP error: "
-            f"{type(exc).__name__}: {exc}"
-        )
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
 
 # list_services
 @server.tool()
