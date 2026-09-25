@@ -61,3 +61,5 @@ spec:
     - port: 8000
       targetPort: 8000
   type: ClusterIP
+
+#Changed the Kube-InsightAI Agent Deployment from the default RollingUpdate strategy to Recreate. This prevents overlapping Agent pods during deployments and avoids scheduling failures caused by insufficient worker-node memory
