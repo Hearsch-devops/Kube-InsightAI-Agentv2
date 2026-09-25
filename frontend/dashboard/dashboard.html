@@ -67,29 +67,39 @@
                 <p class="subtitle">Monitor, troubleshoot, and optimize your cluster</p>
             </div>
 
-            <div class="dashboard-filters">
-                <label for="clusterSelector">
-                    Cluster
-                    <select id="clusterSelector">
-                        <option value="local">Local Cluster</option>
-                    </select>
-                </label>
+            <div class="topbar-actions">
 
-                <label for="namespaceSelector">
-                    Namespace
-                    <select id="namespaceSelector">
-                        <option value="">Loading...</option>
-                    </select>
-                </label>
+                <div class="dashboard-filters">
+            
+                    <label for="clusterSelector">
+                        Cluster
+                        <select id="clusterSelector">
+                            <option value="local">Local Cluster</option>
+                        </select>
+                    </label>
+            
+                    <label for="namespaceSelector">
+                        Namespace
+                        <select id="namespaceSelector">
+                            <option value="">Loading...</option>
+                        </select>
+                    </label>
+            
+                </div>
+            
+                <span class="environment-badge">
+                    <span class="status-dot"></span>
+                    DEMO ENVIRONMENT
+                </span>
+            
+                <button
+                    class="icon-button"
+                    id="refreshButton"
+                    title="Refresh dashboard"
+                >
+                    ↻
+                </button>
             </div>
-
-            <span class="environment-badge">
-                <span class="status-dot"></span> DEMO ENVIRONMENT
-            </span>
-
-            <button class="icon-button" id="refreshButton" title="Refresh dashboard">↻</button>
-
-        </div>
         </header>
 
         <!-- Page Navigation -->
@@ -185,49 +195,52 @@
             <!-- Resource Cards -->
             <div class="resource-grid">
 
-                <div class="resource-card">
+                <!-- Pods -->
+                <div class="resource-card" id="podsResourceCard">
                     <div class="resource-top">
                         <div class="resource-icon purple-bg">⬡</div>
-                        <span class="resource-percentage">70%</span>
+                        <span class="resource-percentage" id="podsPercentage">0%</span>
                     </div>
                     <h3>Pods</h3>
-                    <p class="resource-count"><strong>7</strong> / 10 healthy</p>
-                    <div class="mini-progress"><div style="width:70%"></div></div>
-                    <div class="resource-status-list">
-                        <div><span class="status-dot"></span> api-gateway <b>Running</b></div>
-                        <div><span class="status-dot"></span> auth-service <b>Running</b></div>
-                        <div class="unhealthy"><span>△</span> payment-processor <b>CrashLoopBackOff</b></div>
+                    <p class="resource-count">
+                        <strong id="podsHealthy">0</strong> / <span id="podsTotal">0</span> healthy
+                    </p>
+                    <div class="mini-progress">
+                        <div id="podsProgress" style="width:0%"></div>
                     </div>
+                    <div class="resource-status-list" id="podsList"></div>
                 </div>
 
-                <div class="resource-card">
-                    <div class="resource-top">
+                <!-- Services -->
+                <div class="resource-card" id="servicesResourceCard">
+                    <div class="resource-top" >
                         <div class="resource-icon cyan-bg">▤</div>
-                        <span class="resource-percentage">83%</span>
+                        <span class="resource-percentage" id="servicesPercentage">0%</span>
                     </div>
                     <h3>Services</h3>
-                    <p class="resource-count"><strong>5</strong> / 6 healthy</p>
-                    <div class="mini-progress"><div style="width:83%"></div></div>
-                    <div class="resource-status-list">
-                        <div><span class="status-dot"></span> api-gateway <b>Active</b></div>
-                        <div><span class="status-dot"></span> auth-service <b>Active</b></div>
-                        <div class="unhealthy"><span>×</span> payment-processor <b>Error</b></div>
+                    <p class="resource-count">
+                        <strong id="servicesHealthy">0</strong> / <span id="servicesTotal">0</span> healthy
+                    </p>
+                    <div class="mini-progress">
+                        <div id="servicesProgress" style="width:0%"></div>
                     </div>
+                    <div class="resource-status-list" id="servicesList"></div>
                 </div>
 
-                <div class="resource-card">
+                <!-- Deployments -->
+                <div class="resource-card" id="deploymentsResourceCard">
                     <div class="resource-top">
                         <div class="resource-icon blue-bg">☁</div>
-                        <span class="resource-percentage danger-text">67%</span>
+                        <span class="resource-percentage" id="deploymentsPercentage">0%</span>
                     </div>
                     <h3>Deployments</h3>
-                    <p class="resource-count"><strong>4</strong> / 6 healthy</p>
-                    <div class="mini-progress"><div style="width:67%"></div></div>
-                    <div class="resource-status-list">
-                        <div><span class="status-dot"></span> api-gateway <b>Available</b></div>
-                        <div><span class="status-dot"></span> auth-service <b>Available</b></div>
-                        <div class="unhealthy"><span>×</span> payment-processor <b>Failed</b></div>
+                    <p class="resource-count">
+                        <strong id="deploymentsHealthy">0</strong> / <span id="deploymentsTotal">0</span> healthy
+                    </p>
+                    <div class="mini-progress">
+                        <div id="deploymentsProgress" style="width:0%"></div>
                     </div>
+                    <div class="resource-status-list" id="deploymentsList"></div>
                 </div>
 
                 <div class="resource-card">
@@ -259,7 +272,7 @@
                         <button class="text-button">View all →</button>
                     </div>
 
-                    <div class="activity-list">
+                    <div class="activity-list" id="activityList"></div>
                         <div class="activity-item">
                             <span class="activity-icon danger">!</span>
                             <div><strong>Pod failure detected</strong><p>payment-processor entered CrashLoopBackOff</p><small>2 minutes ago</small></div>
