@@ -168,6 +168,10 @@ pipeline {
                     kubectl apply \
                         -f kubernetes-manifests/kube-insightai-rbac.yaml
 
+                    # Apply MCP server.
+                    kubectl apply \
+                        -f kubernetes-manifests/mcp.yaml
+
                     # Deploy backend.
                     kubectl apply \
                         -f kubernetes-manifests/agent.yaml
