@@ -106,50 +106,34 @@ def get_pod_logs(
 
 # list_deployments
 @server.tool()
-def list_deployments(namespace: str = "default") -> str:
-    """
-    List Kubernetes deployments in a namespace.
-
-    Args:
-        namespace: Kubernetes namespace to inspect.
-    """
-
+def list_deployments(namespace: str | None = None) -> list[dict]:
     try:
         config.load_incluster_config()
         apps_v1 = client.AppsV1Api()
 
-        deployments = apps_v1.list_namespaced_deployment(
-            namespace=namespace
-        )
-
-        if not deployments.items:
-            return (
-                f"No deployments found in namespace "
-                f"'{namespace}'."
-            )
+        if namespace:
+            deployments = apps_v1.list_namespaced_deployment(namespace)
+        else:
+            deployments = apps_v1.list_deployment_for_all_namespaces()
 
         results = []
 
         for deployment in deployments.items:
-            name = deployment.metadata.name
-            desired = deployment.spec.replicas or 0
-            ready = deployment.status.ready_replicas or 0
-            available = deployment.status.available_replicas or 0
+            results.append({
+                "name": deployment.metadata.name,
+                "namespace": deployment.metadata.namespace,
+                "desired_replicas": deployment.spec.replicas or 0,
+                "ready_replicas": deployment.status.ready_replicas or 0,
+                "available_replicas": deployment.status.available_replicas or 0,
+            })
 
-            results.append(
-                f"Deployment: {name}\n"
-                f"Desired Replicas: {desired}\n"
-                f"Ready Replicas: {ready}\n"
-                f"Available Replicas: {available}\n"
-            )
-
-        return "\n".join(results)
+        return results
 
     except Exception as exc:
-        return (
-            f"Kubernetes MCP error: "
-            f"{type(exc).__name__}: {exc}"
-        )
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
+        
 # list_events
 @server.tool()
 def list_events(namespace: str = "default", limit: int = 50) -> str:
