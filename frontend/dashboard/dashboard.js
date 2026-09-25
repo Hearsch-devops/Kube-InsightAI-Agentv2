@@ -131,12 +131,272 @@ document.addEventListener("DOMContentLoaded", () => {
                 namespaceSelector.selectedIndex = 0;
             }
 
+            // Load overview for the selected namespace
+            await loadClusterOverview();
+
         } catch (error) {
             console.error("Failed to load namespaces:", error);
 
             namespaceSelector.innerHTML =
                 `<option value="">Unable to load</option>`;
         }
+    }
+
+// Load live Kubernetes cluster overview
+    async function loadClusterOverview() {
+        if (!namespaceSelector || !namespaceSelector.value) {
+            return;
+        }
+
+        const namespace = namespaceSelector.value;
+
+        try {
+            const response = await fetch(
+                `/api/cluster/overview?namespace=${encodeURIComponent(namespace)}`
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load cluster overview.");
+            }
+
+            const data = await response.json();
+
+            console.log("Live cluster overview:", data);
+
+            updatePods(data.pods || []);
+            updateDeployments(data.deployments || []);
+            updateServices(data.services || []);
+            updateEvents(data.events || []);
+
+        } catch (error) {
+            console.error("Failed to load cluster overview:", error);
+        }
+    }
+
+    function updatePods(pods) {
+        const total = pods.length;
+    
+        const healthy = pods.filter(
+            pod => pod.status === "Running"
+        ).length;
+    
+        const percentage = total > 0
+            ? Math.round((healthy / total) * 100)
+            : 0;
+    
+        const healthyElement = document.getElementById("podsHealthy");
+        const totalElement = document.getElementById("podsTotal");
+        const percentageElement = document.getElementById("podsPercentage");
+        const progressElement = document.getElementById("podsProgress");
+        const listElement = document.getElementById("podsList");
+    
+        if (healthyElement) {
+            healthyElement.textContent = healthy;
+        }
+    
+        if (totalElement) {
+            totalElement.textContent = total;
+        }
+    
+        if (percentageElement) {
+            percentageElement.textContent = `${percentage}%`;
+        }
+    
+        if (progressElement) {
+            progressElement.style.width = `${percentage}%`;
+        }
+    
+        if (listElement) {
+            listElement.innerHTML = pods.length
+                ? pods.map(pod => {
+                    const isRunning = pod.status === "Running";
+    
+                    return `
+                        <div class="${isRunning ? "" : "unhealthy"}">
+                            <span class="status-dot"></span>
+                            <span>${pod.name}</span>
+                            <b>${pod.status}</b>
+                        </div>
+                    `;
+                }).join("")
+                : `<div><span>No pods found</span></div>`;
+        }
+    }
+
+    function updateDeployments(deployments) {
+        const total = deployments.length;
+    
+        const healthy = deployments.filter(deployment =>
+            deployment.ready_replicas === deployment.desired_replicas &&
+            deployment.available_replicas === deployment.desired_replicas
+        ).length;
+    
+        const percentage = total > 0
+            ? Math.round((healthy / total) * 100)
+            : 0;
+    
+        const healthyElement = document.getElementById("deploymentsHealthy");
+        const totalElement = document.getElementById("deploymentsTotal");
+        const percentageElement = document.getElementById("deploymentsPercentage");
+        const progressElement = document.getElementById("deploymentsProgress");
+        const listElement = document.getElementById("deploymentsList");
+    
+        if (healthyElement) {
+            healthyElement.textContent = healthy;
+        }
+    
+        if (totalElement) {
+            totalElement.textContent = total;
+        }
+    
+        if (percentageElement) {
+            percentageElement.textContent = `${percentage}%`;
+        }
+    
+        if (progressElement) {
+            progressElement.style.width = `${percentage}%`;
+        }
+    
+        if (listElement) {
+            listElement.innerHTML = deployments.length
+                ? deployments.map(deployment => {
+                    const healthyDeployment =
+                        deployment.ready_replicas === deployment.desired_replicas &&
+                        deployment.available_replicas === deployment.desired_replicas;
+    
+                    return `
+                        <div class="${healthyDeployment ? "" : "unhealthy"}">
+                            <span class="status-dot"></span>
+                            <span>${deployment.name}</span>
+                            <b>
+                                ${deployment.ready_replicas}/${deployment.desired_replicas}
+                            </b>
+                        </div>
+                    `;
+                }).join("")
+                : `<div><span>No deployments found</span></div>`;
+        }
+    }
+
+    function updateServices(services) {
+        const total = services.length;
+    
+        /*
+         * Kubernetes Services do not have a ready/healthy status
+         * like Pods or Deployments.
+         *
+         * For this dashboard card, percentage represents
+         * successfully returned Service objects.
+         */
+        const healthy = services.filter(
+            service => !service.error
+        ).length;
+    
+        const percentage = total > 0
+            ? Math.round((healthy / total) * 100)
+            : 0;
+    
+        const healthyElement = document.getElementById("servicesHealthy");
+        const totalElement = document.getElementById("servicesTotal");
+        const percentageElement = document.getElementById("servicesPercentage");
+        const progressElement = document.getElementById("servicesProgress");
+        const listElement = document.getElementById("servicesList");
+    
+        if (healthyElement) {
+            healthyElement.textContent = healthy;
+        }
+    
+        if (totalElement) {
+            totalElement.textContent = total;
+        }
+    
+        if (percentageElement) {
+            percentageElement.textContent = `${percentage}%`;
+        }
+    
+        if (progressElement) {
+            progressElement.style.width = `${percentage}%`;
+        }
+    
+        if (listElement) {
+            listElement.innerHTML = services.length
+                ? services.map(service => `
+                    <div>
+                        <span class="status-dot"></span>
+                        <span>${service.name}</span>
+                        <b>${service.type}</b>
+                    </div>
+                `).join("")
+                : `<div><span>No services found</span></div>`;
+        }
+    }
+
+    function updateEvents(events) {
+        const listElement = document.getElementById("activityList");
+    
+        if (!listElement) {
+            return;
+        }
+    
+        if (!events.length) {
+            listElement.innerHTML = `
+                <div class="activity-item">
+                    <div>
+                        <strong>No recent Kubernetes events</strong>
+                        <p>No events were returned for this namespace.</p>
+                    </div>
+                </div>
+            `;
+    
+            return;
+        }
+    
+        const recentEvents = [...events]
+            .sort((a, b) => {
+                const dateA = new Date(
+                    a.last_timestamp || a.first_timestamp || 0
+                );
+    
+                const dateB = new Date(
+                    b.last_timestamp || b.first_timestamp || 0
+                );
+    
+                return dateB - dateA;
+            })
+            .slice(0, 5);
+    
+        listElement.innerHTML = recentEvents.map(event => {
+            const eventType = event.type || "Normal";
+    
+            let iconClass = "success";
+            let icon = "✓";
+    
+            if (eventType === "Warning") {
+                iconClass = "warning";
+                icon = "△";
+            }
+    
+            return `
+                <div class="activity-item">
+                    <span class="activity-icon ${iconClass}">
+                        ${icon}
+                    </span>
+    
+                    <div>
+                        <strong>${event.reason || "Kubernetes Event"}</strong>
+    
+                        <p>
+                            ${event.message || "No event message available."}
+                        </p>
+    
+                        <small>
+                            ${event.object_kind || "Object"}:
+                            ${event.object || "Unknown"}
+                        </small>
+                    </div>
+                </div>
+            `;
+        }).join("");
     }
 
     // Overview
@@ -153,15 +413,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     backToOverview.addEventListener("click", showOverview);
 
-    // Refresh mock dashboard data
-    refreshButton.addEventListener("click", () => {
-        refreshButton.textContent = "↻";
+    // Refresh live dashboard data
+    refreshButton.addEventListener("click", async () => {
         refreshButton.style.transform = "rotate(360deg)";
+        refreshButton.disabled = true;
 
-        setTimeout(() => {
-            refreshButton.style.transform = "";
-            refreshButton.title = "Last refreshed: " + new Date().toLocaleTimeString();
-        }, 500);
+        try {
+            await loadClusterOverview();
+
+            refreshButton.title =
+                "Last refreshed: " +
+                new Date().toLocaleTimeString();
+
+        } catch (error) {
+            console.error("Dashboard refresh failed:", error);
+        } finally {
+            setTimeout(() => {
+                refreshButton.style.transform = "";
+                refreshButton.disabled = false;
+            }, 500);
+        }
     });
 
     // Export a simple JSON snapshot
