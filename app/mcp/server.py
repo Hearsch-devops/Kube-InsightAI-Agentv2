@@ -311,6 +311,7 @@ def list_services(namespace: str | None = None) -> list[dict]:
 @server.tool()
 def list_ingresses(namespace: str | None = None) -> list[dict]:
     try:
+        config.load_incluster_config()
         networking_v1 = client.NetworkingV1Api()
 
         if namespace:
