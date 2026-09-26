@@ -238,3 +238,35 @@ async def get_cluster_metrics():
             status_code=500,
             detail=str(exc),
         )
+
+# ============================================================
+# Kubernetes Ingresses
+# ============================================================
+
+@router.get("/cluster/ingresses")
+async def get_cluster_ingresses(
+    namespace: str | None = None,
+):
+    try:
+        result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "list_ingresses",
+            {
+                "namespace": namespace,
+            },
+        )
+
+        return {
+            "namespace": namespace,
+            "ingresses": parse_mcp_result(result),
+        }
+
+    except Exception as exc:
+        logger.exception(
+            "Failed to retrieve Kubernetes ingresses"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
