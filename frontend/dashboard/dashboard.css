@@ -280,7 +280,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .resource-status-list .unhealthy > b { color: var(--red); }
 
 /* Bottom panels */
-.bottom-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.bottom-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 .text-button { background: transparent; border: 0; color: var(--purple-light); font-size: 11px; }
 .activity-item { display: flex; gap: 13px; padding: 15px 0; border-bottom: 1px solid #202b43; }
 .activity-item:last-child { border-bottom: 0; }
