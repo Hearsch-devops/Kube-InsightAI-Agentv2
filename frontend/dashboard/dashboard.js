@@ -134,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Load overview for the selected namespace
             await loadClusterOverview();
             await loadClusterMetrics();
+            await loadIngresses();
 
         } catch (error) {
             console.error("Failed to load namespaces:", error);
@@ -226,6 +227,101 @@ document.addEventListener("DOMContentLoaded", () => {
     
         } catch (error) {
             console.error("Failed to load cluster metrics:", error);
+        }
+    }
+
+    async function loadIngresses() {
+        try {
+            const response = await fetch(
+                `/api/cluster/ingresses?namespace=${encodeURIComponent(namespaceSelector.value)}`
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load Kubernetes ingresses.");
+            }
+
+            const data = await response.json();
+
+            console.log("Live Kubernetes ingresses:", data);
+
+            updateIngresses(data.ingresses || []);
+
+        } catch (error) {
+            console.error("Failed to load Kubernetes ingresses:", error);
+        }
+    }
+
+    function updateIngresses(ingresses) {
+        const total = ingresses.length;
+
+        /*
+         * An Ingress is considered active when it has
+         * a load balancer address assigned.
+         */
+        const active = ingresses.filter(ingress =>
+            Array.isArray(ingress.addresses) &&
+            ingress.addresses.length > 0
+        ).length;
+
+        const percentage = total > 0
+            ? Math.round((active / total) * 100)
+            : 0;
+
+        const activeElement =
+            document.getElementById("ingressesHealthy");
+
+        const totalElement =
+            document.getElementById("ingressesTotal");
+
+        const percentageElement =
+            document.getElementById("ingressesPercentage");
+
+        const progressElement =
+            document.getElementById("ingressesProgress");
+
+        const listElement =
+            document.getElementById("ingressesList");
+
+        if (activeElement) {
+            activeElement.textContent = active;
+        }
+
+        if (totalElement) {
+            totalElement.textContent = total;
+        }
+
+        if (percentageElement) {
+            percentageElement.textContent = `${percentage}%`;
+        }
+
+        if (progressElement) {
+            progressElement.style.width = `${percentage}%`;
+        }
+
+        if (listElement) {
+            listElement.innerHTML = ingresses.length
+                ? ingresses.map(ingress => {
+                    const isActive =
+                        Array.isArray(ingress.addresses) &&
+                        ingress.addresses.length > 0;
+
+                    const status = isActive
+                        ? "Active"
+                        : "Pending";
+
+                    return `
+                        <div class="${isActive ? "" : "unhealthy"}">
+                            <span class="status-dot"></span>
+                            <span>${ingress.name}</span>
+                            <b>${status}</b>
+                        </div>
+                    `;
+                }).join("")
+                : `
+                    <div>
+                        <span>No Ingress resources found</span>
+                    </div>
+                `;
         }
     }
 
@@ -498,6 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await loadClusterOverview();
             await loadClusterMetrics();
+            await loadIngresses();
 
             refreshButton.title =
                 "Last refreshed: " +

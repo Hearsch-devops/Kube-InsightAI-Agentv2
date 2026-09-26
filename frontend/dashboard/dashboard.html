@@ -247,18 +247,28 @@
                     <div class="resource-status-list" id="deploymentsList"></div>
                 </div>
 
-                <div class="resource-card">
+                <div class="resource-card" id="ingressesResourceCard">
                     <div class="resource-top">
                         <div class="resource-icon pink-bg">◎</div>
-                        <span class="resource-percentage danger-text">67%</span>
+                        <span class="resource-percentage" id="ingressesPercentage">0%</span>
                     </div>
+                
                     <h3>Ingresses</h3>
-                    <p class="resource-count"><strong>2</strong> / 3 healthy</p>
-                    <div class="mini-progress"><div style="width:67%"></div></div>
-                    <div class="resource-status-list">
-                        <div><span class="status-dot"></span> main-ingress <b>Active</b></div>
-                        <div><span class="status-dot"></span> admin-ingress <b>Active</b></div>
-                        <div class="unhealthy"><span>◷</span> staging-ingress <b>Pending</b></div>
+                
+                    <p class="resource-count">
+                        <strong id="ingressesHealthy">0</strong> /
+                        <span id="ingressesTotal">0</span> healthy
+                    </p>
+                
+                    <div class="mini-progress">
+                        <div id="ingressesProgress" style="width:0%"></div>
+                    </div>
+                
+                    <div class="resource-status-list" id="ingressesList">
+                        <div>
+                            <span class="status-dot"></span>
+                            No Ingress resources found
+                        </div>
                     </div>
                 </div>
 
