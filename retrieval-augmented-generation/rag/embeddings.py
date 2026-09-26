@@ -49,9 +49,17 @@ def create_embeddings(chunks):
                     )
 
                     response.raise_for_status()
-                    print("Embedding response status:", response.status_code)
-                    print("Embedding response content-type:", response.headers.get("content-type"))
-                    print("Embedding response body:", repr(response.text[:1000]))
+
+                    content_type = response.headers.get("content-type", "")
+
+                    if "application/json" not in content_type.lower():
+                        raise RuntimeError(
+                            f"Embedding service returned non-JSON response "
+                            f"(status={response.status_code}, "
+                            f"content-type={content_type}): "
+                            f"{response.text[:500]}"
+                        )
+                    
                     data = response.json()
 
                     batch_embeddings = [
