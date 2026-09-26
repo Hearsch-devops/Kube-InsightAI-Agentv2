@@ -49,6 +49,9 @@ def create_embeddings(chunks):
                     )
 
                     response.raise_for_status()
+                    print("Embedding response status:", response.status_code)
+                    print("Embedding response content-type:", response.headers.get("content-type"))
+                    print("Embedding response body:", repr(response.text[:1000]))
                     data = response.json()
 
                     batch_embeddings = [
