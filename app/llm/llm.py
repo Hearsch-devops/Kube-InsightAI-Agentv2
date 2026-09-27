@@ -23,7 +23,8 @@ def get_chat_model():
         raise ValueError("PROJECT_NAME is not configured")
 
     return ChatOpenAI(
-        model="models/gemini-2.5-flash",
+        #model="models/gemini-2.5-flash",
+        model="models/gemini-3.8-flash"
         base_url=BASE_URL,
         api_key=TOKEN,
         temperature=0,
