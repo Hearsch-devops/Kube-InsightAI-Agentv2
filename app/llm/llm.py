@@ -8,7 +8,7 @@ load_dotenv()
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 PROJECT = os.getenv("PROJECT_NAME")
 
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 
 
 def get_chat_model():

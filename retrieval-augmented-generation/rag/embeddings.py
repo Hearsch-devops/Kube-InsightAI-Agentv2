@@ -10,7 +10,7 @@ from .document_loader import load_documents
 load_dotenv()
 
 MODEL_NAME = "models/gemini-embedding-001"
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 
 BATCH_SIZE = 50
