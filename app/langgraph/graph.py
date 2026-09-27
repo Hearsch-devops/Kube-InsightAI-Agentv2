@@ -462,11 +462,16 @@ The knowledge-base context is the primary source of information.
             "answer": answer,
         }
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Kubernetes response generation failed")
 
         return {
-            "error": "Unable to generate a Kubernetes response.",
+            "error": "llm_provider_unavailable",
+            "error_message": (
+                "The AI provider is temporarily unavailable. "
+                "Please try again later."
+            ),
+            "error_detail": str(exc),
         }
 
 

@@ -19,3 +19,4 @@ class AgentState(TypedDict, total=False):
 
     answer: str
     error: str
+    error_message: str

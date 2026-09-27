@@ -25,6 +25,7 @@ class ChatResponse(BaseModel):
     analysis: str | None = None
     sources: list[str] = []
     error: str | None = None
+    error_message: str | None = None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -57,6 +58,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             analysis=result.get("analysis"),
             sources=result.get("sources", []),
             error=result.get("error"),
+            error_message=result.get("error_message"),
         )
 
     except Exception:
