@@ -8,8 +8,7 @@ load_dotenv()
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 PROJECT = os.getenv("PROJECT_NAME")
 
-#BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
 
 
 def get_chat_model():
@@ -26,8 +25,7 @@ def get_chat_model():
     return ChatOpenAI(
         model="models/gemini-2.5-flash",
         base_url=BASE_URL,
-        #api_key=f"{TOKEN}:{PROJECT}",
-        api_key=TOKEN,
+        api_key=f"{TOKEN}:{PROJECT}",
         temperature=0,
     )
 
