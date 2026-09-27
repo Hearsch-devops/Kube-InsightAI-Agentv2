@@ -8,8 +8,8 @@ from langchain_core.embeddings import Embeddings
 load_dotenv()
 
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
-#BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+BASE_URL = "https://llmfoundry.straive.com/gemini/v1beta/openai"
+#BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 MAX_RETRIES = 4
