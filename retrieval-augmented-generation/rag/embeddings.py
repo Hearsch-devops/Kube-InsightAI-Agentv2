@@ -15,7 +15,7 @@ BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 
 BATCH_SIZE = 50
-MAX_RETRIES = 4
+MAX_RETRIES = 6
 REQUEST_TIMEOUT = 180
 
 #switch-to-gemini-embeddings
