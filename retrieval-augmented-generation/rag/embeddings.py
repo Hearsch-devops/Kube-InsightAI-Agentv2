@@ -18,7 +18,7 @@ BATCH_SIZE = 50
 MAX_RETRIES = 6
 REQUEST_TIMEOUT = 180
 
-#switch-to-gemini-embeddings
+#switch-to-llmfoundry_embeddings
 def create_embeddings(chunks):
     if not TOKEN:
         raise ValueError("LLMFOUNDRY_TOKEN is not configured")
@@ -51,10 +51,7 @@ def create_embeddings(chunks):
 
                     response.raise_for_status()
 
-                    content_type = response.headers.get(
-                        "content-type",
-                        "",
-                    )
+                    content_type = response.headers.get("content-type", "")
 
                     if "application/json" not in content_type.lower():
                         raise RuntimeError(
@@ -63,7 +60,7 @@ def create_embeddings(chunks):
                             f"content-type={content_type}): "
                             f"{response.text[:500]}"
                         )
-
+                    
                     data = response.json()
 
                     batch_embeddings = [
@@ -79,99 +76,27 @@ def create_embeddings(chunks):
 
                     all_embeddings.extend(batch_embeddings)
 
-                    print(
-                        f"Embedded {end}/{len(texts)} chunks"
-                    )
-
+                    print(f"Embedded {end}/{len(texts)} chunks")
                     break
 
-                except httpx.HTTPStatusError as exc:
-
-                    status_code = exc.response.status_code
-
-                    if status_code == 429:
-                        retry_after = exc.response.headers.get(
-                            "Retry-After"
-                        )
-
-                        if retry_after:
-                            try:
-                                wait_seconds = float(retry_after)
-                            except ValueError:
-                                wait_seconds = 30 * attempt
-                        else:
-                            wait_seconds = 30 * attempt
-
-                        print(
-                            f"Gemini rate limit reached "
-                            f"(429) on attempt "
-                            f"{attempt}/{MAX_RETRIES}."
-                        )
-
-                        print(
-                            f"Retrying in {wait_seconds:.0f} seconds..."
-                        )
-
-                        if attempt == MAX_RETRIES:
-                            raise RuntimeError(
-                                f"Embedding batch "
-                                f"{start + 1}-{end} failed after "
-                                f"{MAX_RETRIES} attempts due to "
-                                f"Gemini rate limiting."
-                            ) from exc
-
-                        time.sleep(wait_seconds)
-
-                    elif status_code >= 500:
-
-                        wait_seconds = 10 * attempt
-
-                        print(
-                            f"Gemini server error "
-                            f"({status_code}) on attempt "
-                            f"{attempt}/{MAX_RETRIES}."
-                        )
-
-                        print(
-                            f"Retrying in {wait_seconds} seconds..."
-                        )
-
-                        if attempt == MAX_RETRIES:
-                            raise RuntimeError(
-                                f"Embedding batch "
-                                f"{start + 1}-{end} failed after "
-                                f"{MAX_RETRIES} attempts."
-                            ) from exc
-
-                        time.sleep(wait_seconds)
-
-                    else:
-                        raise
-
                 except httpx.HTTPError as exc:
-
                     if attempt == MAX_RETRIES:
                         raise RuntimeError(
-                            f"Embedding batch "
-                            f"{start + 1}-{end} failed after "
-                            f"{MAX_RETRIES} attempts."
+                            f"Embedding batch {start + 1}-{end} failed "
+                            f"after {MAX_RETRIES} attempts"
                         ) from exc
 
-                    wait_seconds = 5 * attempt
+                    wait_seconds = 2 ** attempt
 
                     print(
                         f"Embedding request failed "
                         f"(attempt {attempt}/{MAX_RETRIES}): {exc}"
                     )
-
-                    print(
-                        f"Retrying in {wait_seconds} seconds..."
-                    )
+                    print(f"Retrying in {wait_seconds} seconds...")
 
                     time.sleep(wait_seconds)
 
     return all_embeddings
-
 
 if __name__ == "__main__":
     documents = load_documents()
