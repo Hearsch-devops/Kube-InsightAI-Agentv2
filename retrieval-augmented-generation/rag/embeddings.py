@@ -15,7 +15,7 @@ BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
 TOKEN = os.getenv("LLMFOUNDRY_TOKEN")
 
 BATCH_SIZE = 50
-MAX_RETRIES = 6
+MAX_RETRIES = 4
 REQUEST_TIMEOUT = 180
 
 #switch-to-gemini-embeddings
@@ -89,7 +89,7 @@ def create_embeddings(chunks):
 
                     status_code = exc.response.status_code
                     print(f"Gemini response body: {exc.response.text[:2000]}")
-                    
+
                     if status_code == 429:
                         retry_after = exc.response.headers.get(
                             "Retry-After"
