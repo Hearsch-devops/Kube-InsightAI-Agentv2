@@ -29,6 +29,15 @@ KUBERNETES_KEYWORDS = (
     "helm",
     "container",
     "node",
+    "health",
+    "healthy",
+    "readiness",
+    "ready",
+    "liveness",
+    "alive",
+    "available",
+    "availability",
+    "uptime",
 )
 
 LIVE_CLUSTER_KEYWORDS = (
