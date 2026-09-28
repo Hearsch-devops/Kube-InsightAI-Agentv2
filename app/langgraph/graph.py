@@ -190,19 +190,21 @@ def route_question(state: AgentState) -> dict:
     return {"route": route}
 
 async def mcp_response(state: AgentState) -> dict:
-
     """Retrieve live Kubernetes information using MCP."""
 
     question = extract_question(state)
+    question_lower = question.lower()
 
     try:
-
         logger.info("Connecting to Kubernetes MCP server")
 
-        question_lower = question.lower()
+        # =========================================================
+        # Select the MCP tool based on the user's Kubernetes intent
+        # =========================================================
 
-        # Select the MCP tool based on the user's Kubernetes intent.
-        # More specific intents are checked before generic pod keywords.
+        # ---------------------------------------------------------
+        # Pod logs
+        # ---------------------------------------------------------
         if any(
             keyword in question_lower
             for keyword in (
@@ -213,9 +215,9 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP log request detected")
 
-            # First retrieve the current pod list so we do not
-            # hardcode a pod name.
-            pod_result = await client.call_tool(
+            # First retrieve the current pod list.
+            pod_result = await call_mcp_tool(
+                KUBERNETES_MCP_URL,
                 "list_pods",
                 {
                     "namespace": "kube-insightaiv2",
@@ -227,24 +229,34 @@ async def mcp_response(state: AgentState) -> dict:
                     f"Unable to list pods before retrieving logs: {pod_result}"
                 )
 
-            pod_context = pod_result.structured_content.get(
-                "result",
-                "",
+            pod_context = (
+                pod_result.structured_content.get("result", [])
+                if pod_result.structured_content
+                else []
             )
 
-            # Resolve the requested pod using a simple deterministic match.
+            # Resolve the requested pod deterministically.
             requested_pod = None
 
             if "agent" in question_lower:
-                for line in pod_context.splitlines():
-                    if line.startswith("Pod:") and "agent" in line.lower():
-                        requested_pod = line.replace("Pod:", "").strip()
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+                    if "agent" in pod_name.lower():
+                        requested_pod = pod_name
                         break
 
             elif "frontend" in question_lower:
-                for line in pod_context.splitlines():
-                    if line.startswith("Pod:") and "frontend" in line.lower():
-                        requested_pod = line.replace("Pod:", "").strip()
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+                    if "frontend" in pod_name.lower():
+                        requested_pod = pod_name
+                        break
+
+            elif "mcp" in question_lower:
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+                    if "mcp" in pod_name.lower():
+                        requested_pod = pod_name
                         break
 
             if not requested_pod:
@@ -257,7 +269,7 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "get_pod_logs",
                 {
@@ -267,6 +279,9 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
+        # ---------------------------------------------------------
+        # Deployments
+        # ---------------------------------------------------------
         elif any(
             keyword in question_lower
             for keyword in (
@@ -276,7 +291,7 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP tool selected: list_deployments")
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "list_deployments",
                 {
@@ -284,6 +299,9 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
+        # ---------------------------------------------------------
+        # Services
+        # ---------------------------------------------------------
         elif any(
             keyword in question_lower
             for keyword in (
@@ -293,7 +311,7 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP tool selected: list_services")
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "list_services",
                 {
@@ -301,6 +319,9 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
+        # ---------------------------------------------------------
+        # Events
+        # ---------------------------------------------------------
         elif any(
             keyword in question_lower
             for keyword in (
@@ -310,7 +331,7 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP tool selected: list_events")
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "list_events",
                 {
@@ -319,6 +340,9 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
+        # ---------------------------------------------------------
+        # Pods
+        # ---------------------------------------------------------
         elif any(
             keyword in question_lower
             for keyword in (
@@ -338,28 +362,40 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
+        # ---------------------------------------------------------
+        # Default
+        # ---------------------------------------------------------
         else:
-            logger.info("MCP tool selected: list_pods")
+            logger.info("MCP default tool selected: list_pods")
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
+                KUBERNETES_MCP_URL,
                 "list_pods",
                 {
                     "namespace": "kube-insightaiv2",
                 },
             )
 
+        # =========================================================
+        # Validate MCP result
+        # =========================================================
+
         if result.is_error:
             raise RuntimeError(
                 f"MCP tool returned an error: {result}"
             )
 
-        mcp_context = result.structured_content.get(
-            "result",
-            "",
+        mcp_context = (
+            result.structured_content.get("result", [])
+            if result.structured_content
+            else []
         )
 
-        prompt = f"""
+        # =========================================================
+        # Generate final natural-language response
+        # =========================================================
 
+        prompt = f"""
 You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
 Answer the user's question using the live Kubernetes information
@@ -397,15 +433,13 @@ Rules:
             "sources": ["MCP: Kubernetes cluster"],
         }
 
-    except Exception:
+    except Exception as exc:
         logger.exception("MCP response generation failed")
 
         return {
             "error": "Unable to retrieve live Kubernetes information.",
+            "error_message": str(exc),
         }
-
-    finally:
-        await client.close()
 
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
