@@ -384,13 +384,17 @@ async def mcp_response(state: AgentState) -> dict:
         # ---------------------------------------------------------
         # Pods
         # ---------------------------------------------------------
-        elif any(
+         elif any(
             keyword in question_lower
             for keyword in (
                 "pod",
                 "pods",
                 "running",
                 "status",
+                "ready",
+                "readiness",
+                "health",
+                "healthy",
             )
         ):
             logger.info("MCP tool selected: list_pods")
@@ -402,7 +406,6 @@ async def mcp_response(state: AgentState) -> dict:
                     "namespace": "kube-insightaiv2",
                 },
             )
-
         # ---------------------------------------------------------
         # Default
         # ---------------------------------------------------------

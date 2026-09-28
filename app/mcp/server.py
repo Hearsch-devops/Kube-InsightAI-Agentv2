@@ -113,18 +113,52 @@ def list_pods(namespace: str | None = None) -> list[dict]:
         results = []
 
         for pod in pods.items:
+            ready = False
+
+            if pod.status and pod.status.conditions:
+                for condition in pod.status.conditions:
+                    if condition.type == "Ready":
+                        ready = condition.status == "True"
+                        break
+
+            ready_containers = 0
+            total_containers = 0
+
+            if pod.status and pod.status.container_statuses:
+                total_containers = len(pod.status.container_statuses)
+
+                ready_containers = sum(
+                    1
+                    for container in pod.status.container_statuses
+                    if container.ready
+                )
+
             results.append({
                 "name": pod.metadata.name,
                 "namespace": pod.metadata.namespace,
-                "status": pod.status.phase if pod.status else "Unknown",
-                "node": pod.spec.node_name if pod.spec else None,
+                "status": (
+                    pod.status.phase
+                    if pod.status
+                    else "Unknown"
+                ),
+                "ready": ready,
+                "ready_containers": ready_containers,
+                "total_containers": total_containers,
+                "node": (
+                    pod.spec.node_name
+                    if pod.spec
+                    else None
+                ),
             })
 
         return results
 
     except Exception as exc:
         return [{
-            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
         }]
 
 # get_pod_logs
