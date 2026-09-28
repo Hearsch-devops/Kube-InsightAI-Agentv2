@@ -8,6 +8,8 @@ from langgraph.graph import END, START, StateGraph
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
 from app.mcp_client import call_mcp_tool, KUBERNETES_MCP_URL
+from app.mcp.client import MCPClient
+
 from lc_demos.langchain_retriever_demo import retriever
 from lc_demos.langchain_rag_chain import format_documents
 
