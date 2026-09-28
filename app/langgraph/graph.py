@@ -8,7 +8,6 @@ from langgraph.graph import END, START, StateGraph
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
 from app.mcp_client import call_mcp_tool, KUBERNETES_MCP_URL
-#from app.mcp.client import MCPClient
 from lc_demos.langchain_retriever_demo import retriever
 from lc_demos.langchain_rag_chain import format_documents
 
@@ -194,42 +193,122 @@ async def mcp_response(state: AgentState) -> dict:
 
     question = extract_question(state)
 
+    client = MCPClient()
+
     try:
-        logger.info("Calling Kubernetes MCP server")
+        logger.info("Connecting to Kubernetes MCP server")
+
+        await client.connect()
 
         question_lower = question.lower()
 
-        if "log" in question_lower:
-            # ...
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
+        # Select the MCP tool based on the user's Kubernetes intent.
+        # More specific intents are checked before generic pod keywords.
+        if any(
+            keyword in question_lower
+            for keyword in (
+                "log",
+                "logs",
+                "logging",
+            )
+        ):
+            logger.info("MCP log request detected")
+
+            # First retrieve the current pod list so we do not
+            # hardcode a pod name.
+            pod_result = await client.call_tool(
                 "list_pods",
                 {
-                    "namespace": "kube-insightaiv2"
+                    "namespace": "kube-insightaiv2",
                 },
             )
 
-        elif "deployment" in question_lower:
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
+            if pod_result.is_error:
+                raise RuntimeError(
+                    f"Unable to list pods before retrieving logs: {pod_result}"
+                )
+
+            pod_context = pod_result.structured_content.get(
+                "result",
+                "",
+            )
+
+            # Resolve the requested pod using a simple deterministic match.
+            requested_pod = None
+
+            if "agent" in question_lower:
+                for line in pod_context.splitlines():
+                    if line.startswith("Pod:") and "agent" in line.lower():
+                        requested_pod = line.replace("Pod:", "").strip()
+                        break
+
+            elif "frontend" in question_lower:
+                for line in pod_context.splitlines():
+                    if line.startswith("Pod:") and "frontend" in line.lower():
+                        requested_pod = line.replace("Pod:", "").strip()
+                        break
+
+            if not requested_pod:
+                raise ValueError(
+                    "I could not identify which pod you want logs from."
+                )
+
+            logger.info(
+                "Resolved pod for log request: %s",
+                requested_pod,
+            )
+
+            result = await client.call_tool(
+                "get_pod_logs",
+                {
+                    "pod_name": requested_pod,
+                    "namespace": "kube-insightaiv2",
+                    "tail_lines": 100,
+                },
+            )
+
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "deployment",
+                "deployments",
+            )
+        ):
+            logger.info("MCP tool selected: list_deployments")
+
+            result = await client.call_tool(
                 "list_deployments",
                 {
-                    "namespace": "kube-insightaiv2"
+                    "namespace": "kube-insightaiv2",
                 },
             )
 
-        elif "service" in question_lower:
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "service",
+                "services",
+            )
+        ):
+            logger.info("MCP tool selected: list_services")
+
+            result = await client.call_tool(
                 "list_services",
                 {
-                    "namespace": "kube-insightaiv2"
+                    "namespace": "kube-insightaiv2",
                 },
             )
 
-        elif "event" in question_lower:
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "event",
+                "events",
+            )
+        ):
+            logger.info("MCP tool selected: list_events")
+
+            result = await client.call_tool(
                 "list_events",
                 {
                     "namespace": "kube-insightaiv2",
@@ -237,12 +316,31 @@ async def mcp_response(state: AgentState) -> dict:
                 },
             )
 
-        else:
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
+        elif any(
+            keyword in question_lower
+            for keyword in (
+                "pod",
+                "pods",
+                "running",
+                "status",
+            )
+        ):
+            logger.info("MCP tool selected: list_pods")
+
+            result = await client.call_tool(
                 "list_pods",
                 {
-                    "namespace": "kube-insightaiv2"
+                    "namespace": "kube-insightaiv2",
+                },
+            )
+
+        else:
+            logger.info("MCP tool selected: list_pods")
+
+            result = await client.call_tool(
+                "list_pods",
+                {
+                    "namespace": "kube-insightaiv2",
                 },
             )
 
@@ -253,10 +351,10 @@ async def mcp_response(state: AgentState) -> dict:
 
         mcp_context = result.structured_content.get(
             "result",
-            []
+            "",
         )
 
-        # Continue with your existing LLM response generation...
+        prompt = f"""
 You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
 Answer the user's question using the live Kubernetes information
