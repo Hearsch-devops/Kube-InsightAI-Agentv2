@@ -4,6 +4,10 @@ from contextlib import asynccontextmanager
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
+KUBERNETES_MCP_URL = os.getenv(
+    "KUBERNETES_MCP_URL",
+    "http://kube-insightaiv2-mcp:8001/mcp",
+)
 
 CALCULATOR_MCP_URL = os.getenv(
     "CALCULATOR_MCP_URL",

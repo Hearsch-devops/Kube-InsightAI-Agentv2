@@ -12,7 +12,7 @@ class AgentState(TypedDict, total=False):
 
     question: str
     analysis: str
-    route: Literal["kubernetes", "general"]
+    route: Literal["kubernetes", "mcp", "general"]
 
     context: str
     sources: list[str]
