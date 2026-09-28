@@ -384,7 +384,7 @@ async def mcp_response(state: AgentState) -> dict:
         # ---------------------------------------------------------
         # Pods
         # ---------------------------------------------------------
-         elif any(
+        elif any(
             keyword in question_lower
             for keyword in (
                 "pod",
