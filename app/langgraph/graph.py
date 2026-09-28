@@ -8,7 +8,6 @@ from langgraph.graph import END, START, StateGraph
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
 from app.mcp_client import call_mcp_tool, KUBERNETES_MCP_URL
-from app.mcp.client import MCPClient
 
 from lc_demos.langchain_retriever_demo import retriever
 from lc_demos.langchain_rag_chain import format_documents
@@ -191,16 +190,14 @@ def route_question(state: AgentState) -> dict:
     return {"route": route}
 
 async def mcp_response(state: AgentState) -> dict:
+
     """Retrieve live Kubernetes information using MCP."""
 
     question = extract_question(state)
 
-    client = MCPClient()
-
     try:
-        logger.info("Connecting to Kubernetes MCP server")
 
-        await client.connect()
+        logger.info("Connecting to Kubernetes MCP server")
 
         question_lower = question.lower()
 
@@ -261,6 +258,7 @@ async def mcp_response(state: AgentState) -> dict:
             )
 
             result = await client.call_tool(
+                KUBERNETES_MCP_URL,
                 "get_pod_logs",
                 {
                     "pod_name": requested_pod,
@@ -279,6 +277,7 @@ async def mcp_response(state: AgentState) -> dict:
             logger.info("MCP tool selected: list_deployments")
 
             result = await client.call_tool(
+                KUBERNETES_MCP_URL,
                 "list_deployments",
                 {
                     "namespace": "kube-insightaiv2",
@@ -295,6 +294,7 @@ async def mcp_response(state: AgentState) -> dict:
             logger.info("MCP tool selected: list_services")
 
             result = await client.call_tool(
+                KUBERNETES_MCP_URL,
                 "list_services",
                 {
                     "namespace": "kube-insightaiv2",
@@ -311,6 +311,7 @@ async def mcp_response(state: AgentState) -> dict:
             logger.info("MCP tool selected: list_events")
 
             result = await client.call_tool(
+                KUBERNETES_MCP_URL,
                 "list_events",
                 {
                     "namespace": "kube-insightaiv2",
@@ -329,7 +330,8 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP tool selected: list_pods")
 
-            result = await client.call_tool(
+            result = await call_mcp_tool(
+                KUBERNETES_MCP_URL,
                 "list_pods",
                 {
                     "namespace": "kube-insightaiv2",
@@ -357,6 +359,7 @@ async def mcp_response(state: AgentState) -> dict:
         )
 
         prompt = f"""
+
 You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
 Answer the user's question using the live Kubernetes information
