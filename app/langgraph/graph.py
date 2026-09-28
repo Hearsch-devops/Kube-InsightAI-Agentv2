@@ -171,10 +171,10 @@ def route_question(state: AgentState) -> dict:
         or (
             "pod" in question
             and (
-                "running" in question
-                or "status" in question
-                or "health" in question
+                "ready" in question
+                or "readiness" in question
                 or "healthy" in question
+                or "health" in question
             )
         )
 
@@ -185,6 +185,8 @@ def route_question(state: AgentState) -> dict:
                 or "status" in question
                 or "health" in question
                 or "healthy" in question
+                or "ready" in question
+                or "readiness" in question
             )
         )
 
