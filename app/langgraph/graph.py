@@ -14,7 +14,6 @@ from lc_demos.langchain_rag_chain import format_documents
 
 logger = logging.getLogger(__name__)
 
-
 KUBERNETES_KEYWORDS = (
     "kubernetes",
     "k8s",
@@ -45,10 +44,13 @@ LIVE_CLUSTER_KEYWORDS = (
     "what is running",
     "which pods",
     "which deployments",
-    "services",
+
+    # Services — only live-cluster intent
     "service status",
     "running services",
     "which services",
+    "services running",
+    "services currently running",
 )
 
 def extract_question(state: AgentState) -> str:
