@@ -15,12 +15,33 @@ from lc_demos.langchain_rag_chain import format_documents
 
 logger = logging.getLogger(__name__)
 
+MCP_KEYWORDS = (
+    "pod",
+    "pods",
+    "running",
+    "status",
+    "health",
+    "healthy",
+    "ready",
+    "readiness",
+    "liveness",
+    "alive",
+    "available",
+    "availability",
+    "uptime",
+    "deployment",
+    "deployments",
+    "service",
+    "services",
+    "event",
+    "events",
+    "logs",
+    "log",
+)
+
 KUBERNETES_KEYWORDS = (
     "kubernetes",
     "k8s",
-    "pod",
-    "deployment",
-    "service",
     "kubectl",
     "namespace",
     "configmap",
@@ -29,15 +50,6 @@ KUBERNETES_KEYWORDS = (
     "helm",
     "container",
     "node",
-    "health",
-    "healthy",
-    "readiness",
-    "ready",
-    "liveness",
-    "alive",
-    "available",
-    "availability",
-    "uptime",
 )
 
 LIVE_CLUSTER_KEYWORDS = (
@@ -145,34 +157,48 @@ async def retrieve_context(state: AgentState) -> dict:
             "error": "Unable to retrieve information from the knowledge base.",
         }
 
-    except Exception:
-        logger.exception("RAG context retrieval failed")
-
-        return {
-            "context": "",
-            "sources": [],
-            "error": "Unable to retrieve information from the knowledge base.",
-        }
-
 def route_question(state: AgentState) -> dict:
     """Route the question to the appropriate response workflow."""
 
     question = extract_question(state).lower()
 
     live_cluster_intent = (
-        any(keyword in question for keyword in LIVE_CLUSTER_KEYWORDS)
+        any(
+            keyword in question
+            for keyword in LIVE_CLUSTER_KEYWORDS
+        )
+
         or (
             "pod" in question
-            and ("running" in question or "status" in question)
+            and (
+                "running" in question
+                or "status" in question
+                or "health" in question
+                or "healthy" in question
+            )
         )
+
         or (
             "deployment" in question
             and (
                 "running" in question
                 or "status" in question
                 or "health" in question
+                or "healthy" in question
             )
         )
+
+        or (
+            "agent" in question
+            and (
+                "health" in question
+                or "healthy" in question
+                or "ready" in question
+                or "alive" in question
+                or "status" in question
+            )
+        )
+
         or (
             "event" in question
             and (
@@ -181,6 +207,7 @@ def route_question(state: AgentState) -> dict:
                 or "namespace" in question
             )
         )
+
         or "show me the logs" in question
         or "get the logs" in question
     )
@@ -188,7 +215,10 @@ def route_question(state: AgentState) -> dict:
     if live_cluster_intent:
         route: Literal["mcp", "kubernetes", "general"] = "mcp"
 
-    elif any(keyword in question for keyword in KUBERNETES_KEYWORDS):
+    elif any(
+        keyword in question
+        for keyword in KUBERNETES_KEYWORDS
+    ):
         route = "kubernetes"
 
     else:
