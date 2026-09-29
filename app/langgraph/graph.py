@@ -191,6 +191,24 @@ def route_question(state: AgentState) -> dict:
         )
 
         or (
+            ("pod" in question or "pods" in question)
+            and any(
+                keyword in question
+                for keyword in (
+                    "fail",
+                    "failed",
+                    "failing",
+                    "error",
+                    "crash",
+                    "crashing",
+                    "imagepull",
+                    "image pull",
+                    "backoff",
+                )
+            )
+        )
+
+        or (
             "deployment" in question
             and (
                 "running" in question
