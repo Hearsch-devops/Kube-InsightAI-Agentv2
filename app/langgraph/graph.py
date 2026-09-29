@@ -171,40 +171,10 @@ def route_question(state: AgentState) -> dict:
         or (
             "pod" in question
             and (
-                "running" in question
-                or "status" in question
-                or "ready" in question
+                "ready" in question
                 or "readiness" in question
                 or "healthy" in question
                 or "health" in question
-            )
-        )
-
-        or (
-            ("pod" in question or "pods" in question)
-            and (
-                "how many" in question
-                or "how much" in question
-                or "number of" in question
-                or "count" in question
-            )
-        )
-
-        or (
-            ("pod" in question or "pods" in question)
-            and any(
-                keyword in question
-                for keyword in (
-                    "fail",
-                    "failed",
-                    "failing",
-                    "error",
-                    "crash",
-                    "crashing",
-                    "imagepull",
-                    "image pull",
-                    "backoff",
-                )
             )
         )
 
@@ -356,22 +326,18 @@ async def mcp_response(state: AgentState) -> dict:
         elif any(
             keyword in question_lower
             for keyword in (
-                "pod",
-                "pods",
-                "running",
-                "status",
-                "ready",
-                "readiness",
-                "health",
-                "healthy",
+                "deployment",
+                "deployments",
             )
         ):
-            logger.info("MCP pod/status request detected")
+            logger.info("MCP tool selected: list_deployments")
 
             result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
-                "list_pods",
-                {},
+                "list_deployments",
+                {
+                    "namespace": "kube-insightaiv2",
+                },
             )
 
         # ---------------------------------------------------------
@@ -389,7 +355,9 @@ async def mcp_response(state: AgentState) -> dict:
             result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "list_services",
-                {},
+                {
+                    "namespace": "kube-insightaiv2",
+                },
             )
 
         # ---------------------------------------------------------

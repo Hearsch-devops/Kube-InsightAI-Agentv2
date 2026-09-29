@@ -102,8 +102,6 @@ def get_cluster_metrics() -> dict:
 # list_pods
 @server.tool()
 def list_pods(namespace: str | None = None) -> list[dict]:
-    """List Kubernetes pods with status and readiness information."""
-
     try:
         v1 = get_kubernetes_client()
 
@@ -115,15 +113,25 @@ def list_pods(namespace: str | None = None) -> list[dict]:
         results = []
 
         for pod in pods.items:
-            container_statuses = pod.status.container_statuses or []
+            ready = False
 
-            ready_count = sum(
-                1
-                for container in container_statuses
-                if container.ready
-            )
+            if pod.status and pod.status.conditions:
+                for condition in pod.status.conditions:
+                    if condition.type == "Ready":
+                        ready = condition.status == "True"
+                        break
 
-            total_containers = len(container_statuses)
+            ready_containers = 0
+            total_containers = 0
+
+            if pod.status and pod.status.container_statuses:
+                total_containers = len(pod.status.container_statuses)
+
+                ready_containers = sum(
+                    1
+                    for container in pod.status.container_statuses
+                    if container.ready
+                )
 
             results.append({
                 "name": pod.metadata.name,
@@ -133,15 +141,9 @@ def list_pods(namespace: str | None = None) -> list[dict]:
                     if pod.status
                     else "Unknown"
                 ),
-                "ready": (
-                    f"{ready_count}/{total_containers}"
-                    if total_containers
-                    else "0/0"
-                ),
-                "ready_bool": (
-                    total_containers > 0
-                    and ready_count == total_containers
-                ),
+                "ready": ready,
+                "ready_containers": ready_containers,
+                "total_containers": total_containers,
                 "node": (
                     pod.spec.node_name
                     if pod.spec
