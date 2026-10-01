@@ -1,5 +1,6 @@
 from mcp.server.mcpserver import MCPServer
 from kubernetes import client, config
+from datetime import datetime
 import os
 
 from pathlib import Path
@@ -168,6 +169,7 @@ def get_pod_logs(
     namespace: str = "default",
     container: str | None = None,
     tail_lines: int = 100,
+    start_time: str | None = None,
 ) -> str:
     """
     Retrieve logs from a Kubernetes pod.
@@ -182,11 +184,19 @@ def get_pod_logs(
     try:
         v1 = get_kubernetes_client()
 
+        since_time = None
+
+        if start_time:
+            since_time = datetime.fromisoformat(
+                start_time.replace("Z", "+00:00")
+            )
+
         logs = v1.read_namespaced_pod_log(
             name=pod_name,
             namespace=namespace,
             container=container,
             tail_lines=tail_lines,
+            since_time=since_time,
         )
 
         if not logs:
