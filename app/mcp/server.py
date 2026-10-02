@@ -411,6 +411,67 @@ def list_events(namespace: str | None = None) -> list[dict]:
             "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
         }]
 
+# get_pod_events
+@server.tool()
+def get_pod_events(
+    pod_name: str,
+    namespace: str = "default",
+) -> list[dict]:
+    try:
+        v1 = get_kubernetes_client()
+
+        events = v1.list_namespaced_event(namespace)
+
+        results = []
+
+        for event in events.items:
+
+            if (
+                not event.involved_object
+                or event.involved_object.kind != "Pod"
+                or event.involved_object.name != pod_name
+            ):
+                continue
+
+            results.append({
+                "name": event.metadata.name,
+                "namespace": event.metadata.namespace,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "object": event.involved_object.name,
+                "object_kind": event.involved_object.kind,
+                "count": event.count,
+                "first_timestamp": (
+                    event.first_timestamp.isoformat()
+                    if event.first_timestamp
+                    else None
+                ),
+                "last_timestamp": (
+                    event.last_timestamp.isoformat()
+                    if event.last_timestamp
+                    else None
+                ),
+            })
+
+        if not results:
+            return [{
+                "message": (
+                    f"No events found for pod "
+                    f"'{pod_name}' in namespace '{namespace}'."
+                )
+            }]
+
+        return results
+
+    except Exception as exc:
+        return [{
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
+        }]
+
 # list_services
 @server.tool()
 def list_services(namespace: str | None = None) -> list[dict]:
