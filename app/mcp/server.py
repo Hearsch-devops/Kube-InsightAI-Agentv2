@@ -360,6 +360,85 @@ def list_deployments(namespace: str | None = None) -> list[dict]:
             "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
         }]
 
+# list_events_by_time
+@server.tool()
+def list_events_by_time(
+    namespace: str | None,
+    start_time: str,
+    end_time: str,
+) -> list[dict]:
+    try:
+        v1 = get_kubernetes_client()
+
+        start_dt = datetime.fromisoformat(
+            start_time.replace("Z", "+00:00")
+        )
+        end_dt = datetime.fromisoformat(
+            end_time.replace("Z", "+00:00")
+        )
+
+        if namespace:
+            events = v1.list_namespaced_event(namespace)
+        else:
+            events = v1.list_event_for_all_namespaces()
+
+        results = []
+
+        for event in events.items:
+            event_timestamp = get_event_timestamp(event)
+
+            if not event_timestamp:
+                continue
+
+            # Make sure both timestamps are timezone-aware.
+            if event_timestamp.tzinfo is None:
+                event_timestamp = event_timestamp.replace(
+                    tzinfo=start_dt.tzinfo
+                )
+
+            if start_dt <= event_timestamp <= end_dt:
+                results.append({
+                    "timestamp": event_timestamp.isoformat(),
+                    "name": event.metadata.name,
+                    "namespace": event.metadata.namespace,
+                    "type": event.type,
+                    "reason": event.reason,
+                    "message": event.message,
+                    "object": (
+                        event.involved_object.name
+                        if event.involved_object
+                        else None
+                    ),
+                    "object_kind": (
+                        event.involved_object.kind
+                        if event.involved_object
+                        else None
+                    ),
+                    "count": event.count,
+                    "first_timestamp": (
+                        event.first_timestamp.isoformat()
+                        if event.first_timestamp
+                        else None
+                    ),
+                    "last_timestamp": (
+                        event.last_timestamp.isoformat()
+                        if event.last_timestamp
+                        else None
+                    ),
+                })
+
+        # Return events chronologically.
+        results.sort(
+            key=lambda event: event["timestamp"]
+        )
+
+        return results
+
+    except Exception as exc:
+        return [{
+            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+        }]
+
 # list_events
 @server.tool()
 def list_events(namespace: str | None = None) -> list[dict]:
@@ -374,6 +453,8 @@ def list_events(namespace: str | None = None) -> list[dict]:
         results = []
 
         for event in events.items:
+            event_timestamp = get_event_timestamp(event)
+
             results.append({
                 "name": event.metadata.name,
                 "namespace": event.metadata.namespace,
@@ -391,6 +472,11 @@ def list_events(namespace: str | None = None) -> list[dict]:
                     else None
                 ),
                 "count": event.count,
+                "timestamp": (
+                    event_timestamp.isoformat()
+                    if event_timestamp
+                    else None
+                ),
                 "first_timestamp": (
                     event.first_timestamp.isoformat()
                     if event.first_timestamp
