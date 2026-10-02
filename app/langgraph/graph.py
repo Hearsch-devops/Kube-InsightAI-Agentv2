@@ -435,7 +435,92 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP event request detected")
 
+            # Extract requested time range.
             start_time, end_time = extract_log_time_range(question)
+
+            # Resolve the requested pod when a specific workload is mentioned.
+            requested_pod = None
+
+            if "agent" in question_lower:
+                pod_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_pods",
+                    {
+                        "namespace": "kube-insightaiv2",
+                    },
+                )
+
+                if pod_result.is_error:
+                    raise RuntimeError(
+                        f"Unable to list pods before retrieving events: {pod_result}"
+                    )
+
+                pod_context = (
+                    pod_result.structured_content.get("result", [])
+                    if pod_result.structured_content
+                    else []
+                )
+
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+
+                    if "agent" in pod_name.lower():
+                        requested_pod = pod_name
+                        break
+
+            elif "frontend" in question_lower:
+                pod_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_pods",
+                    {
+                        "namespace": "kube-insightaiv2",
+                    },
+                )
+
+                if pod_result.is_error:
+                    raise RuntimeError(
+                        f"Unable to list pods before retrieving events: {pod_result}"
+                    )
+
+                pod_context = (
+                    pod_result.structured_content.get("result", [])
+                    if pod_result.structured_content
+                    else []
+                )
+
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+
+                    if "frontend" in pod_name.lower():
+                        requested_pod = pod_name
+                        break
+
+            elif "mcp" in question_lower:
+                pod_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_pods",
+                    {
+                        "namespace": "kube-insightaiv2",
+                    },
+                )
+
+                if pod_result.is_error:
+                    raise RuntimeError(
+                        f"Unable to list pods before retrieving events: {pod_result}"
+                    )
+
+                pod_context = (
+                    pod_result.structured_content.get("result", [])
+                    if pod_result.structured_content
+                    else []
+                )
+
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+
+                    if "mcp" in pod_name.lower():
+                        requested_pod = pod_name
+                        break
 
             if start_time and end_time:
                 logger.info(
@@ -464,6 +549,54 @@ async def mcp_response(state: AgentState) -> dict:
                         "namespace": "kube-insightaiv2",
                     },
                 )
+
+            # Filter events related to the requested pod.
+            if requested_pod and not result.is_error:
+                event_context = (
+                    result.structured_content.get("result", [])
+                    if result.structured_content
+                    else []
+                )
+
+                filtered_events = []
+
+                for event in event_context:
+                    event_object = event.get("object") or ""
+                    event_message = event.get("message") or ""
+
+                    # Direct pod event.
+                    if event_object == requested_pod:
+                        filtered_events.append(event)
+                        continue
+
+                    # Related controller event where the message references the pod.
+                    if requested_pod in event_message:
+                        filtered_events.append(event)
+                        continue
+
+                logger.info(
+                    "Filtered events for pod %s: %d events",
+                    requested_pod,
+                    len(filtered_events),
+                )
+
+                result_text = "\n".join(
+                    str(event)
+                    for event in filtered_events
+                )
+
+                if not filtered_events:
+                    result_text = (
+                        f"No Kubernetes events found for pod "
+                        f"{requested_pod}."
+                    )
+
+                return {
+                    **state,
+                    "messages": state["messages"] + [
+                        AIMessage(content=result_text)
+                    ],
+                }
 
         # ---------------------------------------------------------
         # Pods
