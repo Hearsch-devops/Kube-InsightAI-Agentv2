@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from typing import Literal
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -229,6 +230,28 @@ def route_question(state: AgentState) -> dict:
     logger.info("Question routed to: %s", route)
 
     return {"route": route}
+
+def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
+    """
+    Extract ISO-8601 start and end timestamps from a log request.
+
+    Expected format:
+        2026-10-02T09:12:00+00:00
+        2026-10-02T09:14:00+00:00
+    """
+
+    timestamps = re.findall(
+        r"\d{4}-\d{2}-\d{2}T"
+        r"\d{2}:\d{2}:\d{2}"
+        r"(?:\.\d+)?"
+        r"(?:Z|[+-]\d{2}:\d{2})",
+        question,
+    )
+
+    if len(timestamps) >= 2:
+        return timestamps[0], timestamps[1]
+
+    return None, None
 
 async def mcp_response(state: AgentState) -> dict:
     """Retrieve live Kubernetes information using MCP."""
