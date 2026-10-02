@@ -1,6 +1,8 @@
 from mcp.server.mcpserver import MCPServer
 from kubernetes import client, config
 
+from datetime import datetime
+
 import os
 
 from pathlib import Path
@@ -218,6 +220,98 @@ def get_pod_logs(
                         f"Container: {container or 'default'}\n\n"
                         f"Logs:\n{logs}"
                 )
+
+    except Exception as exc:
+        return (
+            f"Kubernetes MCP error: "
+            f"{type(exc).__name__}: {exc}"
+        )
+
+
+# get_pod_logs_by_time
+@server.tool()
+def get_pod_logs_by_time(
+    pod_name: str,
+    namespace: str = "default",
+    start_time: str | None = None,
+    end_time: str | None = None,
+    container: str | None = None,
+) -> str:
+    """
+    Retrieve Kubernetes pod logs within a specific time range.
+
+    start_time and end_time must be ISO-8601 timestamps.
+    Example:
+        2026-10-02T10:00:00
+    """
+
+    try:
+        v1 = get_kubernetes_client()
+
+        logs = v1.read_namespaced_pod_log(
+            name=pod_name,
+            namespace=namespace,
+            container=container,
+            timestamps=True,
+        )
+
+        if not logs:
+            return f"No logs found for pod '{pod_name}'."
+
+        if isinstance(logs, bytes):
+            logs = logs.decode("utf-8", errors="replace")
+
+        lines = logs.splitlines()
+
+        filtered_lines = []
+
+        start_dt = (
+            datetime.fromisoformat(start_time)
+            if start_time
+            else None
+        )
+
+        end_dt = (
+            datetime.fromisoformat(end_time)
+            if end_time
+            else None
+        )
+
+        for line in lines:
+            try:
+                timestamp_text, message = line.split(" ", 1)
+
+                log_dt = datetime.fromisoformat(
+                    timestamp_text.replace("Z", "+00:00")
+                )
+
+                if start_dt and log_dt < start_dt:
+                    continue
+
+                if end_dt and log_dt > end_dt:
+                    continue
+
+                filtered_lines.append(line)
+
+            except ValueError:
+                # Ignore lines that don't begin with a timestamp
+                continue
+
+        if not filtered_lines:
+            return (
+                f"No logs found for pod '{pod_name}' "
+                f"within the requested time range."
+            )
+
+        return (
+            f"Pod: {pod_name}\n"
+            f"Namespace: {namespace}\n"
+            f"Container: {container or 'default'}\n"
+            f"Start: {start_time or 'beginning'}\n"
+            f"End: {end_time or 'now'}\n\n"
+            f"Logs:\n"
+            + "\n".join(filtered_lines)
+        )
 
     except Exception as exc:
         return (
