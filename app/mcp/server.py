@@ -261,6 +261,17 @@ def get_pod_logs_by_time(
         if isinstance(logs, bytes):
             logs = logs.decode("utf-8", errors="replace")
 
+        elif (
+            isinstance(logs, str)
+            and logs.startswith("b'")
+            and logs.endswith("'")
+        ):
+            logs = (
+                logs[2:-1]
+                .encode("utf-8")
+                .decode("unicode_escape")
+            )
+
         lines = logs.splitlines()
 
         filtered_lines = []
