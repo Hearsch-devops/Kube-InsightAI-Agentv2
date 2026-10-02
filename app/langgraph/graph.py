@@ -333,15 +333,36 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
-                "get_pod_logs",
-                {
-                    "pod_name": requested_pod,
-                    "namespace": "kube-insightaiv2",
-                    "tail_lines": 100,
-                },
-            )
+            start_time, end_time = extract_log_time_range(question)
+
+            if start_time and end_time:
+                logger.info(
+                    f"MCP time-range log request: {start_time} → {end_time}"
+                )
+
+                result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "get_pod_logs_by_time",
+                    {
+                        "pod_name": requested_pod,
+                        "namespace": "kube-insightaiv2",
+                        "start_time": start_time,
+                        "end_time": end_time,
+                    },
+                )
+
+            else:
+                logger.info("MCP standard log request")
+
+                result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "get_pod_logs",
+                    {
+                        "pod_name": requested_pod,
+                        "namespace": "kube-insightaiv2",
+                        "tail_lines": 100,
+                    },
+                )
 
         # ---------------------------------------------------------
         # Deployments
