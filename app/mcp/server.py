@@ -227,7 +227,6 @@ def get_pod_logs(
             f"{type(exc).__name__}: {exc}"
         )
 
-
 # get_pod_logs_by_time
 @server.tool()
 def get_pod_logs_by_time(
@@ -459,6 +458,116 @@ def get_pod_events(
                 "message": (
                     f"No events found for pod "
                     f"'{pod_name}' in namespace '{namespace}'."
+                )
+            }]
+
+        return results
+
+    except Exception as exc:
+        return [{
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
+        }]
+
+# list_events_by_time
+@server.tool()
+def list_events_by_time(
+    namespace: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+) -> list[dict]:
+    """
+    Retrieve Kubernetes events within a specific time range.
+
+    start_time and end_time must be ISO-8601 timestamps.
+
+    Example:
+        2026-10-02T12:30:00+00:00
+    """
+
+    try:
+        v1 = get_kubernetes_client()
+
+        if namespace:
+            events = v1.list_namespaced_event(namespace)
+        else:
+            events = v1.list_event_for_all_namespaces()
+
+        start_dt = (
+            datetime.fromisoformat(start_time)
+            if start_time
+            else None
+        )
+
+        end_dt = (
+            datetime.fromisoformat(end_time)
+            if end_time
+            else None
+        )
+
+        results = []
+
+        for event in events.items:
+
+            # Kubernetes events can have different timestamp fields
+            event_time = (
+                event.last_timestamp
+                or event.event_time
+                or event.first_timestamp
+            )
+
+            if not event_time:
+                continue
+
+            # Make sure the event timestamp is timezone-aware
+            if event_time.tzinfo is None:
+                event_time = event_time.replace(
+                    tzinfo=timezone.utc
+                )
+
+            if start_dt and event_time < start_dt:
+                continue
+
+            if end_dt and event_time > end_dt:
+                continue
+
+            results.append({
+                "name": event.metadata.name,
+                "namespace": event.metadata.namespace,
+                "type": event.type,
+                "reason": event.reason,
+                "message": event.message,
+                "object": (
+                    event.involved_object.name
+                    if event.involved_object
+                    else None
+                ),
+                "object_kind": (
+                    event.involved_object.kind
+                    if event.involved_object
+                    else None
+                ),
+                "count": event.count,
+                "event_time": event_time.isoformat(),
+                "first_timestamp": (
+                    event.first_timestamp.isoformat()
+                    if event.first_timestamp
+                    else None
+                ),
+                "last_timestamp": (
+                    event.last_timestamp.isoformat()
+                    if event.last_timestamp
+                    else None
+                ),
+            })
+
+        if not results:
+            return [{
+                "message": (
+                    "No Kubernetes events found "
+                    "within the requested time range."
                 )
             }]
 
