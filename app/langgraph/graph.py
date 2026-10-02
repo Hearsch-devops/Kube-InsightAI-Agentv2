@@ -433,16 +433,37 @@ async def mcp_response(state: AgentState) -> dict:
                 "events",
             )
         ):
-            logger.info("MCP tool selected: list_events")
+            logger.info("MCP event request detected")
 
-            result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
-                "list_events",
-                {
-                    "namespace": "kube-insightaiv2",
-                    "limit": 20,
-                },
-            )
+            start_time, end_time = extract_log_time_range(question)
+
+            if start_time and end_time:
+                logger.info(
+                    "MCP time-range event request: %s → %s",
+                    start_time,
+                    end_time,
+                )
+
+                result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_events_by_time",
+                    {
+                        "namespace": "kube-insightaiv2",
+                        "start_time": start_time,
+                        "end_time": end_time,
+                    },
+                )
+
+            else:
+                logger.info("MCP standard event request")
+
+                result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_events",
+                    {
+                        "namespace": "kube-insightaiv2",
+                    },
+                )
 
         # ---------------------------------------------------------
         # Pods
