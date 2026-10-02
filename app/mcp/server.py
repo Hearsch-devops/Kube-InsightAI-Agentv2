@@ -265,21 +265,23 @@ def get_pod_logs_by_time(
 
         filtered_lines = []
 
-        start_dt = (
-            datetime.fromisoformat(start_time)
+                start_dt = (
+            datetime.fromisoformat(start_time.replace("Z", "+00:00"))
             if start_time
             else None
         )
 
         end_dt = (
-            datetime.fromisoformat(end_time)
+            datetime.fromisoformat(end_time.replace("Z", "+00:00"))
             if end_time
             else None
         )
 
+        filtered_lines = []
+
         for line in lines:
             try:
-                timestamp_text, message = line.split(" ", 1)
+                timestamp_text = line.split(" ", 1)[0]
 
                 log_dt = datetime.fromisoformat(
                     timestamp_text.replace("Z", "+00:00")
@@ -293,8 +295,7 @@ def get_pod_logs_by_time(
 
                 filtered_lines.append(line)
 
-            except ValueError:
-                # Ignore lines that don't begin with a timestamp
+            except (ValueError, IndexError):
                 continue
 
         if not filtered_lines:
