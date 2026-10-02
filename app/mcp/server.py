@@ -265,7 +265,7 @@ def get_pod_logs_by_time(
 
         filtered_lines = []
 
-                start_dt = (
+        start_dt = (
             datetime.fromisoformat(start_time.replace("Z", "+00:00"))
             if start_time
             else None
