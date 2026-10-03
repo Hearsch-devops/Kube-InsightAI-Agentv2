@@ -471,6 +471,16 @@ async def mcp_response(state: AgentState) -> dict:
                     else []
                 )
 
+                logger.info(
+                    "PODS RETURNED BY MCP: %s",
+                    json.dumps(pod_context, indent=2),
+                )
+
+                logger.info(
+                    "NUMBER OF PODS RETURNED BY MCP: %d",
+                    len(pod_context),
+                )
+
                 for pod in pod_context:
                     pod_name = pod.get("name", "")
 
@@ -532,6 +542,40 @@ async def mcp_response(state: AgentState) -> dict:
                         requested_pod = pod_name
                         break
 
+            # =========================================================
+            # Validate resolved pod against current pod list
+            # =========================================================
+
+            if requested_pod:
+                current_pod_names = {
+                    pod.get("name")
+                    for pod in pod_context
+                    if pod.get("name")
+                }
+
+                logger.info(
+                    "CURRENT PODS FROM MCP: %s",
+                    sorted(current_pod_names),
+                )
+
+                logger.info(
+                    "RESOLVED REQUESTED POD: %s",
+                    requested_pod,
+                )
+
+                if requested_pod not in current_pod_names:
+                    logger.warning(
+                        "Resolved pod %s is not present in current pod list. "
+                        "Current pods: %s",
+                        requested_pod,
+                        sorted(current_pod_names),
+                    )
+
+                    requested_pod = None
+
+            # =========================================================
+            # Retrieve events
+            # =========================================================
             if start_time and end_time:
                 logger.info(
                     "MCP time-range event request: %s → %s",
@@ -560,8 +604,12 @@ async def mcp_response(state: AgentState) -> dict:
                     },
                 )
 
-            # Filter events related to the requested pod.
+
+            # =========================================================
+            # Filter events related to the requested pod
+            # =========================================================
             if requested_pod and not result.is_error:
+
                 event_context = (
                     result.structured_content.get("result", [])
                     if result.structured_content
@@ -589,14 +637,24 @@ async def mcp_response(state: AgentState) -> dict:
                     len(filtered_events),
                 )
 
-                # Pass only filtered events to the final LLM.
-                mcp_context = filtered_events
+            else:
+                filtered_events = []
 
                 logger.info(
-                    "Passing %d filtered events to final LLM for pod %s",
-                    len(filtered_events),
-                    requested_pod,
+                    "No valid requested pod available for event filtering"
                 )
+
+
+            # =========================================================
+            # Pass only filtered events to the final LLM
+            # =========================================================
+            mcp_context = filtered_events
+
+            logger.info(
+                "Passing %d filtered events to final LLM for pod %s",
+                len(filtered_events),
+                requested_pod,
+            )
 
         # ---------------------------------------------------------
         # Pods
