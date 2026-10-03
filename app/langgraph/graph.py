@@ -564,23 +564,22 @@ async def mcp_response(state: AgentState) -> dict:
                     event_object = event.get("object") or ""
                     event_message = event.get("message") or ""
 
-                    # Direct pod event.
+                    # Exact pod event.
                     if event_object == requested_pod:
                         filtered_events.append(event)
                         continue
 
-                    # Related controller event where the message references the pod.
+                    # Controller event that explicitly references this exact pod.
                     if requested_pod in event_message:
                         filtered_events.append(event)
-                        continue
 
                 logger.info(
-                    "Filtered events for pod %s: %d events",
+                    "Filtered events for exact pod %s: %d events",
                     requested_pod,
                     len(filtered_events),
                 )
 
-                # Keep event data structured for the LLM.
+                # Keep event data structured for the final LLM.
                 if filtered_events:
                     event_context_text = json.dumps(
                         filtered_events,
@@ -592,10 +591,14 @@ async def mcp_response(state: AgentState) -> dict:
                         f"in namespace `kube-insightaiv2`.\n\n"
                         f"Event data:\n"
                         f"{event_context_text}\n\n"
-                        f"Present these events in a clear Markdown table with these columns:\n"
+                        f"Present ONLY these events in a clear Markdown table "
+                        f"with these columns:\n"
                         f"Timestamp | Type | Reason | Object | Message\n\n"
-                        f"Do not expose raw Python dictionaries or JSON unless explicitly requested."
+                        f"Do not include events from any other pod.\n"
+                        f"Do not expose raw Python dictionaries or JSON unless "
+                        f"explicitly requested."
                     )
+
                 else:
                     user_context = (
                         f"No Kubernetes events found for pod "
@@ -694,29 +697,34 @@ async def mcp_response(state: AgentState) -> dict:
         timestamps, status values, and log lines exactly as provided.
         9. Never alter, correct, normalize, or paraphrase literal log content.
         10. When presenting logs, place the original log lines inside a code block.
+        11. When presenting events for a specific pod, include only the events
+            provided in the live Kubernetes information for that exact pod.
+        12. Never include events belonging to another pod, even if the pod names
+            have the same application or workload prefix.
 
         EVENT FORMATTING:
-        11. If the user asks for Kubernetes events and event data is available,
-            present the events as a Markdown table.
-        12. For Kubernetes events, use exactly these columns:
+        13. If the user asks for Kubernetes events and matching event data is available,
+            present the events as a Markdown table. If no matching events are available,
+            clearly state that no events were found.
+        14. For Kubernetes events, use exactly these columns:
 
             | Timestamp | Type | Reason | Object | Message |
 
-        13. Map the event fields as follows:
+        15. Map the event fields as follows:
             - Timestamp → timestamp
             - Type → type
             - Reason → reason
             - Object → object
             - Message → message
 
-        14. Preserve the values of these fields exactly as provided.
-        15. Do not expose raw Python dictionaries.
-        16. Do not expose raw JSON.
-        17. Do not include fields such as `name`, `namespace`, `count`,
+        16. Preserve the values of these fields exactly as provided.
+        17. Do not expose raw Python dictionaries.
+        18. Do not expose raw JSON.
+        19. Do not include fields such as `name`, `namespace`, `count`,
             `first_timestamp`, `last_timestamp`, or `object_kind`
             unless explicitly requested.
-        18. Do not output an "Event data:" section containing JSON.
-        19. If no matching events were found, clearly state that no events
+        20. Do not output an "Event data:" section containing JSON.
+        21. If no matching events were found, clearly state that no events
             were found.
         """
 
@@ -755,41 +763,41 @@ async def kubernetes_response(state: AgentState) -> dict:
         )
 
     prompt = f"""
-You are Kube-InsightAI, a Kubernetes and DevOps troubleshooting assistant.
+    You are Kube-InsightAI, a Kubernetes and DevOps troubleshooting assistant.
 
-Answer the user's question using the provided Kubernetes knowledge-base context.
+    Answer the user's question using the provided Kubernetes knowledge-base context.
 
-User question:
-{question}
+    User question:
+    {question}
 
-Question analysis:
-{analysis}
+    Question analysis:
+    {analysis}
 
-Knowledge-base context:
-{knowledge_context}
+    Knowledge-base context:
+    {knowledge_context}
 
-Response formatting rules:
-1. Use clear Markdown formatting.
-2. Start with a concise and direct answer.
-3. Use the following sections when they are relevant:
-## Diagnosis
-## Possible Causes
-## Troubleshooting Steps
-## Recommended Action
-## Next Step
-4. Use numbered lists for troubleshooting procedures.
-5. Put kubectl and other terminal commands inside fenced code blocks.
-6. Use backticks for Kubernetes resource names, commands, and configuration values.
-7. Keep the response practical and easy to follow.
-8. Avoid unnecessary repetition.
-9. Do not invent pod names, namespaces, logs, events, or cluster-specific facts.
-10. Do not claim that you inspected a live Kubernetes cluster.
-11. If the knowledge base does not contain enough information, clearly state:
-    "I don't have enough information in the available Kubernetes knowledge base."
-12. Adapt the response structure to the question. Do not include irrelevant sections.
+    Response formatting rules:
+    1. Use clear Markdown formatting.
+    2. Start with a concise and direct answer.
+    3. Use the following sections when they are relevant:
+    ## Diagnosis
+    ## Possible Causes
+    ## Troubleshooting Steps
+    ## Recommended Action
+    ## Next Step
+    4. Use numbered lists for troubleshooting procedures.
+    5. Put kubectl and other terminal commands inside fenced code blocks.
+    6. Use backticks for Kubernetes resource names, commands, and configuration values.
+    7. Keep the response practical and easy to follow.
+    8. Avoid unnecessary repetition.
+    9. Do not invent pod names, namespaces, logs, events, or cluster-specific facts.
+    10. Do not claim that you inspected a live Kubernetes cluster.
+    11. If the knowledge base does not contain enough information, clearly state:
+        "I don't have enough information in the available Kubernetes knowledge base."
+    12. Adapt the response structure to the question. Do not include irrelevant sections.
 
-The knowledge-base context is the primary source of information.
-"""
+    The knowledge-base context is the primary source of information.
+    """
 
     try:
         llm = get_chat_model()
