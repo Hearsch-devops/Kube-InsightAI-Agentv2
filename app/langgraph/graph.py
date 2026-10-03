@@ -823,30 +823,30 @@ async def general_response(state: AgentState) -> dict:
     9. Never alter, correct, normalize, or paraphrase literal log content.
     10. When presenting logs, place the original log lines inside a code block.
 
-    KUBERNETES EVENT FORMATTING:
-    11. If the user asks for Kubernetes events, do NOT expose the raw
-        Python dictionaries or JSON returned by MCP.
-    12. Convert event data into a clear Markdown table.
-    13. For Kubernetes events, use exactly these columns when applicable:
+    EVENT FORMATTING:
+    11. If the user asks for Kubernetes events and event data is provided,
+        DO NOT output the raw event dictionaries or JSON.
+    12. Convert the event data into a Markdown table.
+    13. For Kubernetes events, use exactly these columns:
 
         | Timestamp | Type | Reason | Object | Message |
 
-    14. Use the event's `timestamp` field for the Timestamp column.
+    14. Use the event's `timestamp` field for Timestamp.
     15. Use the event's `type` field for Type.
     16. Use the event's `reason` field for Reason.
-    17. Use the event's `object` and `object_kind` fields for Object.
+    17. Use the event's `object` field for Object.
     18. Use the event's `message` field for Message.
-    19. Preserve event messages exactly as provided by MCP.
-    20. Do not invent, summarize, or modify event messages.
-    21. If there are no matching events, clearly state that no matching
-        Kubernetes events were found.
-    22. If the user asks for a specific pod, show events directly related
-        to that pod and related controller events that reference that pod.
-    23. Do not display the internal event fields `name`, `namespace`,
-        `count`, `first_timestamp`, or `last_timestamp` unless the user
-        explicitly asks for them.
-    24. Sort events chronologically by `timestamp` when presenting them,
-        unless the user explicitly requests another order.
+    19. Preserve the values exactly as provided.
+    20. Do not include `name`, `namespace`, `count`, `first_timestamp`,
+        `last_timestamp`, or `object_kind` unless the user explicitly asks
+        for them.
+    21. Do not write "Event data:" followed by JSON.
+    22. Do not expose Python dictionaries.
+    23. Do not expose JSON.
+    24. Return only the human-readable Markdown response.
+
+    If no events are provided, clearly state that no matching Kubernetes
+    events were found.
     """
 
     try:
