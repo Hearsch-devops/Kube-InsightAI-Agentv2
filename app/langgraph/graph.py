@@ -643,32 +643,6 @@ async def mcp_response(state: AgentState) -> dict:
         )
 
         # =========================================================
-        # Filter events for requested pod
-        # =========================================================
-
-        filtered_events = []
-
-        logger.info(
-            "Requested pod extracted: %s",
-            requested_pod,
-        )
-
-        for event in event_context:
-            event_object = event.get("object") or ""
-
-            if event_object == requested_pod:
-                filtered_events.append(event)
-
-        logger.info(
-            "Filtered events for pod %s: %d events",
-            requested_pod,
-            len(filtered_events),
-        )
-
-        # Replace raw MCP result with filtered result
-        mcp_context = filtered_events
-
-        # =========================================================
         # Generate final natural-language response
         # =========================================================
 
