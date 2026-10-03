@@ -867,10 +867,10 @@ async def general_response(state: AgentState) -> dict:
         }
 
 
-    def choose_route(state: AgentState) -> str:
-        """Return the route selected by the routing node."""
+def choose_route(state: AgentState) -> str:
+    """Return the route selected by the routing node."""
 
-        return state.get("route", "general")
+    return state.get("route", "general")
 
 
 def build_graph():
