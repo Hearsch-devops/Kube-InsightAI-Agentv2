@@ -602,9 +602,7 @@ async def mcp_response(state: AgentState) -> dict:
                         f"`{requested_pod}`."
                     )
 
-                state["messages"] = state["messages"] + [
-                        HumanMessage(content=user_context)
-                    ]
+                state["context"] = user_context
                 
                 return state
 
@@ -662,36 +660,65 @@ async def mcp_response(state: AgentState) -> dict:
             else []
         )
 
+        mcp_context = json.dumps(
+            mcp_context,
+            indent=2,
+        )
+
         # =========================================================
         # Generate final natural-language response
         # =========================================================
 
         prompt = f"""
-You are Kube-InsightAI, a Kubernetes and DevOps assistant.
+        You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
-Answer the user's question using the live Kubernetes information
-retrieved through MCP.
+        Answer the user's question using the live Kubernetes information
+        retrieved through MCP.
 
-User question:
-{question}
+        User question:
+        {question}
 
-Live Kubernetes information:
-{mcp_context}
+        Live Kubernetes information:
+        {mcp_context}
 
-Rules:
-1. Clearly distinguish live cluster information from general knowledge.
-2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
-3. Use Markdown formatting.
-4. Use headings when useful.
-5. Keep the response practical and concise.
-6. If the live information does not contain enough information to answer,
-   clearly say so.
-7. Do not claim to have inspected information that was not provided by MCP.
-8. Preserve Kubernetes resource names, URLs, IP addresses,
-   timestamps, status values, and log lines exactly as provided.
-9. Never alter, correct, normalize, or paraphrase literal log content.
-10. When presenting logs, place the original log lines inside a code block.
-"""
+        Rules:
+        1. Clearly distinguish live cluster information from general knowledge.
+        2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
+        3. Use Markdown formatting.
+        4. Use headings when useful.
+        5. Keep the response practical and concise.
+        6. If the live information does not contain enough information to answer,
+        clearly say so.
+        7. Do not claim to have inspected information that was not provided by MCP.
+        8. Preserve Kubernetes resource names, URLs, IP addresses,
+        timestamps, status values, and log lines exactly as provided.
+        9. Never alter, correct, normalize, or paraphrase literal log content.
+        10. When presenting logs, place the original log lines inside a code block.
+
+        EVENT FORMATTING:
+        11. If the user asks for Kubernetes events and event data is available,
+            present the events as a Markdown table.
+        12. For Kubernetes events, use exactly these columns:
+
+            | Timestamp | Type | Reason | Object | Message |
+
+        13. Map the event fields as follows:
+            - Timestamp → timestamp
+            - Type → type
+            - Reason → reason
+            - Object → object
+            - Message → message
+
+        14. Preserve the values of these fields exactly as provided.
+        15. Do not expose raw Python dictionaries.
+        16. Do not expose raw JSON.
+        17. Do not include fields such as `name`, `namespace`, `count`,
+            `first_timestamp`, `last_timestamp`, or `object_kind`
+            unless explicitly requested.
+        18. Do not output an "Event data:" section containing JSON.
+        19. If no matching events were found, clearly state that no events
+            were found.
+        """
 
         llm = get_chat_model()
         response = await llm.ainvoke(prompt)
@@ -807,46 +834,59 @@ async def general_response(state: AgentState) -> dict:
     {question}
 
     Live Kubernetes information:
-    {mcp_context}
+    {json.dumps(mcp_context, indent=2)}
 
     Rules:
-    1. Clearly distinguish live cluster information from general knowledge.
-    2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
-    3. Use Markdown formatting.
-    4. Use headings when useful.
-    5. Keep the response practical and concise.
-    6. If the live information does not contain enough information to answer,
-    clearly say so.
-    7. Do not claim to have inspected information that was not provided by MCP.
-    8. Preserve Kubernetes resource names, URLs, IP addresses,
-    timestamps, status values, and log lines exactly as provided.
-    9. Never alter, correct, normalize, or paraphrase literal log content.
-    10. When presenting logs, place the original log lines inside a code block.
 
-    EVENT FORMATTING:
-    11. If the user asks for Kubernetes events and event data is provided,
-        DO NOT output the raw event dictionaries or JSON.
-    12. Convert the event data into a Markdown table.
-    13. For Kubernetes events, use exactly these columns:
+    1. Clearly distinguish live cluster information from general knowledge.
+
+    2. Do not invent Kubernetes resources, logs, events, namespaces,
+    statuses, timestamps, or messages.
+
+    3. Use clear Markdown formatting.
+
+    4. Keep the response practical and concise.
+
+    5. If the live Kubernetes information does not contain enough information
+    to answer the question, clearly say so.
+
+    6. Do not claim to have inspected information that was not provided by MCP.
+
+    7. Preserve Kubernetes resource names, timestamps, status values,
+    and literal log/event messages exactly as provided.
+
+    8. For Kubernetes EVENTS:
+    - NEVER display the raw Python dictionary.
+    - NEVER display JSON.
+    - NEVER display the event list using `{ ... }`.
+    - Convert every event into a Markdown table.
+    - Use exactly these columns:
 
         | Timestamp | Type | Reason | Object | Message |
 
-    14. Use the event's `timestamp` field for Timestamp.
-    15. Use the event's `type` field for Type.
-    16. Use the event's `reason` field for Reason.
-    17. Use the event's `object` field for Object.
-    18. Use the event's `message` field for Message.
-    19. Preserve the values exactly as provided.
-    20. Do not include `name`, `namespace`, `count`, `first_timestamp`,
-        `last_timestamp`, or `object_kind` unless the user explicitly asks
-        for them.
-    21. Do not write "Event data:" followed by JSON.
-    22. Do not expose Python dictionaries.
-    23. Do not expose JSON.
-    24. Return only the human-readable Markdown response.
+    - Put one Kubernetes event on each table row.
+    - Preserve the event values exactly as provided.
+    - Do not omit events.
+    - Do not invent events.
 
-    If no events are provided, clearly state that no matching Kubernetes
-    events were found.
+    9. Example event response format:
+
+    ### Kubernetes Events
+
+    | Timestamp | Type | Reason | Object | Message |
+    |---|---|---|---|---|
+    | 2026-10-03T07:07:48+00:00 | Normal | Scheduled | kube-insightaiv2-agent-xxx | Successfully assigned ... |
+    | 2026-10-03T07:07:49+00:00 | Normal | Pulling | kube-insightaiv2-agent-xxx | Pulling image ... |
+
+    10. For Kubernetes LOGS:
+        - Preserve the original log lines exactly.
+        - Put log lines inside a fenced code block.
+
+    11. For Kubernetes EVENTS, the Markdown table requirement takes priority
+        over any request to display the underlying data structure.
+
+    12. Do not expose internal MCP response structures, Python dictionaries,
+        `structured_content`, or JSON unless the user explicitly asks for them.
     """
 
     try:
