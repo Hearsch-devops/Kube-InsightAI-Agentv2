@@ -715,6 +715,11 @@ async def mcp_response(state: AgentState) -> dict:
 
             llm = get_chat_model()
 
+            logger.info(
+                "FINAL MCP CONTEXT BEFORE LLM: %s",
+                json.dumps(mcp_context, indent=2),
+            )
+
             response = await llm.ainvoke(prompt)
 
             answer = str(response.content)
