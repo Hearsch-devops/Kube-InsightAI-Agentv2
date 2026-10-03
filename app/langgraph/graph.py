@@ -591,14 +591,10 @@ async def mcp_response(state: AgentState) -> dict:
                         f"in namespace `kube-insightaiv2`.\n\n"
                         f"Event data:\n"
                         f"{event_context_text}\n\n"
-                        f"Present ONLY these events in a clear Markdown table "
-                        f"with these columns:\n"
+                        f"Present these events in a clear Markdown table with these columns:\n"
                         f"Timestamp | Type | Reason | Object | Message\n\n"
-                        f"Do not include events from any other pod.\n"
-                        f"Do not expose raw Python dictionaries or JSON unless "
-                        f"explicitly requested."
+                        f"Do not expose raw Python dictionaries or JSON unless explicitly requested."
                     )
-
                 else:
                     user_context = (
                         f"No Kubernetes events found for pod "
@@ -608,6 +604,12 @@ async def mcp_response(state: AgentState) -> dict:
                 state["messages"] = state["messages"] + [
                     HumanMessage(content=user_context)
                 ]
+
+                # IMPORTANT:
+                # Pass only the filtered event data to the final LLM.
+                state["context"] = user_context
+
+                return state
 
         # ---------------------------------------------------------
         # Pods
@@ -663,10 +665,36 @@ async def mcp_response(state: AgentState) -> dict:
             else []
         )
 
-        mcp_context = json.dumps(
-            mcp_context,
-            indent=2,
-        )
+        # =========================================================
+        # Filter events for requested pod
+        # =========================================================
+
+        if requested_pod:
+
+            event_context = mcp_context
+
+            filtered_events = []
+
+            for event in event_context:
+                event_object = event.get("object") or ""
+                event_message = event.get("message") or ""
+
+                if event_object == requested_pod:
+                    filtered_events.append(event)
+                    continue
+
+                if requested_pod in event_message:
+                    filtered_events.append(event)
+
+            logger.info(
+                "Filtered events for pod %s: %d events",
+                requested_pod,
+                len(filtered_events),
+            )
+
+            # Replace raw MCP result with filtered result
+            mcp_context = filtered_events
+
 
         # =========================================================
         # Generate final natural-language response
@@ -675,8 +703,8 @@ async def mcp_response(state: AgentState) -> dict:
         prompt = f"""
         You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
-        Answer the user's question using the live Kubernetes information
-        retrieved through MCP.
+        Answer the user's question using only the live Kubernetes
+        information provided below.
 
         User question:
         {question}
@@ -685,6 +713,7 @@ async def mcp_response(state: AgentState) -> dict:
         {mcp_context}
 
         Rules:
+
         1. Clearly distinguish live cluster information from general knowledge.
         2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
         3. Use Markdown formatting.
@@ -696,56 +725,69 @@ async def mcp_response(state: AgentState) -> dict:
         8. Preserve Kubernetes resource names, URLs, IP addresses,
         timestamps, status values, and log lines exactly as provided.
         9. Never alter, correct, normalize, or paraphrase literal log content.
-        10. When presenting logs, place the original log lines inside a code block.
-        11. When presenting events for a specific pod, include only the events
-            provided in the live Kubernetes information for that exact pod.
-        12. Never include events belonging to another pod, even if the pod names
-            have the same application or workload prefix.
 
-        EVENT FORMATTING:
-        13. If the user asks for Kubernetes events and matching event data is available,
-            present the events as a Markdown table. If no matching events are available,
-            clearly state that no events were found.
-        14. For Kubernetes events, use exactly these columns:
+        10. When presenting events for a specific pod, include only events
+            belonging to that exact pod.
+
+        11. Never include events belonging to another pod, even if the pod
+            belongs to the same application or workload.
+
+        12. If the user asks for Kubernetes events and event data is available,
+            present the events as a Markdown table.
+
+        13. For Kubernetes events, use exactly these columns:
 
             | Timestamp | Type | Reason | Object | Message |
 
-        15. Map the event fields as follows:
+        14. Map the event fields as follows:
             - Timestamp → timestamp
             - Type → type
             - Reason → reason
             - Object → object
             - Message → message
 
-        16. Preserve the values of these fields exactly as provided.
-        17. Do not expose raw Python dictionaries.
-        18. Do not expose raw JSON.
-        19. Do not include fields such as `name`, `namespace`, `count`,
-            `first_timestamp`, `last_timestamp`, or `object_kind`
+        15. Preserve these field values exactly as provided.
+
+        16. Do not expose raw Python dictionaries.
+
+        17. Do not expose raw JSON.
+
+        18. Do not include fields such as name, namespace, count,
+            first_timestamp, last_timestamp, or object_kind
             unless explicitly requested.
-        20. Do not output an "Event data:" section containing JSON.
-        21. If no matching events were found, clearly state that no events
+
+        19. Do not output an "Event data:" section containing JSON.
+
+        20. If no matching events were found, clearly state that no events
             were found.
+
+        21. Treat the "Live Kubernetes information" above as authoritative.
+            Do not reconstruct or infer additional events from other data.
         """
 
-        llm = get_chat_model()
-        response = await llm.ainvoke(prompt)
-        answer = str(response.content)
+        try:
 
-        return {
-            "messages": [AIMessage(content=answer)],
-            "answer": answer,
-            "context": mcp_context,
-            "sources": ["MCP: Kubernetes cluster"],
-        }
+            llm = get_chat_model()
 
-    except Exception as exc:
-        logger.exception("MCP response generation failed")
+            response = await llm.ainvoke(prompt)
 
-        return {
-            "error": "Unable to retrieve live Kubernetes information.",
-            "error_message": str(exc),
-        }
+            answer = str(response.content)
+
+            return {
+                "messages": [AIMessage(content=answer)],
+                "answer": answer,
+                "context": mcp_context,
+                "sources": ["MCP: Kubernetes cluster"],
+            }
+
+        except Exception as exc:
+
+            logger.exception("MCP response generation failed")
+
+            return {
+                "error": "Unable to retrieve live Kubernetes information.",
+                "error_message": str(exc),
+            }
 
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
