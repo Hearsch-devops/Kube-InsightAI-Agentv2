@@ -299,6 +299,16 @@ async def mcp_response(state: AgentState) -> dict:
                 else []
             )
 
+            logger.info(
+                "PODS RETURNED BY MCP: %s",
+                json.dumps(pod_context, indent=2),
+            )
+
+            logger.info(
+                "NUMBER OF PODS RETURNED BY MCP: %d",
+                len(pod_context),
+            )
+
             # Resolve the requested component.
             if "frontend" in question_lower:
                 component = "frontend"
@@ -719,6 +729,7 @@ async def mcp_response(state: AgentState) -> dict:
                 "FINAL MCP CONTEXT BEFORE LLM: %s",
                 json.dumps(mcp_context, indent=2),
             )
+
 
             response = await llm.ainvoke(prompt)
 
