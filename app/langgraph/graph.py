@@ -783,6 +783,15 @@ async def mcp_response(state: AgentState) -> dict:
                 "error": "Unable to retrieve live Kubernetes information.",
                 "error_message": str(exc),
             }
+
+    except Exception as exc:
+
+        logger.exception("MCP response failed")
+
+        return {
+            "error": "Unable to process Kubernetes MCP request.",
+            "error_message": str(exc),
+        }
         
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
