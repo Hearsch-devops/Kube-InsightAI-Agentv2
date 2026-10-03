@@ -602,9 +602,9 @@ async def mcp_response(state: AgentState) -> dict:
                         f"`{requested_pod}`."
                     )
 
-                state["context"] = user_context
-                
-                return state
+                state["messages"] = state["messages"] + [
+                    HumanMessage(content=user_context)
+                ]
 
         # ---------------------------------------------------------
         # Pods
