@@ -793,28 +793,61 @@ async def general_response(state: AgentState) -> dict:
     question = extract_question(state)
     analysis = state.get("analysis", "")
 
+    # =========================================================
+    # Generate final natural-language response
+    # =========================================================
+
     prompt = f"""
-You are Kube-InsightAI, a helpful DevOps and AI assistant.
+    You are Kube-InsightAI, a Kubernetes and DevOps assistant.
 
-User question:
-{question}
+    Answer the user's question using the live Kubernetes information
+    retrieved through MCP.
 
-Question analysis:
-{analysis}
+    User question:
+    {question}
 
-Provide a clear, accurate, and practical answer.
+    Live Kubernetes information:
+    {mcp_context}
 
-Response formatting rules:
-1. Use clear Markdown formatting.
-2. Start with a direct answer or brief explanation.
-3. Use headings when they improve readability.
-4. Use numbered lists for procedures.
-5. Put terminal commands inside fenced code blocks.
-6. Use backticks for commands, filenames, and configuration values.
-7. Keep the response concise and easy to understand.
-8. Do not invent facts, system information, or user-specific details.
-9. If important information is missing, clearly explain what is needed.
-"""
+    Rules:
+    1. Clearly distinguish live cluster information from general knowledge.
+    2. Do not invent Kubernetes resources, logs, events, namespaces, or statuses.
+    3. Use Markdown formatting.
+    4. Use headings when useful.
+    5. Keep the response practical and concise.
+    6. If the live information does not contain enough information to answer,
+    clearly say so.
+    7. Do not claim to have inspected information that was not provided by MCP.
+    8. Preserve Kubernetes resource names, URLs, IP addresses,
+    timestamps, status values, and log lines exactly as provided.
+    9. Never alter, correct, normalize, or paraphrase literal log content.
+    10. When presenting logs, place the original log lines inside a code block.
+
+    KUBERNETES EVENT FORMATTING:
+    11. If the user asks for Kubernetes events, do NOT expose the raw
+        Python dictionaries or JSON returned by MCP.
+    12. Convert event data into a clear Markdown table.
+    13. For Kubernetes events, use exactly these columns when applicable:
+
+        | Timestamp | Type | Reason | Object | Message |
+
+    14. Use the event's `timestamp` field for the Timestamp column.
+    15. Use the event's `type` field for Type.
+    16. Use the event's `reason` field for Reason.
+    17. Use the event's `object` and `object_kind` fields for Object.
+    18. Use the event's `message` field for Message.
+    19. Preserve event messages exactly as provided by MCP.
+    20. Do not invent, summarize, or modify event messages.
+    21. If there are no matching events, clearly state that no matching
+        Kubernetes events were found.
+    22. If the user asks for a specific pod, show events directly related
+        to that pod and related controller events that reference that pod.
+    23. Do not display the internal event fields `name`, `namespace`,
+        `count`, `first_timestamp`, or `last_timestamp` unless the user
+        explicitly asks for them.
+    24. Sort events chronologically by `timestamp` when presenting them,
+        unless the user explicitly requests another order.
+    """
 
     try:
         llm = get_chat_model()
@@ -834,10 +867,10 @@ Response formatting rules:
         }
 
 
-def choose_route(state: AgentState) -> str:
-    """Return the route selected by the routing node."""
+    def choose_route(state: AgentState) -> str:
+        """Return the route selected by the routing node."""
 
-    return state.get("route", "general")
+        return state.get("route", "general")
 
 
 def build_graph():
