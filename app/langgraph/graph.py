@@ -574,6 +574,29 @@ async def mcp_response(state: AgentState) -> dict:
                     requested_pod = None
 
             # =========================================================
+            # Final pod validation
+            # =========================================================
+
+            if requested_pod:
+                current_pod_names = {
+                    pod.get("name")
+                    for pod in pod_context
+                    if pod.get("name")
+                }
+
+                if requested_pod not in current_pod_names:
+                    logger.warning(
+                        "Requested pod %s is not a current pod. Ignoring pod-specific filtering.",
+                        requested_pod,
+                    )
+                    requested_pod = None
+                else:
+                    logger.info(
+                        "Validated current pod: %s",
+                        requested_pod,
+                    )
+
+            # =========================================================
             # Retrieve events
             # =========================================================
             if start_time and end_time:
@@ -604,6 +627,34 @@ async def mcp_response(state: AgentState) -> dict:
                     },
                 )
 
+            filtered_events = []
+
+            if requested_pod and not result.is_error:
+                event_context = (
+                    result.structured_content.get("result", [])
+                    if result.structured_content
+                    else []
+                )
+
+                for event in event_context:
+                    event_object = event.get("object") or ""
+
+                    if event_object == requested_pod:
+                        filtered_events.append(event)
+
+                logger.info(
+                    "FINAL filtered events for current pod %s: %d",
+                    requested_pod,
+                    len(filtered_events),
+                )
+
+                mcp_context = filtered_events
+
+                logger.info(
+                    "Passing %d FINAL filtered events to LLM for pod %s",
+                    len(mcp_context),
+                    requested_pod,
+                )
 
             # =========================================================
             # Filter events related to the requested pod
