@@ -669,32 +669,27 @@ async def mcp_response(state: AgentState) -> dict:
         # Filter events for requested pod
         # =========================================================
 
-        if requested_pod:
+        filtered_events = []
 
-            event_context = mcp_context
+        logger.info(
+            "Requested pod extracted: %s",
+            requested_pod,
+        )
 
-            filtered_events = []
+        for event in event_context:
+            event_object = event.get("object") or ""
 
-            for event in event_context:
-                event_object = event.get("object") or ""
-                event_message = event.get("message") or ""
+            if event_object == requested_pod:
+                filtered_events.append(event)
 
-                if event_object == requested_pod:
-                    filtered_events.append(event)
-                    continue
+        logger.info(
+            "Filtered events for pod %s: %d events",
+            requested_pod,
+            len(filtered_events),
+        )
 
-                if requested_pod in event_message:
-                    filtered_events.append(event)
-
-            logger.info(
-                "Filtered events for pod %s: %d events",
-                requested_pod,
-                len(filtered_events),
-            )
-
-            # Replace raw MCP result with filtered result
-            mcp_context = filtered_events
-
+        # Replace raw MCP result with filtered result
+        mcp_context = filtered_events
 
         # =========================================================
         # Generate final natural-language response
@@ -788,7 +783,7 @@ async def mcp_response(state: AgentState) -> dict:
                 "error": "Unable to retrieve live Kubernetes information.",
                 "error_message": str(exc),
             }
-
+        
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
 
