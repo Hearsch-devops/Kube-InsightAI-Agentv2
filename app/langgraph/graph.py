@@ -589,8 +589,12 @@ async def mcp_response(state: AgentState) -> dict:
 
                     user_context = (
                         f"Kubernetes events for pod `{requested_pod}` "
-                        f"in namespace `kube-insightaiv2`:\n\n"
-                        f"{event_context_text}"
+                        f"in namespace `kube-insightaiv2`.\n\n"
+                        f"Event data:\n"
+                        f"{event_context_text}\n\n"
+                        f"Present these events in a clear Markdown table with these columns:\n"
+                        f"Timestamp | Type | Reason | Object | Message\n\n"
+                        f"Do not expose raw Python dictionaries or JSON unless explicitly requested."
                     )
                 else:
                     user_context = (
@@ -598,12 +602,11 @@ async def mcp_response(state: AgentState) -> dict:
                         f"`{requested_pod}`."
                     )
 
-                return {
-                    **state,
-                    "messages": state["messages"] + [
+                state["messages"] = state["messages"] + [
                         HumanMessage(content=user_context)
-                    ],
-                }
+                    ]
+                
+                return state
 
         # ---------------------------------------------------------
         # Pods
