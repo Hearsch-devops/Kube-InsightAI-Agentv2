@@ -707,7 +707,6 @@ async def mcp_response(state: AgentState) -> dict:
 
                 mcp_context = []
 
-
             # =========================================================
             # Pass only filtered events to the final LLM
             # =========================================================
