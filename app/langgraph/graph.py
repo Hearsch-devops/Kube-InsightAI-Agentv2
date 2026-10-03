@@ -579,30 +579,14 @@ async def mcp_response(state: AgentState) -> dict:
                     len(filtered_events),
                 )
 
-                # Keep only filtered event data for the final response.
-                if filtered_events:
-                    mcp_context = filtered_events
+                # Pass only filtered events to the final LLM.
+                mcp_context = filtered_events
 
-                    logger.info(
-                        "Passing %d filtered events to final LLM for pod %s",
-                        len(filtered_events),
-                        requested_pod,
-                    )
-                else:
-                    mcp_context = []
-
-                    logger.info(
-                        "No Kubernetes events found for pod %s",
-                        requested_pod,
-                    )
-
-                state["messages"] = state["messages"] + [
-                    HumanMessage(content=user_context)
-                ]
-
-                state["context"] = user_context
-
-                return state
+                logger.info(
+                    "Passing %d filtered events to final LLM for pod %s",
+                    len(filtered_events),
+                    requested_pod,
+                )
 
         # ---------------------------------------------------------
         # Pods
