@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 from typing import Literal
-
+import json
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import END, START, StateGraph
 
@@ -580,21 +580,28 @@ async def mcp_response(state: AgentState) -> dict:
                     len(filtered_events),
                 )
 
-                result_text = "\n".join(
-                    str(event)
-                    for event in filtered_events
-                )
+                # Keep event data structured for the LLM.
+                if filtered_events:
+                    event_context_text = json.dumps(
+                        filtered_events,
+                        indent=2,
+                    )
 
-                if not filtered_events:
-                    result_text = (
+                    user_context = (
+                        f"Kubernetes events for pod `{requested_pod}` "
+                        f"in namespace `kube-insightaiv2`:\n\n"
+                        f"{event_context_text}"
+                    )
+                else:
+                    user_context = (
                         f"No Kubernetes events found for pod "
-                        f"{requested_pod}."
+                        f"`{requested_pod}`."
                     )
 
                 return {
                     **state,
                     "messages": state["messages"] + [
-                        AIMessage(content=result_text)
+                        HumanMessage(content=user_context)
                     ],
                 }
 
