@@ -579,34 +579,27 @@ async def mcp_response(state: AgentState) -> dict:
                     len(filtered_events),
                 )
 
-                # Keep event data structured for the final LLM.
+                # Keep only filtered event data for the final response.
                 if filtered_events:
-                    event_context_text = json.dumps(
-                        filtered_events,
-                        indent=2,
-                    )
+                    mcp_context = filtered_events
 
-                    user_context = (
-                        f"Kubernetes events for pod `{requested_pod}` "
-                        f"in namespace `kube-insightaiv2`.\n\n"
-                        f"Event data:\n"
-                        f"{event_context_text}\n\n"
-                        f"Present these events in a clear Markdown table with these columns:\n"
-                        f"Timestamp | Type | Reason | Object | Message\n\n"
-                        f"Do not expose raw Python dictionaries or JSON unless explicitly requested."
+                    logger.info(
+                        "Passing %d filtered events to final LLM for pod %s",
+                        len(filtered_events),
+                        requested_pod,
                     )
                 else:
-                    user_context = (
-                        f"No Kubernetes events found for pod "
-                        f"`{requested_pod}`."
+                    mcp_context = []
+
+                    logger.info(
+                        "No Kubernetes events found for pod %s",
+                        requested_pod,
                     )
 
                 state["messages"] = state["messages"] + [
                     HumanMessage(content=user_context)
                 ]
 
-                # IMPORTANT:
-                # Pass only the filtered event data to the final LLM.
                 state["context"] = user_context
 
                 return state
