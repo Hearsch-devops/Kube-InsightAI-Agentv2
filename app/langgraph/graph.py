@@ -619,15 +619,16 @@ async def mcp_response(state: AgentState) -> dict:
                 filtered_events = []
 
                 for event in event_context:
+
                     event_object = event.get("object") or ""
                     event_message = event.get("message") or ""
 
-                    # Exact pod event.
+                    # Exact pod event
                     if event_object == requested_pod:
                         filtered_events.append(event)
                         continue
 
-                    # Controller event that explicitly references this exact pod.
+                    # Controller event explicitly referencing this pod
                     if requested_pod in event_message:
                         filtered_events.append(event)
 
@@ -637,12 +638,23 @@ async def mcp_response(state: AgentState) -> dict:
                     len(filtered_events),
                 )
 
-            else:
-                filtered_events = []
+                # IMPORTANT:
+                # Pass ONLY events belonging to the current pod
+                mcp_context = filtered_events
 
                 logger.info(
-                    "No valid requested pod available for event filtering"
+                    "Passing %d filtered events to final LLM for pod %s",
+                    len(filtered_events),
+                    requested_pod,
                 )
+
+            else:
+
+                logger.warning(
+                    "No valid requested pod resolved. Returning empty event context."
+                )
+
+                mcp_context = []
 
 
             # =========================================================
