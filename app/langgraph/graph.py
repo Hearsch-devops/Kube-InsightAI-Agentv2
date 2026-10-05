@@ -272,6 +272,7 @@ def route_question(state: AgentState) -> dict:
     else:
         route = "general"
 
+    logger.info("Investigation intent: %s", investigation_intent)
     logger.info("Question routed to: %s", route)
 
     return {"route": route}
