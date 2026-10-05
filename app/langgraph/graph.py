@@ -76,6 +76,22 @@ LIVE_CLUSTER_KEYWORDS = (
     "services currently running",
 )
 
+INVESTIGATION_KEYWORDS = (
+    "investigate",
+    "troubleshoot",
+    "root cause",
+    "why is",
+    "why did",
+    "what went wrong",
+    "what is wrong",
+    "problem",
+    "issue",
+    "failing",
+    "failed",
+    "crashing",
+    "crash",
+)
+
 def extract_question(state: AgentState) -> str:
     """Extract the latest user question from the graph state."""
 
@@ -163,6 +179,11 @@ def route_question(state: AgentState) -> dict:
 
     question = extract_question(state).lower()
 
+    investigation_intent = any(
+        keyword in question
+        for keyword in INVESTIGATION_KEYWORDS
+    )
+
     live_cluster_intent = (
         any(
             keyword in question
@@ -215,14 +236,11 @@ def route_question(state: AgentState) -> dict:
         or "get the logs" in question
     )
 
-    if live_cluster_intent:
+    if investigation_intent:
         route: Literal["mcp", "kubernetes", "general"] = "mcp"
 
-    elif any(
-        keyword in question
-        for keyword in KUBERNETES_KEYWORDS
-    ):
-        route = "kubernetes"
+    elif live_cluster_intent:
+        route = "mcp"
 
     else:
         route = "general"
