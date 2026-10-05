@@ -309,9 +309,29 @@ async def mcp_response(state: AgentState) -> dict:
         logger.info("Connecting to Kubernetes MCP server")
 
         # =========================================================
-        # Select the MCP tool based on the user's Kubernetes intent
+        # Resolve namespace for pod investigation/log request
         # =========================================================
 
+        namespace_match = re.search(
+            r"\bnamespace\s+([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\b",
+            question_lower,
+        )
+
+        if namespace_match:
+            requested_namespace = namespace_match.group(1)
+
+        else:
+            requested_namespace = "kube-insightaiv2"
+
+        logger.info(
+            "Requested namespace: %s",
+            requested_namespace,
+        )
+
+        # =========================================================
+        # Select the MCP tool based on the user's Kubernetes intent
+        # =========================================================
+        
         # ---------------------------------------------------------
         # Pod logs
         # ---------------------------------------------------------
@@ -324,26 +344,6 @@ async def mcp_response(state: AgentState) -> dict:
             )
         ):
             logger.info("MCP log request detected")
-
-            # =========================================================
-            # Resolve namespace for pod investigation/log request
-            # =========================================================
-
-            namespace_match = re.search(
-                r"\bnamespace\s+([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\b",
-                question_lower,
-            )
-
-            if namespace_match:
-                requested_namespace = namespace_match.group(1)
-
-            else:
-                requested_namespace = "kube-insightaiv2"
-
-            logger.info(
-                "Requested namespace: %s",
-                requested_namespace,
-            )
 
             # First retrieve the current pod list from the requested namespace.
             pod_result = await call_mcp_tool(
