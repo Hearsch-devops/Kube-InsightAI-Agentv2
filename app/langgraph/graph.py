@@ -376,53 +376,114 @@ async def mcp_response(state: AgentState) -> dict:
                 len(pod_context),
             )
 
-            # Resolve the requested component.
-            if "frontend" in question_lower:
-                component = "frontend"
+            # =========================================================
+            # Resolve requested pod or logical component
+            # =========================================================
 
-            elif "mcp" in question_lower:
-                component = "mcp"
+            requested_pod = None
+            component = None
 
-            elif "agent" in question_lower:
-                component = "agent"
+            # First check whether the user explicitly provided a pod name.
+            pod_name_match = re.search(
+                r"\b(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
+                r"(?:pod\s+)?(?:crashing|crashed|failing|failed|logs?|events?)\b",
+                question_lower,
+            )
 
-            else:
-                # Default to the agent when the user simply asks for logs.
-                component = "agent"
+            if pod_name_match:
+                candidate_pod = pod_name_match.group(1)
+
+                # Avoid treating generic component words as explicit pod names.
+                if candidate_pod not in {
+                    "agent",
+                    "mcp",
+                    "frontend",
+                    "pod",
+                    "pods",
+                }:
+                    requested_pod = candidate_pod
+
+            # If no explicit pod was supplied, resolve by logical component.
+            if not requested_pod:
+
+                if "frontend" in question_lower:
+                    component = "frontend"
+
+                elif "mcp" in question_lower:
+                    component = "mcp"
+
+                elif "agent" in question_lower:
+                    component = "agent"
+
+                else:
+                    # Default to the agent when the user simply asks for logs.
+                    component = "agent"
 
             logger.info(
-                "Requested log component: %s",
+                "Requested component: %s",
                 component,
             )
 
-            # Map logical component to Kubernetes pod name prefix.
-            pod_prefix = {
-                "agent": "kube-insightaiv2-agent-",
-                "mcp": "kube-insightaiv2-mcp-",
-                "frontend": "kube-insightaiv2-frontend-",
-            }[component]
-
-            # Find the current pod dynamically.
-            requested_pod = None
-
-            for pod in pod_context:
-                pod_name = pod.get("name", "")
-
-                if pod_name.startswith(pod_prefix):
-                    requested_pod = pod_name
-                    break
-
-            if not requested_pod:
-                raise ValueError(
-                    f"Could not find the current {component} pod "
-                    f"in namespace '{requested_namespace}'."
-                )
-
             logger.info(
-                "Resolved %s pod for log request: %s",
-                component,
+                "Explicit requested pod: %s",
                 requested_pod,
             )
+
+            # =========================================================
+            # Resolve exact pod or current component pod
+            # =========================================================
+
+            if requested_pod:
+                # -----------------------------------------------------
+                # Explicit pod name supplied by the user.
+                # Validate it against the current pod list.
+                # -----------------------------------------------------
+                current_pod_names = {
+                    pod.get("name")
+                    for pod in pod_context
+                    if pod.get("name")
+                }
+
+                if requested_pod not in current_pod_names:
+                    raise ValueError(
+                        f"Pod '{requested_pod}' was not found in "
+                        f"namespace '{requested_namespace}'."
+                    )
+
+                logger.info(
+                    "Validated explicit pod: %s",
+                    requested_pod,
+                )
+
+            else:
+                # -----------------------------------------------------
+                # No explicit pod name.
+                # Resolve the current pod dynamically by component.
+                # -----------------------------------------------------
+                pod_prefix = {
+                    "agent": "kube-insightaiv2-agent-",
+                    "mcp": "kube-insightaiv2-mcp-",
+                    "frontend": "kube-insightaiv2-frontend-",
+                }[component]
+
+                for pod in pod_context:
+                    pod_name = pod.get("name", "")
+
+                    if pod_name.startswith(pod_prefix):
+                        requested_pod = pod_name
+                        break
+
+                if not requested_pod:
+                    raise ValueError(
+                        f"Could not find the current {component} pod "
+                        f"in namespace '{requested_namespace}'."
+                    )
+
+                logger.info(
+                    "Resolved current %s pod: %s",
+                    component,
+                    requested_pod,
+                )
 
             logger.info(
                 "Resolved pod for log request: %s",
