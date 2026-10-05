@@ -766,11 +766,14 @@ async def mcp_response(state: AgentState) -> dict:
                 f"MCP tool returned an error: {result}"
             )
 
-        mcp_context = (
-            result.structured_content.get("result", [])
-            if result.structured_content
-            else []
-        )
+        # mcp_context is already prepared by the specific MCP workflow.
+        # Do not overwrite filtered event/log context with the raw MCP result.
+        if "mcp_context" not in locals():
+            mcp_context = (
+                result.structured_content.get("result", [])
+                if result.structured_content
+                else []
+            )
 
         # =========================================================
         # Generate final natural-language response
