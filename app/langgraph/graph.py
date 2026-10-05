@@ -325,12 +325,32 @@ async def mcp_response(state: AgentState) -> dict:
         ):
             logger.info("MCP log request detected")
 
-            # First retrieve the current pod list.
+            # =========================================================
+            # Resolve namespace for pod investigation/log request
+            # =========================================================
+
+            namespace_match = re.search(
+                r"\bnamespace\s+([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\b",
+                question_lower,
+            )
+
+            if namespace_match:
+                requested_namespace = namespace_match.group(1)
+
+            else:
+                requested_namespace = "kube-insightaiv2"
+
+            logger.info(
+                "Requested namespace: %s",
+                requested_namespace,
+            )
+
+            # First retrieve the current pod list from the requested namespace.
             pod_result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
                 "list_pods",
                 {
-                    "namespace": "kube-insightaiv2",
+                    "namespace": requested_namespace,
                 },
             )
 
@@ -346,7 +366,8 @@ async def mcp_response(state: AgentState) -> dict:
             )
 
             logger.info(
-                "PODS RETURNED BY MCP: %s",
+                "PODS RETURNED FROM NAMESPACE %s: %s",
+                requested_namespace,
                 json.dumps(pod_context, indent=2),
             )
 
@@ -394,7 +415,7 @@ async def mcp_response(state: AgentState) -> dict:
             if not requested_pod:
                 raise ValueError(
                     f"Could not find the current {component} pod "
-                    f"in namespace 'kube-insightaiv2'."
+                    f"in namespace '{requested_namespace}'."
                 )
 
             logger.info(
@@ -420,7 +441,7 @@ async def mcp_response(state: AgentState) -> dict:
                     "get_pod_logs_by_time",
                     {
                         "pod_name": requested_pod,
-                        "namespace": "kube-insightaiv2",
+                        "namespace": requested_namespace,
                         "start_time": start_time,
                         "end_time": end_time,
                     },
@@ -434,7 +455,7 @@ async def mcp_response(state: AgentState) -> dict:
                     "get_pod_logs",
                     {
                         "pod_name": requested_pod,
-                        "namespace": "kube-insightaiv2",
+                        "namespace": requested_namespace,
                         "tail_lines": 100,
                     },
                 )
