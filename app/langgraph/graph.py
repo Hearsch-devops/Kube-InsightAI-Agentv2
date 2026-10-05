@@ -275,7 +275,10 @@ def route_question(state: AgentState) -> dict:
     logger.info("Investigation intent: %s", investigation_intent)
     logger.info("Question routed to: %s", route)
 
-    return {"route": route}
+    return {
+        "route": route,
+        "investigation_intent": investigation_intent,
+    }
 
 def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
     """
@@ -304,6 +307,11 @@ async def mcp_response(state: AgentState) -> dict:
 
     question = extract_question(state)
     question_lower = question.lower()
+
+    investigation_intent = state.get(
+        "investigation_intent",
+        False,
+    )
 
     try:
         logger.info("Connecting to Kubernetes MCP server")
@@ -486,9 +494,64 @@ async def mcp_response(state: AgentState) -> dict:
                 )
 
             logger.info(
-                "Resolved pod for log request: %s",
+                "Resolved pod for MCP request: %s",
                 requested_pod,
             )
+
+            # =========================================================
+            # Investigation: retrieve pod events
+            # =========================================================
+
+            if investigation_intent and requested_pod:
+                logger.info(
+                    "Investigation event retrieval for pod %s in namespace %s",
+                    requested_pod,
+                    requested_namespace,
+                )
+
+                event_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_events",
+                    {
+                        "namespace": requested_namespace,
+                    },
+                )
+
+                if event_result.is_error:
+                    logger.warning(
+                        "Unable to retrieve events for investigation of pod %s",
+                        requested_pod,
+                    )
+                else:
+                    event_context = (
+                        event_result.structured_content.get("result", [])
+                        if event_result.structured_content
+                        else []
+                    )
+
+                    filtered_events = []
+
+                    for event in event_context:
+                        event_object = event.get("object") or ""
+                        event_message = event.get("message") or ""
+
+                        if event_object == requested_pod:
+                            filtered_events.append(event)
+                            continue
+
+                        if requested_pod in event_message:
+                            filtered_events.append(event)
+
+                    logger.info(
+                        "Investigation events for pod %s: %d",
+                        requested_pod,
+                        len(filtered_events),
+                    )
+
+                    mcp_context = {
+                        "pod": pod_context,
+                        "events": filtered_events,
+                    }
 
             start_time, end_time = extract_log_time_range(question)
 

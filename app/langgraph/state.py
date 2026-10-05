@@ -17,6 +17,8 @@ class AgentState(TypedDict, total=False):
     requested_pod: str
     requested_namespace: str
 
+    investigation_intent: bool
+    
     context: str
     sources: list[str]
 
