@@ -331,7 +331,7 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
         # Select the MCP tool based on the user's Kubernetes intent
         # =========================================================
-        
+
         # ---------------------------------------------------------
         # Pod logs
         # ---------------------------------------------------------
@@ -537,7 +537,7 @@ async def mcp_response(state: AgentState) -> dict:
                 KUBERNETES_MCP_URL,
                 "list_deployments",
                 {
-                    "namespace": "kube-insightaiv2",
+                    "namespace": requested_namespace,
                 },
             )
 
@@ -557,7 +557,7 @@ async def mcp_response(state: AgentState) -> dict:
                 KUBERNETES_MCP_URL,
                 "list_services",
                 {
-                    "namespace": "kube-insightaiv2",
+                    "namespace": requested_namespace,
                 },
             )
 
@@ -774,7 +774,7 @@ async def mcp_response(state: AgentState) -> dict:
                 KUBERNETES_MCP_URL,
                 "list_pods",
                 {
-                    "namespace": "kube-insightaiv2",
+                    "namespace": requested_namespace,
                 },
             )
         # ---------------------------------------------------------
