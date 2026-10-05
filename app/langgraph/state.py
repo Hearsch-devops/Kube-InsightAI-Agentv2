@@ -14,9 +14,15 @@ class AgentState(TypedDict, total=False):
     analysis: str
     route: Literal["kubernetes", "mcp", "general"]
 
+    requested_pod: str
+    requested_namespace: str
+
     context: str
     sources: list[str]
 
     answer: str
     error: str
     error_message: str
+
+
+
