@@ -499,12 +499,12 @@ async def mcp_response(state: AgentState) -> dict:
             )
 
             # =========================================================
-            # Investigation: retrieve pod events
+            # Investigation: retrieve events for the resolved pod
             # =========================================================
 
             if investigation_intent and requested_pod:
                 logger.info(
-                    "Investigation event retrieval for pod %s in namespace %s",
+                    "Investigation: retrieving events for pod %s in namespace %s",
                     requested_pod,
                     requested_namespace,
                 )
@@ -519,9 +519,12 @@ async def mcp_response(state: AgentState) -> dict:
 
                 if event_result.is_error:
                     logger.warning(
-                        "Unable to retrieve events for investigation of pod %s",
+                        "Investigation event retrieval failed for pod %s",
                         requested_pod,
                     )
+
+                    investigation_events = []
+
                 else:
                     event_context = (
                         event_result.structured_content.get("result", [])
@@ -529,30 +532,27 @@ async def mcp_response(state: AgentState) -> dict:
                         else []
                     )
 
-                    filtered_events = []
+                    investigation_events = []
 
                     for event in event_context:
                         event_object = event.get("object") or ""
                         event_message = event.get("message") or ""
 
                         if event_object == requested_pod:
-                            filtered_events.append(event)
-                            continue
+                            investigation_events.append(event)
 
-                        if requested_pod in event_message:
-                            filtered_events.append(event)
+                        elif requested_pod in event_message:
+                            investigation_events.append(event)
 
                     logger.info(
-                        "Investigation events for pod %s: %d",
+                        "Investigation events found for %s: %d",
                         requested_pod,
-                        len(filtered_events),
+                        len(investigation_events),
                     )
-
                     mcp_context = {
                         "pod": pod_context,
                         "events": filtered_events,
                     }
-
             start_time, end_time = extract_log_time_range(question)
 
             if start_time and end_time:
