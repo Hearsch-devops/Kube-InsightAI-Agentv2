@@ -79,17 +79,25 @@ LIVE_CLUSTER_KEYWORDS = (
 INVESTIGATION_KEYWORDS = (
     "investigate",
     "troubleshoot",
-    "root cause",
     "why is",
     "why did",
     "what went wrong",
     "what is wrong",
-    "problem",
-    "issue",
-    "failing",
-    "failed",
-    "crashing",
+    "why",
     "crash",
+    "crashed",
+    "crashing",
+    "restart",
+    "restarted",
+    "restarting",
+    "failed",
+    "failure",
+    "failing",
+    "error",
+    "issue",
+    "problem",
+    "root cause",
+    "what caused",
 )
 
 def extract_question(state: AgentState) -> str:
@@ -179,10 +187,23 @@ def route_question(state: AgentState) -> dict:
 
     question = extract_question(state).lower()
 
-    investigation_intent = any(
+    investigation_intent = (
+    any(
         keyword in question
         for keyword in INVESTIGATION_KEYWORDS
     )
+    and any(
+        keyword in question
+        for keyword in (
+            "pod",
+            "pods",
+            "deployment",
+            "container",
+            "kubernetes",
+            "k8s",
+        )
+    )
+)
 
     live_cluster_intent = (
         any(
@@ -241,6 +262,12 @@ def route_question(state: AgentState) -> dict:
 
     elif live_cluster_intent:
         route = "mcp"
+
+    elif any(
+        keyword in question
+        for keyword in KUBERNETES_KEYWORDS
+    ):
+        route = "kubernetes"
 
     else:
         route = "general"
