@@ -576,100 +576,6 @@ async def mcp_response(state: AgentState) -> dict:
             # Extract requested time range.
             start_time, end_time = extract_log_time_range(question)
 
-            # Resolve the requested pod when a specific workload is mentioned.
-            requested_pod = None
-
-            if "agent" in question_lower:
-                pod_result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "list_pods",
-                    {
-                        "namespace": "kube-insightaiv2",
-                    },
-                )
-
-                if pod_result.is_error:
-                    raise RuntimeError(
-                        f"Unable to list pods before retrieving events: {pod_result}"
-                    )
-
-                pod_context = (
-                    pod_result.structured_content.get("result", [])
-                    if pod_result.structured_content
-                    else []
-                )
-
-                logger.info(
-                    "PODS RETURNED BY MCP: %s",
-                    json.dumps(pod_context, indent=2),
-                )
-
-                logger.info(
-                    "NUMBER OF PODS RETURNED BY MCP: %d",
-                    len(pod_context),
-                )
-
-                for pod in pod_context:
-                    pod_name = pod.get("name", "")
-
-                    if "agent" in pod_name.lower():
-                        requested_pod = pod_name
-                        break
-
-            elif "frontend" in question_lower:
-                pod_result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "list_pods",
-                    {
-                        "namespace": "kube-insightaiv2",
-                    },
-                )
-
-                if pod_result.is_error:
-                    raise RuntimeError(
-                        f"Unable to list pods before retrieving events: {pod_result}"
-                    )
-
-                pod_context = (
-                    pod_result.structured_content.get("result", [])
-                    if pod_result.structured_content
-                    else []
-                )
-
-                for pod in pod_context:
-                    pod_name = pod.get("name", "")
-
-                    if "frontend" in pod_name.lower():
-                        requested_pod = pod_name
-                        break
-
-            elif "mcp" in question_lower:
-                pod_result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "list_pods",
-                    {
-                        "namespace": "kube-insightaiv2",
-                    },
-                )
-
-                if pod_result.is_error:
-                    raise RuntimeError(
-                        f"Unable to list pods before retrieving events: {pod_result}"
-                    )
-
-                pod_context = (
-                    pod_result.structured_content.get("result", [])
-                    if pod_result.structured_content
-                    else []
-                )
-
-                for pod in pod_context:
-                    pod_name = pod.get("name", "")
-
-                    if "mcp" in pod_name.lower():
-                        requested_pod = pod_name
-                        break
-
             # =========================================================
             # Validate resolved pod against current pod list
             # =========================================================
@@ -738,7 +644,7 @@ async def mcp_response(state: AgentState) -> dict:
                     KUBERNETES_MCP_URL,
                     "list_events_by_time",
                     {
-                        "namespace": "kube-insightaiv2",
+                        "namespace": requested_namespace,
                         "start_time": start_time,
                         "end_time": end_time,
                     },
@@ -751,7 +657,7 @@ async def mcp_response(state: AgentState) -> dict:
                     KUBERNETES_MCP_URL,
                     "list_events",
                     {
-                        "namespace": "kube-insightaiv2",
+                        "namespace": requested_namespace,
                     },
                 )
 
