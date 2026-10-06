@@ -203,6 +203,20 @@ def route_question(state: AgentState) -> dict:
             "k8s",
         )
     )
+
+    ownership_intent = (
+        any(keyword in question_lower for keyword in (
+            "who owns",
+            "owner",
+            "managed by",
+            "controlled by",
+        ))
+        and any(keyword in question_lower for keyword in (
+            "pod",
+            "pods",
+        ))
+    )
+
 )
 
     live_cluster_intent = (
@@ -280,18 +294,6 @@ def route_question(state: AgentState) -> dict:
         "investigation_intent": investigation_intent,
     }
 
-ownership_intent = (
-any(keyword in question for keyword in (
-    "who owns",
-    "owner",
-    "managed by",
-    "controlled by",
-))
-and any(keyword in question for keyword in (
-    "pod",
-    "pods",
-))
-)
 
 def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
     """
