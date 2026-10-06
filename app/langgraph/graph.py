@@ -366,7 +366,7 @@ async def mcp_response(state: AgentState) -> dict:
         # ---------------------------------------------------------
         # Pod logs
         # ---------------------------------------------------------
-        if investigation_intent or any(
+        if investigation_intent or ownership_intent or any(
             keyword in question_lower
             for keyword in (
                 "log",
@@ -416,9 +416,6 @@ async def mcp_response(state: AgentState) -> dict:
 
             # Ownership questions may provide the pod name directly
             # without investigation keywords such as crashing/logs/events.
-            requested_pod = None
-            component = None
-
             ownership_pod_match = re.search(
                 r"\bwho\s+owns\s+(?:pod\s+)?([a-z0-9][a-z0-9.-]*)\b",
                 question_lower,
