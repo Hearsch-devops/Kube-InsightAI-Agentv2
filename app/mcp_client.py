@@ -1,4 +1,10 @@
+from app.mcp_client import (
+    call_mcp_tool,
+    parse_mcp_result,
+    KUBERNETES_MCP_URL,
+)
 import os
+import json
 from contextlib import asynccontextmanager
 
 from mcp import ClientSession
@@ -69,3 +75,39 @@ async def call_mcp_tool(
         )
 
         return result
+
+def parse_mcp_result(result):
+    """
+    Convert MCP CallToolResult into a JSON-compatible
+    Python object.
+    """
+
+    if result is None:
+        return None
+
+    # Prefer MCP structured content when available.
+    if hasattr(result, "structured_content"):
+        structured = result.structured_content
+
+        if isinstance(structured, dict) and "result" in structured:
+            return structured["result"]
+
+        if structured is not None:
+            return structured
+
+    # Fallback to text content for compatibility.
+    if hasattr(result, "content"):
+
+        for item in result.content:
+
+            if hasattr(item, "text"):
+
+                text = item.text
+
+                try:
+                    return json.loads(text)
+
+                except (json.JSONDecodeError, TypeError):
+                    return text
+
+    return result
