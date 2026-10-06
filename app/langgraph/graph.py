@@ -563,7 +563,10 @@ async def mcp_response(state: AgentState) -> dict:
                         "Investigation log retrieval failed for %s",
                         requested_pod,
                     )
-                    investigation_logs = "Unable to retrieve pod logs."
+                    investigation_logs = (
+                        "Logs unavailable because the container "
+                        "has not started successfully."
+                    )
                 else:
                     investigation_logs = ""
 
@@ -571,6 +574,18 @@ async def mcp_response(state: AgentState) -> dict:
                         for item in log_result.content:
                             if hasattr(item, "text"):
                                 investigation_logs += item.text
+
+                    if investigation_logs.startswith("Kubernetes MCP error:"):
+                        logger.warning(
+                            "Pod logs unavailable for %s: %s",
+                            requested_pod,
+                            investigation_logs,
+                        )
+
+                        investigation_logs = (
+                            "Logs unavailable because the container "
+                            "has not started successfully."
+                        )
 
                 mcp_context = {
                     "pod": pod_context,
