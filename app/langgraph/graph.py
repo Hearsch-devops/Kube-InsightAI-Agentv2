@@ -216,7 +216,6 @@ def route_question(state: AgentState) -> dict:
             "pods",
         ))
     )
-
 )
 
     live_cluster_intent = (
