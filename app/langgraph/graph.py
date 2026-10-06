@@ -417,8 +417,7 @@ async def mcp_response(state: AgentState) -> dict:
             # Ownership questions may provide the pod name directly
             # without investigation keywords such as crashing/logs/events.
             ownership_pod_match = re.search(
-                r"\b(?:who\s+owns|owner(?:\s+of)?|managed\s+by|controlled\s+by)\s+"
-                r"(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\b",
+                r"\bwho\s+owns\s+(?:pod\s+)?([a-z0-9][a-z0-9.-]*)\b",
                 question_lower,
             )
 
