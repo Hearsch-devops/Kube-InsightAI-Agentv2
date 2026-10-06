@@ -297,6 +297,7 @@ def route_question(state: AgentState) -> dict:
     return {
         "route": route,
         "investigation_intent": investigation_intent,
+        "ownership_intent": ownership_intent,
     }
 
 
@@ -327,6 +328,9 @@ async def mcp_response(state: AgentState) -> dict:
 
     question = extract_question(state)
     question_lower = question.lower()
+
+    investigation_intent = state.get("investigation_intent", False)
+    ownership_intent = state.get("ownership_intent", False)
 
     investigation_intent = state.get(
         "investigation_intent",
@@ -518,28 +522,47 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
-            logger.info(
-                "Investigation: retrieving owner for pod %s in namespace %s",
-                requested_pod,
-                requested_namespace,
-            )
+            investigation_owner = None
 
-            owner_result = await call_mcp_tool(
-                session,
-                "get_pod_owner",
-                {
-                    "pod_name": requested_pod,
-                    "namespace": requested_namespace,
-                },
-            )
+            if (investigation_intent or ownership_intent) and requested_pod:
+                logger.info(
+                    "Retrieving owner for pod %s in namespace %s",
+                    requested_pod,
+                    requested_namespace,
+                )
 
-            investigation_owner = parse_mcp_result(owner_result)
+                owner_result = await call_mcp_tool(
+                    session,
+                    "get_pod_owner",
+                    {
+                        "pod_name": requested_pod,
+                        "namespace": requested_namespace,
+                    },
+                )
 
-            logger.info(
-                "Investigation owner result for %s: %s",
-                requested_pod,
-                investigation_owner,
-            )
+                investigation_owner = parse_mcp_result(owner_result)
+
+                logger.info(
+                    "Owner result for %s: %s",
+                    requested_pod,
+                    investigation_owner,
+                )
+
+            if ownership_intent and not investigation_intent:
+                mcp_context = {
+                    "pod": pod_context,
+                    "owner": investigation_owner,
+                }
+
+                logger.info(
+                    "FINAL OWNERSHIP MCP CONTEXT BEFORE LLM: %s",
+                    mcp_context,
+                )
+
+                return {
+                    "context": json.dumps(mcp_context, indent=2),
+                    "sources": ["kubernetes-mcp"],
+                }
 
             # =========================================================
             # Investigation: retrieve events for the resolved pod

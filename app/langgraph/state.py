@@ -18,6 +18,7 @@ class AgentState(TypedDict, total=False):
     requested_namespace: str
 
     investigation_intent: bool
+    ownership_intent: bool
     
     context: str
     sources: list[str]
@@ -25,6 +26,3 @@ class AgentState(TypedDict, total=False):
     answer: str
     error: str
     error_message: str
-
-
-
