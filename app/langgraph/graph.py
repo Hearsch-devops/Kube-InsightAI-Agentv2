@@ -561,7 +561,7 @@ async def mcp_response(state: AgentState) -> dict:
                 )
 
                 owner_result = await call_mcp_tool(
-                    session,
+                    KUBERNETES_MCP_URL,
                     "get_pod_owner",
                     {
                         "pod_name": requested_pod,
