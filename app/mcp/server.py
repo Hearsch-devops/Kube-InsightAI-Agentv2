@@ -170,10 +170,10 @@ def get_pod_owner(
     namespace: str = "default",
 ) -> dict:
     """
-    Return the Kubernetes owner reference for a Pod.
+    Return the Kubernetes ownership chain for a Pod.
 
-    This identifies whether the Pod is managed by another
-    Kubernetes resource such as a ReplicaSet.
+    Identifies whether the Pod is standalone or managed by
+    a ReplicaSet/Deployment.
     """
     try:
         v1 = get_kubernetes_client()
@@ -185,6 +185,9 @@ def get_pod_owner(
 
         owner_references = pod.metadata.owner_references or []
 
+        # ---------------------------------------------------------
+        # Standalone Pod
+        # ---------------------------------------------------------
         if not owner_references:
             return {
                 "pod": pod_name,
@@ -192,19 +195,46 @@ def get_pod_owner(
                 "owner": None,
                 "owner_kind": None,
                 "owner_name": None,
+                "deployment": None,
+                "deployment_name": None,
                 "standalone": True,
             }
 
         owner = owner_references[0]
 
-        return {
+        result = {
             "pod": pod_name,
             "namespace": namespace,
             "owner": owner.name,
             "owner_kind": owner.kind,
             "owner_name": owner.name,
+            "deployment": None,
+            "deployment_name": None,
             "standalone": False,
         }
+
+        # ---------------------------------------------------------
+        # ReplicaSet → Deployment
+        # ---------------------------------------------------------
+        if owner.kind == "ReplicaSet":
+            apps_v1 = client.AppsV1Api()
+
+            replica_set = apps_v1.read_namespaced_replica_set(
+                name=owner.name,
+                namespace=namespace,
+            )
+
+            rs_owner_references = (
+                replica_set.metadata.owner_references or []
+            )
+
+            for rs_owner in rs_owner_references:
+                if rs_owner.kind == "Deployment":
+                    result["deployment"] = rs_owner.name
+                    result["deployment_name"] = rs_owner.name
+                    break
+
+        return result
 
     except Exception as exc:
         return {
