@@ -498,6 +498,29 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
+            logger.info(
+                "Investigation: retrieving owner for pod %s in namespace %s",
+                requested_pod,
+                requested_namespace,
+            )
+
+            owner_result = await call_mcp_tool(
+                session,
+                "get_pod_owner",
+                {
+                    "pod_name": requested_pod,
+                    "namespace": requested_namespace,
+                },
+            )
+
+            investigation_owner = parse_mcp_result(owner_result)
+
+            logger.info(
+                "Investigation owner result for %s: %s",
+                requested_pod,
+                investigation_owner,
+            )
+
             # =========================================================
             # Investigation: retrieve events for the resolved pod
             # =========================================================
@@ -589,6 +612,7 @@ async def mcp_response(state: AgentState) -> dict:
 
                 mcp_context = {
                     "pod": pod_context,
+                    "owner": investigation_owner,
                     "events": investigation_events,
                     "logs": investigation_logs,
                 }
