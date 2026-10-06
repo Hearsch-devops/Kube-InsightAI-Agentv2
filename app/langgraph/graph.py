@@ -578,36 +578,37 @@ async def mcp_response(state: AgentState) -> dict:
                     "logs": investigation_logs,
                 }
 
-            start_time, end_time = extract_log_time_range(question)
+            if not investigation_intent:
+                start_time, end_time = extract_log_time_range(question)
 
-            if start_time and end_time:
-                logger.info(
-                    f"MCP time-range log request: {start_time} → {end_time}"
-                )
+                if start_time and end_time:
+                    logger.info(
+                        f"MCP time-range log request: {start_time} → {end_time}"
+                    )
 
-                result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "get_pod_logs_by_time",
-                    {
-                        "pod_name": requested_pod,
-                        "namespace": requested_namespace,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                    },
-                )
+                    result = await call_mcp_tool(
+                        KUBERNETES_MCP_URL,
+                        "get_pod_logs_by_time",
+                        {
+                            "pod_name": requested_pod,
+                            "namespace": requested_namespace,
+                            "start_time": start_time,
+                            "end_time": end_time,
+                        },
+                    )
 
-            else:
-                logger.info("MCP standard log request")
+                else:
+                    logger.info("MCP standard log request")
 
-                result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "get_pod_logs",
-                    {
-                        "pod_name": requested_pod,
-                        "namespace": requested_namespace,
-                        "tail_lines": 100,
-                    },
-                )
+                    result = await call_mcp_tool(
+                        KUBERNETES_MCP_URL,
+                        "get_pod_logs",
+                        {
+                            "pod_name": requested_pod,
+                            "namespace": requested_namespace,
+                            "tail_lines": 100,
+                        },
+                    )
 
             log_result = await call_mcp_tool(
                 KUBERNETES_MCP_URL,
