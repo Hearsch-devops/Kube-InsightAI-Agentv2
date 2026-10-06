@@ -501,7 +501,6 @@ async def mcp_response(state: AgentState) -> dict:
             # =========================================================
             # Investigation: retrieve events for the resolved pod
             # =========================================================
-
             if investigation_intent and requested_pod:
                 logger.info(
                     "Investigation: retrieving events for pod %s in namespace %s",
@@ -512,19 +511,12 @@ async def mcp_response(state: AgentState) -> dict:
                 event_result = await call_mcp_tool(
                     KUBERNETES_MCP_URL,
                     "list_events",
-                    {
-                        "namespace": requested_namespace,
-                    },
+                    {"namespace": requested_namespace},
                 )
 
                 if event_result.is_error:
-                    logger.warning(
-                        "Investigation event retrieval failed for pod %s",
-                        requested_pod,
-                    )
-
+                    logger.warning(...)
                     investigation_events = []
-
                 else:
                     event_context = (
                         event_result.structured_content.get("result", [])
@@ -540,7 +532,6 @@ async def mcp_response(state: AgentState) -> dict:
 
                         if event_object == requested_pod:
                             investigation_events.append(event)
-
                         elif requested_pod in event_message:
                             investigation_events.append(event)
 
@@ -549,10 +540,39 @@ async def mcp_response(state: AgentState) -> dict:
                         requested_pod,
                         len(investigation_events),
                     )
-                    mcp_context = {
-                        "pod": pod_context,
-                        "events": investigation_events,
-                    }
+
+                # Investigation: retrieve pod logs
+                logger.info(
+                    "Investigation: retrieving logs for pod %s in namespace %s",
+                    requested_pod,
+                    requested_namespace,
+                )
+
+                log_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "get_pod_logs",
+                    {
+                        "pod_name": requested_pod,
+                        "namespace": requested_namespace,
+                        "tail_lines": 100,
+                    },
+                )
+
+                if log_result.is_error:
+                    logger.warning(
+                        "Investigation log retrieval failed for %s",
+                        requested_pod,
+                    )
+                    investigation_logs = "Unable to retrieve pod logs."
+                else:
+                    investigation_logs = log_result.content
+
+                mcp_context = {
+                    "pod": pod_context,
+                    "events": investigation_events,
+                    "logs": investigation_logs,
+                }
+
             start_time, end_time = extract_log_time_range(question)
 
             if start_time and end_time:
@@ -583,6 +603,26 @@ async def mcp_response(state: AgentState) -> dict:
                         "tail_lines": 100,
                     },
                 )
+
+            log_result = await call_mcp_tool(
+                KUBERNETES_MCP_URL,
+                "get_pod_logs",
+                {
+                    "pod_name": requested_pod,
+                    "namespace": requested_namespace,
+                    "tail_lines": 100,
+                },
+            )
+
+            if log_result.is_error:
+                logger.warning(
+                    "Investigation log retrieval failed for %s: %s",
+                    requested_pod,
+                    log_result,
+                )
+                investigation_logs = "Unable to retrieve pod logs."
+            else:
+                investigation_logs = log_result.content
 
         # ---------------------------------------------------------
         # Deployments
