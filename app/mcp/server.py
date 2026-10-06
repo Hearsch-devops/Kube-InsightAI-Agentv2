@@ -164,6 +164,56 @@ def list_pods(namespace: str | None = None) -> list[dict]:
             )
         }]
 
+@server.tool()
+def get_pod_owner(
+    pod_name: str,
+    namespace: str = "default",
+) -> dict:
+    """
+    Return the Kubernetes owner reference for a Pod.
+
+    This identifies whether the Pod is managed by another
+    Kubernetes resource such as a ReplicaSet.
+    """
+    try:
+        v1 = get_kubernetes_client()
+
+        pod = v1.read_namespaced_pod(
+            name=pod_name,
+            namespace=namespace,
+        )
+
+        owner_references = pod.metadata.owner_references or []
+
+        if not owner_references:
+            return {
+                "pod": pod_name,
+                "namespace": namespace,
+                "owner": None,
+                "owner_kind": None,
+                "owner_name": None,
+                "standalone": True,
+            }
+
+        owner = owner_references[0]
+
+        return {
+            "pod": pod_name,
+            "namespace": namespace,
+            "owner": owner.name,
+            "owner_kind": owner.kind,
+            "owner_name": owner.name,
+            "standalone": False,
+        }
+
+    except Exception as exc:
+        return {
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
+        }
+
 # get_pod_logs
 @server.tool()
 def get_pod_logs(
