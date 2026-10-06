@@ -919,10 +919,11 @@ async def mcp_response(state: AgentState) -> dict:
         # Validate MCP result
         # =========================================================
 
-        if result.is_error:
-            raise RuntimeError(
-                f"MCP tool returned an error: {result}"
-            )
+        if not investigation_intent:
+            if result.is_error:
+                raise RuntimeError(
+                    f"MCP tool returned an error: {result}"
+                )
 
         # mcp_context is already prepared by the specific MCP workflow.
         # Do not overwrite filtered event/log context with the raw MCP result.
