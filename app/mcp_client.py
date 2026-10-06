@@ -1,8 +1,4 @@
-from app.mcp_client import (
-    call_mcp_tool,
-    parse_mcp_result,
-    KUBERNETES_MCP_URL,
-)
+
 import os
 import json
 from contextlib import asynccontextmanager
