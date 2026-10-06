@@ -414,6 +414,26 @@ async def mcp_response(state: AgentState) -> dict:
             requested_pod = None
             component = None
 
+            # Ownership questions may provide the pod name directly
+            # without investigation keywords such as crashing/logs/events.
+            ownership_pod_match = re.search(
+                r"\b(?:who\s+owns|owner(?:\s+of)?|managed\s+by|controlled\s+by)\s+"
+                r"(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\b",
+                question_lower,
+            )
+
+            if ownership_pod_match:
+                candidate_pod = ownership_pod_match.group(1)
+
+                if candidate_pod not in {
+                    "agent",
+                    "mcp",
+                    "frontend",
+                    "pod",
+                    "pods",
+                }:
+                    requested_pod = candidate_pod
+
             # First check whether the user explicitly provided a pod name.
             pod_name_match = re.search(
                 r"\b(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
@@ -421,10 +441,9 @@ async def mcp_response(state: AgentState) -> dict:
                 question_lower,
             )
 
-            if pod_name_match:
+            if pod_name_match and not requested_pod:
                 candidate_pod = pod_name_match.group(1)
 
-                # Avoid treating generic component words as explicit pod names.
                 if candidate_pod not in {
                     "agent",
                     "mcp",
