@@ -257,7 +257,7 @@ def route_question(state: AgentState) -> dict:
         or "get the logs" in question
     )
 
-    if investigation_intent:
+    if investigation_intent or ownership_intent:
         route: Literal["mcp", "kubernetes", "general"] = "mcp"
 
     elif live_cluster_intent:
@@ -279,6 +279,19 @@ def route_question(state: AgentState) -> dict:
         "route": route,
         "investigation_intent": investigation_intent,
     }
+
+ownership_intent = (
+any(keyword in question for keyword in (
+    "who owns",
+    "owner",
+    "managed by",
+    "controlled by",
+))
+and any(keyword in question for keyword in (
+    "pod",
+    "pods",
+))
+)
 
 def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
     """
