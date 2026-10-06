@@ -416,6 +416,9 @@ async def mcp_response(state: AgentState) -> dict:
 
             # Ownership questions may provide the pod name directly
             # without investigation keywords such as crashing/logs/events.
+            requested_pod = None
+            component = None
+
             ownership_pod_match = re.search(
                 r"\bwho\s+owns\s+(?:pod\s+)?([a-z0-9][a-z0-9.-]*)\b",
                 question_lower,
@@ -432,6 +435,11 @@ async def mcp_response(state: AgentState) -> dict:
                     "pods",
                 }:
                     requested_pod = candidate_pod
+
+            logger.info(
+                "Ownership pod candidate: %s",
+                requested_pod,
+            )
 
             # First check whether the user explicitly provided a pod name.
             pod_name_match = re.search(
@@ -453,7 +461,7 @@ async def mcp_response(state: AgentState) -> dict:
                     requested_pod = candidate_pod
 
             # If no explicit pod was supplied, resolve by logical component.
-            if not requested_pod:
+            if not requested_pod and not ownership_intent:
 
                 if "frontend" in question_lower:
                     component = "frontend"
@@ -815,6 +823,13 @@ async def mcp_response(state: AgentState) -> dict:
 
                     requested_pod = None
 
+            logger.info(
+                "BEFORE LATE POD VALIDATION: requested_pod=%s ownership_intent=%s investigation_intent=%s",
+                requested_pod,
+                ownership_intent,
+                investigation_intent,
+            )
+
             # =========================================================
             # Final pod validation
             # =========================================================
@@ -837,6 +852,11 @@ async def mcp_response(state: AgentState) -> dict:
                         "Validated current pod: %s",
                         requested_pod,
                     )
+
+            logger.info(
+                "AFTER LATE POD VALIDATION: requested_pod=%s",
+                requested_pod,
+            )
 
             # =========================================================
             # Retrieve events
