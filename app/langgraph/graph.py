@@ -565,7 +565,12 @@ async def mcp_response(state: AgentState) -> dict:
                     )
                     investigation_logs = "Unable to retrieve pod logs."
                 else:
-                    investigation_logs = log_result.content
+                    investigation_logs = ""
+
+                    if log_result.content:
+                        for item in log_result.content:
+                            if hasattr(item, "text"):
+                                investigation_logs += item.text
 
                 mcp_context = {
                     "pod": pod_context,
