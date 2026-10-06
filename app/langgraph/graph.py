@@ -192,6 +192,8 @@ def route_question(state: AgentState) -> dict:
 
     question = extract_question(state).lower()
 
+    logger.info("ROUTER QUESTION RECEIVED: %r", question)
+
     investigation_intent = (
         any(
             keyword in question
