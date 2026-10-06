@@ -343,7 +343,7 @@ async def mcp_response(state: AgentState) -> dict:
         # ---------------------------------------------------------
         # Pod logs
         # ---------------------------------------------------------
-        if any(
+        if investigation_intent or any(
             keyword in question_lower
             for keyword in (
                 "log",
@@ -551,7 +551,7 @@ async def mcp_response(state: AgentState) -> dict:
                     )
                     mcp_context = {
                         "pod": pod_context,
-                        "events": filtered_events,
+                        "events": investigation_events,
                     }
             start_time, end_time = extract_log_time_range(question)
 
