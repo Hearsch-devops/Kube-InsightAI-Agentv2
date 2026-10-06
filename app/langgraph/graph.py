@@ -222,12 +222,15 @@ def route_question(state: AgentState) -> dict:
                 "controlled by",
             )
         )
-        and any(
-            keyword in question
-            for keyword in (
-                "pod",
-                "pods",
+        and (
+            any(
+                keyword in question
+                for keyword in (
+                    "pod",
+                    "pods",
+                )
             )
+            or "namespace" in question
         )
     )
 
