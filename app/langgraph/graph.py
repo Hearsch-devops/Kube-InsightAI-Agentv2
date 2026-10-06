@@ -581,7 +581,7 @@ async def mcp_response(state: AgentState) -> dict:
                     requested_pod,
                     investigation_owner,
                 )
-
+            # Keep ownership context and continue to final LLM response generation.
             if ownership_intent and not investigation_intent:
                 mcp_context = {
                     "pod": pod_context,
@@ -592,11 +592,6 @@ async def mcp_response(state: AgentState) -> dict:
                     "FINAL OWNERSHIP MCP CONTEXT BEFORE LLM: %s",
                     mcp_context,
                 )
-
-                return {
-                    "context": json.dumps(mcp_context, indent=2),
-                    "sources": ["kubernetes-mcp"],
-                }
 
             # =========================================================
             # Investigation: retrieve events for the resolved pod
@@ -694,7 +689,7 @@ async def mcp_response(state: AgentState) -> dict:
                     "logs": investigation_logs,
                 }
 
-            if not investigation_intent:
+            if not investigation_intent and not ownership_intent:
                 start_time, end_time = extract_log_time_range(question)
 
                 if start_time and end_time:
@@ -1020,7 +1015,7 @@ async def mcp_response(state: AgentState) -> dict:
         # Validate MCP result
         # =========================================================
 
-        if not investigation_intent:
+        if not investigation_intent and not ownership_intent:
             if result.is_error:
                 raise RuntimeError(
                     f"MCP tool returned an error: {result}"
