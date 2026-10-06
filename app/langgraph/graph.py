@@ -291,7 +291,11 @@ def route_question(state: AgentState) -> dict:
     else:
         route = "general"
 
-    logger.info("Investigation intent: %s", investigation_intent)
+    logger.info(
+        "Intent detection: investigation=%s ownership=%s",
+        investigation_intent,
+        ownership_intent,
+    )
     logger.info("Question routed to: %s", route)
 
     return {
@@ -331,11 +335,6 @@ async def mcp_response(state: AgentState) -> dict:
 
     investigation_intent = state.get("investigation_intent", False)
     ownership_intent = state.get("ownership_intent", False)
-
-    investigation_intent = state.get(
-        "investigation_intent",
-        False,
-    )
 
     try:
         logger.info("Connecting to Kubernetes MCP server")
