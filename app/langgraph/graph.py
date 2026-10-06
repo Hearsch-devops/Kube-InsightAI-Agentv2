@@ -549,6 +549,13 @@ async def mcp_response(state: AgentState) -> dict:
 
             investigation_owner = None
 
+            logger.info(
+                "BEFORE OWNER LOOKUP: requested_pod=%s ownership_intent=%s investigation_intent=%s",
+                requested_pod,
+                ownership_intent,
+                investigation_intent,
+            )
+
             if (investigation_intent or ownership_intent) and requested_pod:
                 logger.info(
                     "Retrieving owner for pod %s in namespace %s",
@@ -823,13 +830,6 @@ async def mcp_response(state: AgentState) -> dict:
 
                     requested_pod = None
 
-            logger.info(
-                "BEFORE LATE POD VALIDATION: requested_pod=%s ownership_intent=%s investigation_intent=%s",
-                requested_pod,
-                ownership_intent,
-                investigation_intent,
-            )
-
             # =========================================================
             # Final pod validation
             # =========================================================
@@ -852,11 +852,6 @@ async def mcp_response(state: AgentState) -> dict:
                         "Validated current pod: %s",
                         requested_pod,
                     )
-
-            logger.info(
-                "AFTER LATE POD VALIDATION: requested_pod=%s",
-                requested_pod,
-            )
 
             # =========================================================
             # Retrieve events
