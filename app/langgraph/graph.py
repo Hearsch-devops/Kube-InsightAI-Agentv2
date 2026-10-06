@@ -188,35 +188,41 @@ def route_question(state: AgentState) -> dict:
     question = extract_question(state).lower()
 
     investigation_intent = (
-    any(
-        keyword in question
-        for keyword in INVESTIGATION_KEYWORDS
-    )
-    and any(
-        keyword in question
-        for keyword in (
-            "pod",
-            "pods",
-            "deployment",
-            "container",
-            "kubernetes",
-            "k8s",
+        any(
+            keyword in question
+            for keyword in INVESTIGATION_KEYWORDS
+        )
+        and any(
+            keyword in question
+            for keyword in (
+                "pod",
+                "pods",
+                "deployment",
+                "container",
+                "kubernetes",
+                "k8s",
+            )
         )
     )
 
     ownership_intent = (
-        any(keyword in question_lower for keyword in (
-            "who owns",
-            "owner",
-            "managed by",
-            "controlled by",
-        ))
-        and any(keyword in question_lower for keyword in (
-            "pod",
-            "pods",
-        ))
+        any(
+            keyword in question
+            for keyword in (
+                "who owns",
+                "owner",
+                "managed by",
+                "controlled by",
+            )
+        )
+        and any(
+            keyword in question
+            for keyword in (
+                "pod",
+                "pods",
+            )
+        )
     )
-)
 
     live_cluster_intent = (
         any(
