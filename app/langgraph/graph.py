@@ -83,6 +83,7 @@ LIVE_CLUSTER_KEYWORDS = (
     "which services",
     "services running",
     "services currently running",
+    "what services are available",
 )
 
 INVESTIGATION_KEYWORDS = (
