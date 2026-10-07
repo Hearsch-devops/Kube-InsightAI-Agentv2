@@ -992,57 +992,6 @@ async def mcp_response(state: AgentState) -> dict:
                 )
 
             # =========================================================
-            # Filter events related to the requested pod
-            # =========================================================
-            if requested_pod and not result.is_error:
-
-                event_context = (
-                    result.structured_content.get("result", [])
-                    if result.structured_content
-                    else []
-                )
-
-                filtered_events = []
-
-                for event in event_context:
-
-                    event_object = event.get("object") or ""
-                    event_message = event.get("message") or ""
-
-                    # Exact pod event
-                    if event_object == requested_pod:
-                        filtered_events.append(event)
-                        continue
-
-                    # Controller event explicitly referencing this pod
-                    if requested_pod in event_message:
-                        filtered_events.append(event)
-
-                logger.info(
-                    "Filtered events for exact pod %s: %d events",
-                    requested_pod,
-                    len(filtered_events),
-                )
-
-                # IMPORTANT:
-                # Pass ONLY events belonging to the current pod
-                mcp_context = filtered_events
-
-                logger.info(
-                    "Passing %d filtered events to final LLM for pod %s",
-                    len(filtered_events),
-                    requested_pod,
-                )
-
-            else:
-
-                logger.warning(
-                    "No valid requested pod resolved. Returning empty event context."
-                )
-
-                mcp_context = []
-
-            # =========================================================
             # Pass only filtered events to the final LLM
             # =========================================================
             mcp_context = filtered_events
