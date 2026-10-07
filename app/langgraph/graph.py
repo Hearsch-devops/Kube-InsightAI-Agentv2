@@ -991,17 +991,6 @@ async def mcp_response(state: AgentState) -> dict:
                     len(mcp_context),
                 )
 
-            # =========================================================
-            # Pass only filtered events to the final LLM
-            # =========================================================
-            mcp_context = filtered_events
-
-            logger.info(
-                "Passing %d filtered events to final LLM for pod %s",
-                len(filtered_events),
-                requested_pod,
-            )
-
         # ---------------------------------------------------------
         # Pods
         # ---------------------------------------------------------
