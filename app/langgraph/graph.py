@@ -894,31 +894,44 @@ async def mcp_response(state: AgentState) -> dict:
 
             filtered_events = []
 
-            if requested_pod and not result.is_error:
-                event_context = (
-                    result.structured_content.get("result", [])
-                    if result.structured_content
-                    else []
-                )
+            event_context = (
+                result.structured_content.get("result", [])
+                if result.structured_content and not result.is_error
+                else []
+            )
+
+            if requested_pod:
+                filtered_events = []
 
                 for event in event_context:
-                    event_object = event.get("object") or ""
 
+                    event_object = event.get("object") or ""
+                    event_message = event.get("message") or ""
+
+                    # Exact pod event
                     if event_object == requested_pod:
                         filtered_events.append(event)
+                        continue
 
-                logger.info(
-                    "FINAL filtered events for current pod %s: %d",
-                    requested_pod,
-                    len(filtered_events),
-                )
+                    # Controller event explicitly referencing this pod
+                    if requested_pod in event_message:
+                        filtered_events.append(event)
 
                 mcp_context = filtered_events
 
                 logger.info(
-                    "Passing %d FINAL filtered events to LLM for pod %s",
+                    "Passing %d filtered events to final LLM for pod %s",
                     len(mcp_context),
                     requested_pod,
+                )
+
+            else:
+                # Normal namespace-wide event request
+                mcp_context = event_context
+
+                logger.info(
+                    "Passing %d namespace-wide events to final LLM",
+                    len(mcp_context),
                 )
 
             # =========================================================
