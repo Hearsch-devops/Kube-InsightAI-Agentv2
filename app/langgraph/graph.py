@@ -351,6 +351,8 @@ async def mcp_response(state: AgentState) -> dict:
     investigation_intent = state.get("investigation_intent", False)
     ownership_intent = state.get("ownership_intent", False)
 
+    requested_pod = None
+
     try:
         logger.info("Connecting to Kubernetes MCP server")
 
@@ -426,7 +428,6 @@ async def mcp_response(state: AgentState) -> dict:
             # Resolve requested pod or logical component
             # =========================================================
 
-            requested_pod = None
             component = None
 
             # Ownership questions may provide the pod name directly
