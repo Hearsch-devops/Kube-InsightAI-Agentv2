@@ -60,6 +60,10 @@ KUBERNETES_KEYWORDS = (
 
 LIVE_CLUSTER_KEYWORDS = (
     "running pods",
+    "what pods are running",
+    "what pods are currently running",
+    "which pods are currently running",
+    "pods currently running",
     "pod status",
     "pod logs",
     "logs of",
