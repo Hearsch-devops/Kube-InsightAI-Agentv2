@@ -6,6 +6,7 @@ from app.mcp_client import (
 import asyncio
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Literal
 import json
 from langchain_core.messages import AIMessage, HumanMessage
@@ -13,7 +14,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
-from app.mcp_client import call_mcp_tool, KUBERNETES_MCP_URL
+
 
 from lc_demos.langchain_retriever_demo import retriever
 from lc_demos.langchain_rag_chain import format_documents
@@ -322,13 +323,22 @@ def route_question(state: AgentState) -> dict:
 
 def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
     """
-    Extract ISO-8601 start and end timestamps from a log request.
+    Extract start and end timestamps from a log/event request.
 
-    Expected format:
+    Supported formats:
         2026-10-02T09:12:00+00:00
         2026-10-02T09:14:00+00:00
+
+        09:00 to 10:00
+        09:00-10:00
+        from 09:00 to 10:00
+
+    Time-only ranges are interpreted using today's UTC date.
     """
 
+    # ---------------------------------------------------------
+    # Full ISO-8601 timestamps
+    # ---------------------------------------------------------
     timestamps = re.findall(
         r"\d{4}-\d{2}-\d{2}T"
         r"\d{2}:\d{2}:\d{2}"
@@ -339,6 +349,53 @@ def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
 
     if len(timestamps) >= 2:
         return timestamps[0], timestamps[1]
+
+    # ---------------------------------------------------------
+    # Time-only range
+    # Example:
+    #   09:00 to 10:00
+    #   09:00-10:00
+    #   from 09:00 to 10:00
+    # ---------------------------------------------------------
+    time_range = re.search(
+        r"\b(?:from\s+)?"
+        r"(\d{1,2}):(\d{2})"
+        r"\s*(?:to|-)\s*"
+        r"(\d{1,2}):(\d{2})\b",
+        question.lower(),
+    )
+
+    if time_range:
+        start_hour, start_minute, end_hour, end_minute = map(
+            int,
+            time_range.groups(),
+        )
+
+        now_utc = datetime.now(timezone.utc)
+        today = now_utc.date()
+
+        start_dt = datetime(
+            today.year,
+            today.month,
+            today.day,
+            start_hour,
+            start_minute,
+            tzinfo=timezone.utc,
+        )
+
+        end_dt = datetime(
+            today.year,
+            today.month,
+            today.day,
+            end_hour,
+            end_minute,
+            tzinfo=timezone.utc,
+        )
+
+        return (
+            start_dt.isoformat(),
+            end_dt.isoformat(),
+        )
 
     return None, None
 
