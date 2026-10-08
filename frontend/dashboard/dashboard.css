@@ -422,6 +422,117 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     padding: 0;
 }
 
+/* ==========================================
+   Responsive Markdown Tables
+   ========================================== */
+
+.assistant-bot-message {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.assistant-bot-message table {
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-top: 12px;
+    font-size: 11px;
+}
+
+.assistant-bot-message th,
+.assistant-bot-message td {
+    padding: 8px 9px;
+    border: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.assistant-bot-message th {
+    background: #111a31;
+    color: #dce5ff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.assistant-bot-message td {
+    color: #b8c5df;
+    line-height: 1.5;
+}
+
+/* Kubernetes event table column sizing */
+.assistant-bot-message th:nth-child(1),
+.assistant-bot-message td:nth-child(1) {
+    width: 22%;
+}
+
+.assistant-bot-message th:nth-child(2),
+.assistant-bot-message td:nth-child(2) {
+    width: 12%;
+}
+
+.assistant-bot-message th:nth-child(3),
+.assistant-bot-message td:nth-child(3) {
+    width: 15%;
+}
+
+.assistant-bot-message th:nth-child(4),
+.assistant-bot-message td:nth-child(4) {
+    width: 18%;
+}
+
+.assistant-bot-message th:nth-child(5),
+.assistant-bot-message td:nth-child(5) {
+    width: 33%;
+}
+
+/* Keep long Kubernetes names readable */
+.assistant-bot-message td code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Small screens */
+@media (max-width: 600px) {
+
+    .assistant-bot-message table {
+        font-size: 10px;
+    }
+
+    .assistant-bot-message th,
+    .assistant-bot-message td {
+        padding: 6px;
+    }
+
+    .assistant-bot-message th:nth-child(1),
+    .assistant-bot-message td:nth-child(1) {
+        width: 24%;
+    }
+
+    .assistant-bot-message th:nth-child(2),
+    .assistant-bot-message td:nth-child(2) {
+        width: 12%;
+    }
+
+    .assistant-bot-message th:nth-child(3),
+    .assistant-bot-message td:nth-child(3) {
+        width: 14%;
+    }
+
+    .assistant-bot-message th:nth-child(4),
+    .assistant-bot-message td:nth-child(4) {
+        width: 18%;
+    }
+
+    .assistant-bot-message th:nth-child(5),
+    .assistant-bot-message td:nth-child(5) {
+        width: 32%;
+    }
+}
+
 /* Typing indicator */
 
 .typing {
