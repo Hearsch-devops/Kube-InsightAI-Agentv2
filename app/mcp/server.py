@@ -126,6 +126,7 @@ def list_pods(namespace: str | None = None) -> list[dict]:
 
             ready_containers = 0
             total_containers = 0
+            container_details = []
 
             if pod.status and pod.status.container_statuses:
                 total_containers = len(pod.status.container_statuses)
@@ -135,6 +136,40 @@ def list_pods(namespace: str | None = None) -> list[dict]:
                     for container in pod.status.container_statuses
                     if container.ready
                 )
+
+                for container in pod.status.container_statuses:
+                    state = "unknown"
+                    reason = None
+                    message = None
+                    exit_code = None
+                    signal = None
+
+                    if container.state:
+                        if container.state.waiting:
+                            state = "waiting"
+                            reason = container.state.waiting.reason
+                            message = container.state.waiting.message
+
+                        elif container.state.running:
+                            state = "running"
+
+                        elif container.state.terminated:
+                            state = "terminated"
+                            reason = container.state.terminated.reason
+                            message = container.state.terminated.message
+                            exit_code = container.state.terminated.exit_code
+                            signal = container.state.terminated.signal
+
+                    container_details.append({
+                        "name": container.name,
+                        "ready": container.ready,
+                        "restart_count": container.restart_count,
+                        "state": state,
+                        "reason": reason,
+                        "message": message,
+                        "exit_code": exit_code,
+                        "signal": signal,
+                    })
 
             results.append({
                 "name": pod.metadata.name,
@@ -152,6 +187,7 @@ def list_pods(namespace: str | None = None) -> list[dict]:
                     if pod.spec
                     else None
                 ),
+                "containers": container_details,
             })
 
         return results
