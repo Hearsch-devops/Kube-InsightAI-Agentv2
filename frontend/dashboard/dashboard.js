@@ -639,7 +639,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // ==========================================
         // AI ASSISTANT INTEGRATION
         // ==========================================
-
         function appendAssistantMessage(sender, text) {
                 const message = document.createElement("div");
 
@@ -660,6 +659,34 @@ document.addEventListener("DOMContentLoaded", () => {
                                 message.textContent = text;
                                 console.warn("Markdown libraries are not available.");
                         }
+
+                        // Copy button
+                        const copyButton = document.createElement("button");
+
+                        copyButton.className = "assistant-copy-button";
+                        copyButton.type = "button";
+                        copyButton.innerHTML = "📋 Copy";
+
+                        copyButton.addEventListener("click", async () => {
+                                try {
+                                        await navigator.clipboard.writeText(text);
+
+                                        copyButton.innerHTML = "✓ Copied";
+
+                                        setTimeout(() => {
+                                                copyButton.innerHTML = "📋 Copy";
+                                        }, 2000);
+                                } catch (error) {
+                                        console.error("Failed to copy response:", error);
+                                        copyButton.innerHTML = "⚠ Copy failed";
+
+                                        setTimeout(() => {
+                                                copyButton.innerHTML = "📋 Copy";
+                                        }, 2000);
+                                }
+                        });
+
+                        message.appendChild(copyButton);
                 }
 
                 assistantMessages.appendChild(message);
