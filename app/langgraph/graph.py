@@ -1111,10 +1111,19 @@ async def mcp_response(state: AgentState) -> dict:
 
         19. Do not output an "Event data:" section containing JSON.
 
-        20. If no matching events were found, clearly state that no events
-            were found.
+        20. If the user asks for Kubernetes events and the MCP request
+            succeeds but returns no matching events, clearly state that
+            no Kubernetes events were found for the requested namespace,
+            pod, or time range.
 
-        21. Treat the "Live Kubernetes information" above as authoritative.
+        21. Do not say that live Kubernetes information was unavailable
+            when MCP successfully returned an empty event result.
+
+        22. Only say that live Kubernetes information could not be
+            retrieved when the MCP request actually failed or returned
+            an error.
+
+        23. Treat the "Live Kubernetes information" above as authoritative.
             Do not reconstruct or infer additional events from other data.
         """
 
