@@ -1165,7 +1165,129 @@ async def mcp_response(state: AgentState) -> dict:
             "error": "Unable to process Kubernetes MCP request.",
             "error_message": str(exc),
         }
-        
+
+async def rca_response(state: AgentState) -> dict:
+    """Analyze live Kubernetes investigation evidence and determine the most likely root cause."""
+
+    question = extract_question(state)
+    context = state.get("context", "")
+
+    if not context:
+        return {
+            "answer": (
+                "I could not perform the root cause analysis because "
+                "no live Kubernetes investigation evidence was available."
+            ),
+        }
+
+    prompt = f"""
+You are Kube-InsightAI, a Kubernetes Root Cause Analysis assistant.
+
+Analyze the user's Kubernetes investigation request using ONLY the
+live Kubernetes evidence provided below.
+
+User question:
+{question}
+
+Live Kubernetes investigation evidence:
+{json.dumps(context, indent=2, default=str)}
+
+Your task is to determine the most likely root cause based strictly
+on the available evidence.
+
+Rules:
+
+1. Do not invent Kubernetes resources, events, logs, statuses,
+   timestamps, or other cluster information.
+
+2. Treat the provided MCP evidence as authoritative.
+
+3. Reason across all available evidence:
+   - Pod state
+   - Owner
+   - Kubernetes events
+   - Container logs
+
+4. Identify the most likely root cause only when the evidence
+   supports it.
+
+5. Distinguish clearly between:
+   - Confirmed evidence
+   - Likely root cause
+   - Possible contributing factors
+
+6. If the evidence is insufficient to determine a root cause,
+   explicitly say that the root cause cannot be determined from
+   the available evidence.
+
+7. Do not claim certainty when the evidence only supports a
+   hypothesis.
+
+8. Assign a confidence level:
+   - High
+   - Medium
+   - Low
+
+9. Do not recommend executing remediation commands.
+
+10. Preserve Kubernetes resource names, timestamps, status values,
+    and literal log messages exactly as provided.
+
+11. Use clear Markdown formatting.
+
+Use this response structure:
+
+## Root Cause Analysis
+
+### Resource
+Identify the investigated Kubernetes resource.
+
+### Root Cause
+State the most likely root cause.
+
+### Evidence
+List the specific evidence supporting the conclusion.
+
+### Impact
+Explain the observed impact based only on the evidence.
+
+### Confidence
+State High, Medium, or Low and briefly explain why.
+
+### Recommended Next Step
+Provide a safe investigation or troubleshooting next step.
+Do not execute or suggest automatic remediation.
+
+If the evidence does not support a root cause, say so explicitly
+instead of guessing.
+"""
+
+    try:
+        llm = get_chat_model()
+
+        logger.info(
+            "Starting RCA reasoning for question: %s",
+            question,
+        )
+
+        response = await llm.ainvoke(prompt)
+        answer = str(response.content)
+
+        logger.info("RCA reasoning completed")
+
+        return {
+            "messages": [AIMessage(content=answer)],
+            "answer": answer,
+        }
+
+    except Exception as exc:
+        logger.exception("RCA response generation failed")
+
+        return {
+            "error": "Unable to perform root cause analysis.",
+            "error_message": str(exc),
+        }
+
 async def kubernetes_response(state: AgentState) -> dict:
     """Generate a Kubernetes response using retrieved RAG context."""
 
@@ -1239,7 +1361,6 @@ async def kubernetes_response(state: AgentState) -> dict:
             ),
             "error_detail": str(exc),
         }
-
 
 async def general_response(state: AgentState) -> dict:
     """Generate a general DevOps response."""
@@ -1333,12 +1454,10 @@ async def general_response(state: AgentState) -> dict:
             "error": "Unable to generate a response.",
         }
 
-
 def choose_route(state: AgentState) -> str:
     """Return the route selected by the routing node."""
 
     return state.get("route", "general")
-
 
 def build_graph():
     """Build and compile the Kube-InsightAI LangGraph workflow."""
