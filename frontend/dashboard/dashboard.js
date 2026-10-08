@@ -669,13 +669,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         copyButton.addEventListener("click", async () => {
                                 try {
-                                        await navigator.clipboard.writeText(text);
+                                        if (navigator.clipboard && window.isSecureContext) {
+                                                await navigator.clipboard.writeText(text);
+                                        } else {
+                                                const textArea = document.createElement("textarea");
+
+                                                textArea.value = text;
+                                                textArea.style.position = "fixed";
+                                                textArea.style.left = "-9999px";
+                                                textArea.style.top = "0";
+
+                                                document.body.appendChild(textArea);
+
+                                                textArea.focus();
+                                                textArea.select();
+
+                                                const copied = document.execCommand("copy");
+
+                                                document.body.removeChild(textArea);
+
+                                                if (!copied) {
+                                                        throw new Error("Fallback copy command failed");
+                                                }
+                                        }
 
                                         copyButton.innerHTML = "✓ Copied";
 
                                         setTimeout(() => {
                                                 copyButton.innerHTML = "📋 Copy";
                                         }, 2000);
+
                                 } catch (error) {
                                         console.error("Failed to copy response:", error);
                                         copyButton.innerHTML = "⚠ Copy failed";
@@ -685,7 +708,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                         }, 2000);
                                 }
                         });
-
                         message.appendChild(copyButton);
                 }
 
