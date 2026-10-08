@@ -510,6 +510,45 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     }
 }
 
+/* ==========================================
+   AI Response Copy Button
+   ========================================== */
+
+.assistant-copy-button {
+    display: block;
+    margin: 10px 0 0 auto;
+
+    padding: 5px 10px;
+
+    background: #0d1528;
+    color: #9fb0cf;
+
+    border: 1px solid var(--border);
+    border-radius: 6px;
+
+    font-size: 11px;
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+/* Hover */
+.assistant-copy-button:hover {
+    background: #16213a;
+    color: #dce5ff;
+    border-color: #4a5b82;
+}
+
+/* Click / active */
+.assistant-copy-button:active {
+    transform: translateY(1px);
+}
+
 @keyframes assistantTyping {
     0%, 60%, 100% {
         opacity: 0.3;
