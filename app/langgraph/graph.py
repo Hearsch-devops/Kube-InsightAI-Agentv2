@@ -557,10 +557,84 @@ async def mcp_response(state: AgentState) -> dict:
             )
 
             # =========================================================
-            # Resolve exact pod or current component pod
+            # Dynamically resolve namespace for an explicit pod
             # =========================================================
+            if requested_pod and not namespace_match:
+                logger.info(
+                    "No namespace supplied for explicit pod %s; "
+                    "searching across all namespaces",
+                    requested_pod,
+                )
+
+                all_pods_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_pods",
+                    {},
+                )
+
+                if all_pods_result.is_error:
+                    raise RuntimeError(
+                        f"Unable to resolve namespace for pod '{requested_pod}': "
+                        f"{all_pods_result}"
+                    )
+
+                all_pods = (
+                    all_pods_result.structured_content.get("result", [])
+                    if all_pods_result.structured_content
+                    else []
+                )
+
+                matching_pod = next(
+                    (
+                        pod
+                        for pod in all_pods
+                        if pod.get("name") == requested_pod
+                    ),
+                    None,
+                )
+
+                if not matching_pod:
+                    raise ValueError(
+                        f"Pod '{requested_pod}' was not found "
+                        "in any Kubernetes namespace."
+                    )
+
+                requested_namespace = matching_pod.get("namespace")
+
+                logger.info(
+                    "Dynamically resolved pod %s to namespace %s",
+                    requested_pod,
+                    requested_namespace,
+                )
+
+                # Refresh pod context using the dynamically discovered namespace.
+                pod_result = await call_mcp_tool(
+                    KUBERNETES_MCP_URL,
+                    "list_pods",
+                    {
+                        "namespace": requested_namespace,
+                    },
+                )
+
+                if pod_result.is_error:
+                    raise RuntimeError(
+                        f"Unable to retrieve pods from dynamically resolved "
+                        f"namespace '{requested_namespace}': {pod_result}"
+                    )
+
+                pod_context = (
+                    pod_result.structured_content.get("result", [])
+                    if pod_result.structured_content
+                    else []
+                )
+
+                logger.info(
+                    "Refreshed pod context for dynamically resolved namespace %s",
+                    requested_namespace,
+                )
 
             if requested_pod:
+
                 # -----------------------------------------------------
                 # Explicit pod name supplied by the user.
                 # Validate it against the current pod list.
