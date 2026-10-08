@@ -1459,6 +1459,14 @@ def choose_route(state: AgentState) -> str:
 
     return state.get("route", "general")
 
+def choose_mcp_next(state: AgentState) -> str:
+    """Decide whether MCP output requires RCA reasoning."""
+
+    if state.get("investigation_intent", False):
+        return "rca"
+
+    return "end"
+
 def build_graph():
     """Build and compile the Kube-InsightAI LangGraph workflow."""
 
@@ -1471,6 +1479,7 @@ def build_graph():
     builder.add_node("kubernetes", kubernetes_response)
 
     builder.add_node("mcp", mcp_response)
+    builder.add_node("rca", rca_response)
 
     builder.add_node("general", general_response)
 
@@ -1490,7 +1499,18 @@ def build_graph():
     builder.add_edge("retrieve_context", "kubernetes")
 
     builder.add_edge("kubernetes", END)
-    builder.add_edge("mcp", END)
+
+    builder.add_conditional_edges(
+        "mcp",
+        choose_mcp_next,
+        {
+            "rca": "rca",
+            "end": END,
+        },
+    )
+
+    builder.add_edge("rca", END)
+
     builder.add_edge("general", END)
 
     return builder.compile()
