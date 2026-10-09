@@ -109,6 +109,11 @@ INVESTIGATION_KEYWORDS = (
     "problem",
     "root cause",
     "what caused",
+    "abnormal behavior",
+    "abnormal",
+    "unhealthy",
+    "not healthy",
+    "unexpected behavior",
 )
 
 def extract_question(state: AgentState) -> str:
@@ -214,6 +219,11 @@ def route_question(state: AgentState) -> dict:
                 "container",
                 "kubernetes",
                 "k8s",
+                "abnormal behavior",
+                "abnormal",
+                "unhealthy",
+               "not healthy",
+               "unexpected behavior", 
             )
         )
     )
@@ -1456,7 +1466,7 @@ async def general_response(state: AgentState) -> dict:
     {question}
 
     Live Kubernetes information:
-    {json.dumps(mcp_context, indent=2)}
+    {json.dumps(state.get("context", ""), indent=2)}
 
     Rules:
 
