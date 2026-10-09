@@ -522,6 +522,7 @@ async def mcp_response(state: AgentState) -> dict:
             )
 
             # First check whether the user explicitly provided a pod name.
+            # First check whether the user explicitly provided a pod name.
             pod_name_match = re.search(
                 r"\b(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
                 r"(?:pod\s+)?(?:crashing|crashed|failing|failed|logs?|events?)\b",
@@ -539,6 +540,32 @@ async def mcp_response(state: AgentState) -> dict:
                     "pods",
                 }:
                     requested_pod = candidate_pod
+
+            # Fallback for questions describing abnormal behavior.
+            if not requested_pod and investigation_intent:
+                abnormal_pod_match = re.search(
+                    r"\b(?:is|are|check|investigate|troubleshoot)\s+"
+                    r"([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
+                    r"(?=(?:showing|experiencing|having|in)\b)",
+                    question_lower,
+                )
+
+                if abnormal_pod_match:
+                    candidate_pod = abnormal_pod_match.group(1)
+
+                    if candidate_pod not in {
+                        "agent",
+                        "mcp",
+                        "frontend",
+                        "pod",
+                        "pods",
+                    }:
+                        requested_pod = candidate_pod
+
+            logger.info(
+                "Resolved explicit pod candidate: %s",
+                requested_pod,
+            )
 
             # If no explicit pod was supplied, resolve by logical component.
             if not requested_pod and not ownership_intent:
