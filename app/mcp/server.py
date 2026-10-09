@@ -476,6 +476,7 @@ def list_deployments(namespace: str | None = None) -> list[dict]:
             "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
         }]
 
+#event_timestamp
 def get_event_timestamp(event):
     """
     Return the most reliable timestamp available for a Kubernetes event.

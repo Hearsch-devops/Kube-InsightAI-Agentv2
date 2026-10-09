@@ -491,6 +491,14 @@ async def mcp_response(state: AgentState) -> dict:
                 len(pod_context),
             )
 
+            logger.info(
+                "AVAILABLE POD NAMES: %s",
+                [
+                    pod.get("name")
+                    for pod in pod_context
+                    if isinstance(pod, dict)
+                ],
+            )
             # =========================================================
             # Resolve requested pod or logical component
             # =========================================================
@@ -521,7 +529,6 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
-            # First check whether the user explicitly provided a pod name.
             # First check whether the user explicitly provided a pod name.
             pod_name_match = re.search(
                 r"\b(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
