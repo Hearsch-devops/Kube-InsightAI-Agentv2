@@ -227,8 +227,13 @@ def route_question(state: AgentState) -> dict:
                 "abnormal behavior",
                 "abnormal",
                 "unhealthy",
-               "not healthy",
-               "unexpected behavior", 
+                "not healthy",
+                "unexpected behavior",
+                "historical events",
+                "history of events",
+                "recent events",
+                "current health",
+                "health of",
             )
         )
     )
