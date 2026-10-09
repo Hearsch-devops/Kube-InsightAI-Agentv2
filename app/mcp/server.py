@@ -624,6 +624,11 @@ def list_events(namespace: str | None = None) -> list[dict]:
                 ),
             })
 
+        # Return events chronologically by event timestamp.
+        results.sort(
+            key=lambda event: event["timestamp"] or ""
+        )
+
         return results
 
     except Exception as exc:
@@ -681,6 +686,15 @@ def get_pod_events(
                     f"'{pod_name}' in namespace '{namespace}'."
                 )
             }]
+
+        # Return pod events chronologically by their latest occurrence.
+        results.sort(
+            key=lambda event: (
+                event["last_timestamp"]
+                or event["first_timestamp"]
+                or ""
+            )
+        )
 
         return results
 
