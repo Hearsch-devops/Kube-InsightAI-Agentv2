@@ -569,6 +569,32 @@ async def mcp_response(state: AgentState) -> dict:
                     }:
                         requested_pod = candidate_pod
 
+            # Prefer an exact match against actual pods returned by Kubernetes.
+            available_pod_names = {
+                pod.get("name")
+                for pod in pod_context
+                if isinstance(pod, dict) and pod.get("name")
+            }
+
+            explicit_pod_name = next(
+                (
+                    pod_name
+                    for pod_name in sorted(
+                        available_pod_names,
+                        key=len,
+                        reverse=True,
+                    )
+                    if re.search(
+                        rf"(?<![a-z0-9.-]){re.escape(pod_name)}(?![a-z0-9.-])",
+                        question_lower,
+                    )
+                ),
+                None,
+            )
+
+            if explicit_pod_name:
+                requested_pod = explicit_pod_name
+
             logger.info(
                 "Resolved explicit pod candidate: %s",
                 requested_pod,
