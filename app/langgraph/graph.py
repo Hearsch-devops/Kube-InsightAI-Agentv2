@@ -114,6 +114,11 @@ INVESTIGATION_KEYWORDS = (
     "unhealthy",
     "not healthy",
     "unexpected behavior",
+    "historical events",
+    "history of events",
+    "recent events",
+    "current health",
+    "health of",
 )
 
 def extract_question(state: AgentState) -> str:
