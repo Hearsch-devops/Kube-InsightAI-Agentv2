@@ -602,13 +602,18 @@ async def mcp_response(state: AgentState) -> dict:
                 None,
             )
 
+            
             if explicit_pod_name:
                 requested_pod = explicit_pod_name
+            elif requested_pod not in available_pod_names:
+                # Ignore regex guesses that are not real pods in this namespace.
+                requested_pod = None
 
             logger.info(
                 "Resolved explicit pod candidate: %s",
                 requested_pod,
             )
+
 
             # If no explicit pod was supplied, resolve by logical component.
             if not requested_pod and not ownership_intent:
