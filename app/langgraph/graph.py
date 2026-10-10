@@ -859,7 +859,11 @@ async def mcp_response(state: AgentState) -> dict:
                             and pod_matches_issue(pod, matching_issue_keywords)
                         ]
 
-                        # Keep your existing candidate-selection logic here.
+                        logger.info(
+                            "ISSUE MATCH: keywords=%s candidates=%s",
+                            matching_issue_keywords,
+                            [pod.get("name") for pod in candidates],
+                        )
 
                     else:
                         raise ValueError(
