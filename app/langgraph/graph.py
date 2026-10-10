@@ -1326,12 +1326,20 @@ async def mcp_response(state: AgentState) -> dict:
 
         # mcp_context is already prepared by the specific MCP workflow.
         # Do not overwrite filtered event/log context with the raw MCP result.
+        # Preserve context prepared by the specific MCP workflow.
+        # Only use the generic result when it has been assigned.
         if "mcp_context" not in locals():
-            mcp_context = (
-                result.structured_content.get("result", [])
-                if result.structured_content
-                else []
-            )
+            if "result" not in locals() or result is None:
+                raise RuntimeError(
+                    "MCP workflow did not produce investigation context "
+                    "or a valid tool result."
+                )
+
+            if result.is_error:
+                raise RuntimeError(f"MCP tool returned an error: {result}")
+
+            structured_content = result.structured_content or {}
+            mcp_context = structured_content.get("result", [])
 
         # =========================================================
         # Generate final natural-language response
