@@ -865,6 +865,24 @@ async def mcp_response(state: AgentState) -> dict:
                             [pod.get("name") for pod in candidates],
                         )
 
+                        if len(candidates) == 1:
+                            requested_pod = candidates[0]["name"]
+                        elif len(candidates) > 1:
+                            raise ValueError(
+                                f"Multiple pods match the requested issue: "
+                                f"{[pod.get('name') for pod in candidates]}. "
+                                "Please specify a pod name."
+                            )
+                        else:
+                            raise ValueError(
+                                f"No pod matching the requested issue was found "
+                                f"in namespace {namespace}."
+                            )
+                        logger.info(
+                            "SELECTED INVESTIGATION POD: %s",
+                            requested_pod,
+                        )
+
                     else:
                         raise ValueError(
                             "Please specify the issue to investigate, "
