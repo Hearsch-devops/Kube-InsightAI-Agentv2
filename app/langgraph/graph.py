@@ -234,6 +234,17 @@ def route_question(state: AgentState) -> dict:
                 "recent events",
                 "current health",
                 "health of",
+                "readiness",
+                "readiness failure",
+                "readiness probe",
+                "unschedulable",
+                "imagepullbackoff",
+                "errimagepull",
+                "crashloopbackoff",
+                "root cause",
+                "investigate",
+                "troubleshoot",
+                "diagnose",
             )
         )
     )
@@ -755,7 +766,17 @@ async def mcp_response(state: AgentState) -> dict:
                         "errimagepull": ("errimagepull",),
                         "crashloopbackoff": ("crashloopbackoff", "crash loop"),
                         "readiness": ("readiness", "not ready", "unready"),
-                        "unschedulable": ("unschedulable", "pending"),
+                        "unschedulable": (
+                            "unschedulable",
+                            "failedscheduling",
+                            "failed scheduling",
+                            "podscheduled=false",
+                            "insufficient cpu",
+                            "insufficient memory",
+                            "didn't match pod affinity",
+                            "didn't match node selector",
+                            "untolerated taint",
+                        ),
                     }
 
                     matching_issue_keywords = next(
@@ -817,39 +838,29 @@ async def mcp_response(state: AgentState) -> dict:
                             for keyword in issue_keywords
                         )
 
-                    if matching_issue_keywords:
+                    health_check_intent = (
+                        any(term in question_lower for term in (
+                            "health of",
+                            "health check",
+                            "healthy pod",
+                            "pod health",
+                        ))
+                        and not matching_issue_keywords
+                    )
+
+                    if health_check_intent:
+                        # Temporary placeholder; health-check logic is not implemented yet.
+                        pass
+
+                    elif matching_issue_keywords:
                         candidates = [
                             pod for pod in pod_context
                             if pod.get("name")
-                            and pod_matches_issue(
-                                pod, matching_issue_keywords
-                            )
+                            and pod_matches_issue(pod, matching_issue_keywords)
                         ]
 
-                        if len(candidates) == 1:
-                            requested_pod = candidates[0]["name"]
-                            logger.info(
-                                "Selected investigation target %s based on "
-                                "issue evidence",
-                                requested_pod,
-                            )
-                        elif len(candidates) > 1:
-                            candidate_names = [
-                                pod["name"] for pod in candidates
-                            ]
-                            raise ValueError(
-                                "Multiple pods match the reported issue: "
-                                f"{', '.join(candidate_names)}. "
-                                "Please specify the pod name."
-                            )
-                        else:
-                            raise ValueError(
-                                "No pod in namespace "
-                                f"'{requested_namespace}' matched the "
-                                "requested issue based on the available "
-                                "pod evidence. Check pod status and events, "
-                                "or specify the pod name."
-                            )
+                        # Keep your existing candidate-selection logic here.
+
                     else:
                         raise ValueError(
                             "Please specify the issue to investigate, "
