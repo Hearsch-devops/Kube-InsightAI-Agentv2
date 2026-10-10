@@ -741,35 +741,149 @@ async def mcp_response(state: AgentState) -> dict:
                     requested_pod,
                 )
 
+            
             else:
                 # -----------------------------------------------------
                 # No explicit pod name.
-                # Resolve the current pod dynamically by component.
+                # For an investigation, select the target from live pod
+                # evidence instead of assuming it is the agent pod.
+                # For other requests, retain component-based resolution.
                 # -----------------------------------------------------
-                pod_prefix = {
-                    "agent": "kube-insightaiv2-agent-",
-                    "mcp": "kube-insightaiv2-mcp-",
-                    "frontend": "kube-insightaiv2-frontend-",
-                }[component]
+                if investigation_intent:
+                    issue_keywords = {
+                        "imagepullbackoff": ("imagepullbackoff", "image pull"),
+                        "errimagepull": ("errimagepull",),
+                        "crashloopbackoff": ("crashloopbackoff", "crash loop"),
+                        "readiness": ("readiness", "not ready", "unready"),
+                        "unschedulable": ("unschedulable", "pending"),
+                    }
 
-                for pod in pod_context:
-                    pod_name = pod.get("name", "")
-
-                    if pod_name.startswith(pod_prefix):
-                        requested_pod = pod_name
-                        break
-
-                if not requested_pod:
-                    raise ValueError(
-                        f"Could not find the current {component} pod "
-                        f"in namespace '{requested_namespace}'."
+                    matching_issue_keywords = next(
+                        (
+                            keywords
+                            for issue, keywords in issue_keywords.items()
+                            if issue in question_lower
+                            or any(
+                                keyword in question_lower
+                                for keyword in keywords
+                            )
+                        ),
+                        (),
                     )
 
-                logger.info(
-                    "Resolved current %s pod: %s",
-                    component,
-                    requested_pod,
-                )
+                    def pod_matches_issue(pod, issue_keywords):
+                        import json
+
+                        # Inspect the complete pod record, including nested
+                        # Kubernetes container status and waiting reasons.
+                        pod_text = json.dumps(pod, default=str).lower()
+
+                        status = pod.get("status", {})
+                        if isinstance(status, dict):
+                            container_statuses = status.get(
+                                "containerStatuses", []
+                            )
+                        else:
+                            container_statuses = []
+
+                        for container in container_statuses:
+                            state = container.get("state", {})
+                            waiting = (
+                                state.get("waiting", {})
+                                if isinstance(state, dict)
+                                else {}
+                            )
+
+                            pod_text += " " + str(
+                                waiting.get("reason", "")
+                            ).lower()
+                            pod_text += " " + str(
+                                waiting.get("message", "")
+                            ).lower()
+
+                        # Support flattened MCP response fields too.
+                        pod_text += " " + " ".join(
+                            str(pod.get(key, ""))
+                            for key in (
+                                "reason",
+                                "message",
+                                "container_statuses",
+                                "containerStatuses",
+                            )
+                        ).lower()
+
+                        return any(
+                            keyword.lower() in pod_text
+                            for keyword in issue_keywords
+                        )
+
+                    if matching_issue_keywords:
+                        candidates = [
+                            pod for pod in pod_context
+                            if pod.get("name")
+                            and pod_matches_issue(
+                                pod, matching_issue_keywords
+                            )
+                        ]
+
+                        if len(candidates) == 1:
+                            requested_pod = candidates[0]["name"]
+                            logger.info(
+                                "Selected investigation target %s based on "
+                                "issue evidence",
+                                requested_pod,
+                            )
+                        elif len(candidates) > 1:
+                            candidate_names = [
+                                pod["name"] for pod in candidates
+                            ]
+                            raise ValueError(
+                                "Multiple pods match the reported issue: "
+                                f"{', '.join(candidate_names)}. "
+                                "Please specify the pod name."
+                            )
+                        else:
+                            raise ValueError(
+                                "No pod in namespace "
+                                f"'{requested_namespace}' matched the "
+                                "requested issue based on the available "
+                                "pod evidence. Check pod status and events, "
+                                "or specify the pod name."
+                            )
+                    else:
+                        raise ValueError(
+                            "Please specify the issue to investigate, "
+                            "such as ImagePullBackOff, CrashLoopBackOff, "
+                            "readiness failure, or an unschedulable pod."
+                        )
+
+                else:
+                    # Preserve existing behavior for non-investigation
+                    # component-specific requests.
+                    pod_prefix = {
+                        "agent": "kube-insightaiv2-agent-",
+                        "mcp": "kube-insightaiv2-mcp-",
+                        "frontend": "kube-insightaiv2-frontend-",
+                    }[component]
+
+                    for pod in pod_context:
+                        pod_name = pod.get("name", "")
+
+                        if pod_name.startswith(pod_prefix):
+                            requested_pod = pod_name
+                            break
+
+                    if not requested_pod:
+                        raise ValueError(
+                            f"Could not find the current {component} pod "
+                            f"in namespace '{requested_namespace}'."
+                        )
+
+                    logger.info(
+                        "Resolved current %s pod: %s",
+                        component,
+                        requested_pod,
+                    )
 
             logger.info(
                 "Resolved pod for MCP request: %s",
