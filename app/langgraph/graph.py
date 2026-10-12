@@ -942,10 +942,68 @@ async def mcp_response(state: AgentState) -> dict:
                             )
 
                         for pod in unhealthy_pods:
+                            pod_name = pod["name"]
+                            issue_text = ", ".join(pod["issues"])
+
                             health_context.append(
-                                f"UNHEALTHY: {pod['name']} — {pod['status']}; "
-                                f"Issues: {', '.join(pod['issues'])}"
+                                f"UNHEALTHY: {pod_name} — {pod['status']}; "
+                                f"Issues: {issue_text}"
                             )
+
+                            health_context.append(
+                                f"Recommended actions for {pod_name}:"
+                            )
+
+                            if "ImagePullBackOff" in issue_text or "ErrImagePull" in issue_text:
+                                health_context.extend([
+                                    "- Verify the image name and tag in the pod specification.",
+                                    "- Check registry access and image pull secrets if applicable.",
+                                    f"- Verification: kubectl describe pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                    f"- Check events: kubectl get events -n {requested_namespace} "
+                                    "--sort-by=.lastTimestamp",
+                                ])
+
+                            elif "CrashLoopBackOff" in issue_text:
+                                health_context.extend([
+                                    "- Inspect the container's current and previous logs.",
+                                    "- Check the container command, arguments, configuration, "
+                                    "and termination details.",
+                                    f"- Current logs: kubectl logs {pod_name} "
+                                    f"-n {requested_namespace}",
+                                    f"- Previous logs: kubectl logs {pod_name} "
+                                    f"-n {requested_namespace} --previous",
+                                    f"- Verification: kubectl get pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                ])
+
+                            elif "not ready" in issue_text.lower():
+                                health_context.extend([
+                                    "- Inspect readiness probe settings, application health, "
+                                    "and container events.",
+                                    f"- Verification: kubectl describe pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                    f"- Check readiness: kubectl get pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                ])
+
+                            elif pod["status"] == "Pending":
+                                health_context.extend([
+                                    "- Inspect pod events to identify image, scheduling, "
+                                    "resource, affinity, selector, or taint issues.",
+                                    f"- Verification: kubectl describe pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                    f"- Check nodes: kubectl get nodes",
+                                ])
+
+                            else:
+                                health_context.extend([
+                                    "- Inspect the pod description, container states, and events "
+                                    "to determine the underlying cause.",
+                                    f"- Verification: kubectl describe pod {pod_name} "
+                                    f"-n {requested_namespace}",
+                                ])
+
 
                         health_context.append(
                             "For unhealthy pods, recommend evidence-based corrective actions "
