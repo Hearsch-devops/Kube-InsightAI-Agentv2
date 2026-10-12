@@ -838,12 +838,21 @@ async def mcp_response(state: AgentState) -> dict:
                             for keyword in issue_keywords
                         )
 
+                    
                     health_check_intent = (
                         any(term in question_lower for term in (
                             "health of",
                             "health check",
                             "healthy pod",
                             "pod health",
+                            "check pod health",
+                            "check the pod",
+                            "check pod status",
+                            "are my pods healthy",
+                            "are the pods healthy",
+                            "is the pod healthy",
+                            "is this pod healthy",
+                            "pod health status",
                         ))
                         and not matching_issue_keywords
                     )
@@ -876,7 +885,7 @@ async def mcp_response(state: AgentState) -> dict:
                         else:
                             raise ValueError(
                                 f"No pod matching the requested issue was found "
-                                f"in namespace {namespace}."
+                                f"in namespace {requested_namespace}."
                             )
                         logger.info(
                             "SELECTED INVESTIGATION POD: %s",
