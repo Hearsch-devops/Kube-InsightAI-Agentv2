@@ -928,6 +928,15 @@ async def mcp_response(state: AgentState) -> dict:
                             len(healthy_pods),
                             len(unhealthy_pods),
                         )
+                        logger.info(
+                            "HEALTH CHECK ROUTING: question=%r matching_issue_keywords=%s "
+                            "health_check_intent=%s investigation_intent=%s ownership_intent=%s",
+                            question,
+                            matching_issue_keywords,
+                            health_check_intent,
+                            investigation_intent,
+                            ownership_intent,
+                        )
 
                         health_context = [
                             f"Namespace: {requested_namespace}",
@@ -1012,6 +1021,11 @@ async def mcp_response(state: AgentState) -> dict:
                         )
 
                         mcp_context = "\n".join(health_context)
+
+                        logger.info(
+                            "HEALTH CHECK CONTEXT BUILT: %s",
+                            mcp_context,
+                        )
 
 
                     elif matching_issue_keywords:
