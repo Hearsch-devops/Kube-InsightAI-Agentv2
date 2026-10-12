@@ -858,8 +858,103 @@ async def mcp_response(state: AgentState) -> dict:
                     )
 
                     if health_check_intent:
-                        # Temporary placeholder; health-check logic is not implemented yet.
-                        pass
+                        total_pods = len(pod_context)
+                        healthy_pods = []
+                        unhealthy_pods = []
+
+                        for pod in pod_context:
+                            pod_name = pod.get("name", "unknown")
+                            pod_status = str(pod.get("status", "Unknown"))
+                            ready = pod.get("ready")
+                            container_statuses = (
+                                pod.get("container_statuses")
+                                or pod.get("containerStatuses")
+                                or []
+                            )
+
+                            issues = []
+
+                            # Inspect pod-level status.
+                            if pod_status != "Running":
+                                issues.append(f"Pod status is {pod_status}")
+
+                            # Inspect container readiness and waiting reasons.
+                            for container in container_statuses:
+                                if not isinstance(container, dict):
+                                    continue
+
+                                state = container.get("state") or {}
+                                waiting = state.get("waiting") or {}
+                                reason = waiting.get("reason")
+
+                                if reason:
+                                    issues.append(f"Container waiting reason: {reason}")
+
+                                if container.get("ready") is False:
+                                    issues.append("Container is not ready")
+
+                                restart_count = container.get("restartCount", 0)
+                                if restart_count:
+                                    logger.info(
+                                        "HEALTH CHECK: pod=%s container=%s restarts=%s",
+                                        pod_name,
+                                        container.get("name", "unknown"),
+                                        restart_count,
+                                    )
+
+                            # Accept common flattened readiness representations.
+                            if ready is False or (
+                                isinstance(ready, str)
+                                and ready.lower() in ("false", "0", "0/1")
+                            ):
+                                issues.append("Pod is not ready")
+
+                            if issues:
+                                unhealthy_pods.append({
+                                    "name": pod_name,
+                                    "status": pod_status,
+                                    "issues": list(dict.fromkeys(issues)),
+                                })
+                            else:
+                                healthy_pods.append({
+                                    "name": pod_name,
+                                    "status": pod_status,
+                                })
+
+                        logger.info(
+                            "HEALTH CHECK SUMMARY: namespace=%s total=%s healthy=%s unhealthy=%s",
+                            requested_namespace,
+                            total_pods,
+                            len(healthy_pods),
+                            len(unhealthy_pods),
+                        )
+
+                        health_context = [
+                            f"Namespace: {requested_namespace}",
+                            f"Total pods: {total_pods}",
+                            f"Healthy pods: {len(healthy_pods)}",
+                            f"Unhealthy pods: {len(unhealthy_pods)}",
+                        ]
+
+                        for pod in healthy_pods:
+                            health_context.append(
+                                f"HEALTHY: {pod['name']} — {pod['status']}"
+                            )
+
+                        for pod in unhealthy_pods:
+                            health_context.append(
+                                f"UNHEALTHY: {pod['name']} — {pod['status']}; "
+                                f"Issues: {', '.join(pod['issues'])}"
+                            )
+
+                        health_context.append(
+                            "For unhealthy pods, recommend evidence-based corrective actions "
+                            "and namespace-specific kubectl verification commands. "
+                            "Distinguish observed evidence from suspected causes."
+                        )
+
+                        mcp_context = "\n".join(health_context)
+
 
                     elif matching_issue_keywords:
                         candidates = [
