@@ -1554,53 +1554,43 @@ async def mcp_response(state: AgentState) -> dict:
         8. Preserve Kubernetes resource names, URLs, IP addresses,
         timestamps, status values, and log lines exactly as provided.
         9. Never alter, correct, normalize, or paraphrase literal log content.
-
         10. When presenting events for a specific pod, include only events
             belonging to that exact pod.
-
         11. Never include events belonging to another pod, even if the pod
             belongs to the same application or workload.
-
         12. If the user asks for Kubernetes events and event data is available,
             present the events as a Markdown table.
-
         13. For Kubernetes events, use exactly these columns:
-
             | Timestamp | Type | Reason | Object | Message |
-
         14. Map the event fields as follows:
             - Timestamp → timestamp
             - Type → type
             - Reason → reason
             - Object → object
             - Message → message
-
         15. Preserve these field values exactly as provided.
-
         16. Do not expose raw Python dictionaries.
-
         17. Do not expose raw JSON.
-
         18. Do not include fields such as name, namespace, count,
             first_timestamp, last_timestamp, or object_kind
             unless explicitly requested.
-
         19. Do not output an "Event data:" section containing JSON.
-
         20. If the user asks for Kubernetes events and the MCP request
             succeeds but returns no matching events, clearly state that
             no Kubernetes events were found for the requested namespace,
             pod, or time range.
-
         21. Do not say that live Kubernetes information was unavailable
             when MCP successfully returned an empty event result.
-
         22. Only say that live Kubernetes information could not be
             retrieved when the MCP request actually failed or returned
             an error.
-
         23. Treat the "Live Kubernetes information" above as authoritative.
             Do not reconstruct or infer additional events from other data.
+        24. When the user requests a pod health check, present the total pod count, healthy pod count, and unhealthy pod count.
+        25. For every unhealthy pod, include its name, observed status, and the issues explicitly provided in the live Kubernetes information.
+        26. Present the "Recommended actions" and verification commands provided for each unhealthy pod. Do not omit them merely to keep the response concise.
+        27. Distinguish observed evidence from suspected causes. Do not claim a root cause unless the provided evidence supports it.
+        28. Do not invent corrective actions, command output, or verification results.
         """
 
         try:
