@@ -752,7 +752,6 @@ async def mcp_response(state: AgentState) -> dict:
                     requested_pod,
                 )
 
-            
             else:
                 # -----------------------------------------------------
                 # No explicit pod name.
@@ -888,22 +887,36 @@ async def mcp_response(state: AgentState) -> dict:
                             if pod_status != "Running":
                                 issues.append(f"Pod status is {pod_status}")
 
-                            # Inspect container readiness and waiting reasons.
+                            # Inspect container readiness, current state, and termination evidence.
                             for container in container_statuses:
                                 if not isinstance(container, dict):
                                     continue
 
                                 state = container.get("state") or {}
-                                waiting = state.get("waiting") or {}
-                                reason = waiting.get("reason")
+                                waiting = (
+                                    state.get("waiting") or {}
+                                    if isinstance(state, dict)
+                                    else {}
+                                )
+
+                                reason = container.get("reason") or waiting.get("reason")
+                                message = container.get("message") or waiting.get("message")
 
                                 if reason:
-                                    issues.append(f"Container waiting reason: {reason}")
+                                    issues.append(f"Container reason: {reason}")
+
+                                if message:
+                                    issues.append(f"Container message: {message}")
 
                                 if container.get("ready") is False:
                                     issues.append("Container is not ready")
 
-                                restart_count = container.get("restartCount", 0)
+                                restart_count = (
+                                    container.get("restart_count")
+                                    or container.get("restartCount")
+                                    or 0
+                                )
+
                                 if restart_count:
                                     logger.info(
                                         "HEALTH CHECK: pod=%s container=%s restarts=%s",
@@ -911,6 +924,16 @@ async def mcp_response(state: AgentState) -> dict:
                                         container.get("name", "unknown"),
                                         restart_count,
                                     )
+
+                                last_state = container.get("last_state") or {}
+                                exit_code = (
+                                    last_state.get("exit_code")
+                                    if last_state
+                                    else container.get("exit_code")
+                                )
+
+                                if exit_code is not None:
+                                    issues.append(f"Container exit code: {exit_code}")
 
                             # Accept common flattened readiness representations.
                             if ready is False or (
@@ -964,6 +987,47 @@ async def mcp_response(state: AgentState) -> dict:
                             pod_name = pod["name"]
                             issue_text = ", ".join(pod["issues"])
 
+                            pod_evidence = next(
+                                (
+                                    item for item in pod_context
+                                    if item.get("name") == pod_name
+                                ),
+                                {},
+                            )
+
+                            container_evidence = (
+                                pod_evidence.get("container_statuses")
+                                or pod_evidence.get("containerStatuses")
+                                or []
+                            )
+
+                            container_evidence = [
+                                item for item in container_evidence
+                                if isinstance(item, dict)
+                            ]
+
+                            container_reasons = [
+                                str(
+                                    item.get("reason")
+                                    or (item.get("state") or {}).get("waiting", {}).get("reason")
+                                    or ""
+                                )
+                                for item in container_evidence
+                            ]
+
+                            container_commands = [
+                                " ".join(
+                                    (item.get("command") or []) + (item.get("args") or [])
+                                )
+                                for item in container_evidence
+                            ]
+
+                            last_states = [
+                                item.get("last_state") or {}
+                                for item in container_evidence
+                            ]
+
+
                             health_context.append(
                                 f"UNHEALTHY: {pod_name} — {pod['status']}; "
                                 f"Issues: {issue_text}"
@@ -983,13 +1047,33 @@ async def mcp_response(state: AgentState) -> dict:
                                     "--sort-by=.lastTimestamp",
                                 ])
 
-                            elif "CrashLoopBackOff" in issue_text:
+                            elif (
+                                "CrashLoopBackOff" in issue_text
+                                or "CrashLoopBackOff" in container_reasons
+                            ):
                                 health_context.extend([
                                     "- Inspect the container's current and previous logs.",
-                                    "- Check the container command, arguments, configuration, "
-                                    "and termination details.",
-                                    f"- Current logs: kubectl logs {pod_name} "
-                                    f"-n {requested_namespace}",
+                                    "- Use the previous termination reason, exit code, command, "
+                                    "arguments, and logs together when identifying the cause.",
+                                ])
+
+                                for item, command, last_state in zip(
+                                    container_evidence, container_commands, last_states
+                                ):
+                                    if command:
+                                        health_context.append(
+                                            f"- Container {item.get('name', 'unknown')} command/args: "
+                                            f"{command}"
+                                        )
+
+                                    if last_state:
+                                        health_context.append(
+                                            f"- Previous termination: reason={last_state.get('reason')}, "
+                                            f"exit_code={last_state.get('exit_code')}"
+                                        )
+
+                                health_context.extend([
+                                    f"- Current logs: kubectl logs {pod_name} -n {requested_namespace}",
                                     f"- Previous logs: kubectl logs {pod_name} "
                                     f"-n {requested_namespace} --previous",
                                     f"- Verification: kubectl get pod {pod_name} "
