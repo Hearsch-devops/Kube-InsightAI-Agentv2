@@ -904,7 +904,8 @@ async def mcp_response(state: AgentState) -> dict:
                             pod_status = str(pod.get("status", "Unknown"))
                             ready = pod.get("ready")
                             container_statuses = (
-                                pod.get("container_statuses")
+                                pod.get("containers")
+                                or pod.get("container_statuses")
                                 or pod.get("containerStatuses")
                                 or []
                             )
@@ -1044,9 +1045,10 @@ async def mcp_response(state: AgentState) -> dict:
                                 ),
                                 {},
                             )
-
+                            
                             container_evidence = (
-                                pod_evidence.get("container_statuses")
+                                pod_evidence.get("containers")
+                                or pod_evidence.get("container_statuses")
                                 or pod_evidence.get("containerStatuses")
                                 or []
                             )
