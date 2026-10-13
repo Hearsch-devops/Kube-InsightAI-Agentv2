@@ -439,6 +439,27 @@ async def mcp_response(state: AgentState) -> dict:
     investigation_intent = state.get("investigation_intent", False)
     ownership_intent = state.get("ownership_intent", False)
 
+    health_check_intent = (
+    any(
+        term in question_lower
+        for term in (
+            "health of",
+            "health check",
+            "healthy pod",
+            "pod health",
+            "check pod health",
+            "check the pod",
+            "check pod status",
+            "are my pods healthy",
+            "are the pods healthy",
+            "is the pod healthy",
+            "is this pod healthy",
+            "pod health status",
+        )
+    )
+    and not investigation_intent
+)
+
     requested_pod = None
 
     try:
@@ -471,7 +492,7 @@ async def mcp_response(state: AgentState) -> dict:
         # ---------------------------------------------------------
         # Pod logs
         # ---------------------------------------------------------
-        if investigation_intent or ownership_intent or any(
+        if health_check_intent or investigation_intent or ownership_intent or any(
             keyword in question_lower
             for keyword in (
                 "log",
@@ -1312,6 +1333,8 @@ async def mcp_response(state: AgentState) -> dict:
                     "FINAL OWNERSHIP MCP CONTEXT BEFORE LLM: %s",
                     mcp_context,
                 )
+
+
 
             # =========================================================
             # Investigation: retrieve events for the resolved pod
