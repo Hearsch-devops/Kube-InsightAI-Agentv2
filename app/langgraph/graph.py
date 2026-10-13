@@ -1384,50 +1384,55 @@ async def mcp_response(state: AgentState) -> dict:
                     )
 
                 # Investigation: retrieve pod logs
-                logger.info(
-                    "Investigation: retrieving logs for pod %s in namespace %s",
-                    requested_pod,
-                    requested_namespace,
-                )
+                investigation_logs = ""
 
-                log_result = await call_mcp_tool(
-                    KUBERNETES_MCP_URL,
-                    "get_pod_logs",
-                    {
-                        "pod_name": requested_pod,
-                        "namespace": requested_namespace,
-                        "tail_lines": 100,
-                    },
-                )
-
-                if log_result.is_error:
-                    logger.warning(
-                        "Investigation log retrieval failed for %s",
+                if requested_pod:
+                    logger.info(
+                        "Investigation: retrieving logs for pod %s in namespace %s",
                         requested_pod,
+                        requested_namespace,
                     )
-                    investigation_logs = (
-                        "Logs unavailable because the container "
-                        "has not started successfully."
+
+                    log_result = await call_mcp_tool(
+                        KUBERNETES_MCP_URL,
+                        "get_pod_logs",
+                        {
+                            "pod_name": requested_pod,
+                            "namespace": requested_namespace,
+                            "tail_lines": 100,
+                        },
                     )
-                else:
-                    investigation_logs = ""
 
-                    if log_result.content:
-                        for item in log_result.content:
-                            if hasattr(item, "text"):
-                                investigation_logs += item.text
-
-                    if investigation_logs.startswith("Kubernetes MCP error:"):
+                    if log_result.is_error:
                         logger.warning(
-                            "Pod logs unavailable for %s: %s",
+                            "Investigation log retrieval failed for %s",
                             requested_pod,
-                            investigation_logs,
                         )
-
                         investigation_logs = (
                             "Logs unavailable because the container "
                             "has not started successfully."
                         )
+                    else:
+                        if log_result.content:
+                            for item in log_result.content:
+                                if hasattr(item, "text"):
+                                    investigation_logs += item.text
+
+                        if investigation_logs.startswith("Kubernetes MCP error:"):
+                            logger.warning(
+                                "Pod logs unavailable for %s: %s",
+                                requested_pod,
+                                investigation_logs,
+                            )
+                            investigation_logs = (
+                                "Logs unavailable because the container "
+                                "has not started successfully."
+                            )
+                else:
+                    logger.info(
+                        "Skipping individual pod log retrieval: "
+                        "no specific pod requested."
+                    )
 
                 mcp_context = {
                     "pod": pod_context,
