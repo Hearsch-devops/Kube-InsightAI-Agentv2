@@ -160,8 +160,46 @@ def list_pods(namespace: str | None = None) -> list[dict]:
                             exit_code = container.state.terminated.exit_code
                             signal = container.state.terminated.signal
 
+                    # Capture the previous container termination, if available.
+                    last_state = None
+                    if container.last_state and container.last_state.terminated:
+                        terminated = container.last_state.terminated
+                        last_state = {
+                            "reason": terminated.reason,
+                            "message": terminated.message,
+                            "exit_code": terminated.exit_code,
+                            "signal": terminated.signal,
+                            "started_at": (
+                                terminated.started_at.isoformat()
+                                if terminated.started_at else None
+                            ),
+                            "finished_at": (
+                                terminated.finished_at.isoformat()
+                                if terminated.finished_at else None
+                            ),
+                        }
+
+                    # Match the container status to its configured specification.
+                    container_spec = next(
+                        (
+                            spec
+                            for spec in (pod.spec.containers or [])
+                            if spec.name == container.name
+                        ),
+                        None,
+                    )
+
                     container_details.append({
                         "name": container.name,
+                        "image": container_spec.image if container_spec else None,
+                        "command": (
+                            container_spec.command or []
+                            if container_spec else []
+                        ),
+                        "args": (
+                            container_spec.args or []
+                            if container_spec else []
+                        ),
                         "ready": container.ready,
                         "restart_count": container.restart_count,
                         "state": state,
@@ -169,6 +207,7 @@ def list_pods(namespace: str | None = None) -> list[dict]:
                         "message": message,
                         "exit_code": exit_code,
                         "signal": signal,
+                        "last_state": last_state,
                     })
 
             results.append({
