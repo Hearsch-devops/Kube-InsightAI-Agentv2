@@ -1078,11 +1078,15 @@ async def mcp_response(state: AgentState) -> dict:
                                 item for item in container_evidence
                                 if isinstance(item, dict)
                             ]
-
+                            
                             container_reasons = [
                                 str(
                                     item.get("reason")
-                                    or (item.get("state") or {}).get("waiting", {}).get("reason")
+                                    or (
+                                        (item.get("state") or {}).get("waiting", {}).get("reason")
+                                        if isinstance(item.get("state"), dict)
+                                        else None
+                                    )
                                     or ""
                                 )
                                 for item in container_evidence
