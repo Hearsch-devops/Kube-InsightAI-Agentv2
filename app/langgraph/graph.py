@@ -838,6 +838,16 @@ async def mcp_response(state: AgentState) -> dict:
                             for keyword in issue_keywords
                         )
 
+                    logger.info(
+                        "HEALTH CHECK INPUTS: question=%r question_lower=%r "
+                        "requested_pod=%r investigation_intent=%s "
+                        "matching_issue_keywords=%r",
+                        question,
+                        question_lower,
+                        requested_pod,
+                        investigation_intent,
+                        matching_issue_keywords,
+                    )
                     
                     health_check_intent = (
                         any(term in question_lower for term in (
