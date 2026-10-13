@@ -870,6 +870,34 @@ async def mcp_response(state: AgentState) -> dict:
                         total_pods = len(pod_context)
                         healthy_pods = []
                         unhealthy_pods = []
+                        health_events = []
+
+                        event_result = await call_mcp_tool(
+                            KUBERNETES_MCP_URL,
+                            "list_events",
+                            {"namespace": requested_namespace},
+                        )
+
+                        if event_result.is_error:
+                            logger.warning(
+                                "HEALTH CHECK: failed to retrieve events for namespace=%s",
+                                requested_namespace,
+                            )
+                        else:
+                            health_events = (
+                                event_result.structured_content.get("result", [])
+                                if event_result.structured_content
+                                else []
+                            )
+
+                            if not isinstance(health_events, list):
+                                health_events = []
+
+                        logger.info(
+                            "HEALTH CHECK: retrieved %s namespace events for namespace=%s",
+                            len(health_events),
+                            requested_namespace,
+                        )
 
                         for pod in pod_context:
                             pod_name = pod.get("name", "unknown")
@@ -986,6 +1014,28 @@ async def mcp_response(state: AgentState) -> dict:
                         for pod in unhealthy_pods:
                             pod_name = pod["name"]
                             issue_text = ", ".join(pod["issues"])
+                            pod_events = [
+                                event
+                                for event in health_events
+                                if isinstance(event, dict)
+                                and event.get("namespace") == requested_namespace
+                                and event.get("object") == pod_name
+                            ]
+
+                            relevant_warning_events = [
+                                event
+                                for event in pod_events
+                                if str(event.get("type", "")).lower() == "warning"
+                            ]
+
+                            for event in relevant_warning_events:
+                                reason = event.get("reason") or "Unknown"
+                                message = event.get("message") or ""
+
+                                health_context.append(
+                                    f"EVENT EVIDENCE for {pod_name}: "
+                                    f"type=Warning, reason={reason}, message={message}"
+                                )
 
                             pod_evidence = next(
                                 (
@@ -1081,14 +1131,38 @@ async def mcp_response(state: AgentState) -> dict:
                                 ])
 
                             elif "not ready" in issue_text.lower():
-                                health_context.extend([
-                                    "- Inspect readiness probe settings, application health, "
-                                    "and container events.",
-                                    f"- Verification: kubectl describe pod {pod_name} "
-                                    f"-n {requested_namespace}",
-                                    f"- Check readiness: kubectl get pod {pod_name} "
-                                    f"-n {requested_namespace}",
-                                ])
+                                readiness_events = [
+                                    event
+                                    for event in relevant_warning_events
+                                    if event.get("reason") == "Unhealthy"
+                                    and "readiness probe failed" in str(
+                                        event.get("message", "")
+                                    ).lower()
+                                ]
+
+                                http_404_event = next(
+                                    (
+                                        event for event in readiness_events
+                                        if "statuscode: 404" in str(
+                                            event.get("message", "")
+                                        ).lower()
+                                    ),
+                                    None,
+                                )
+
+                                if http_404_event:
+                                    health_context.extend([
+                                        "- Confirmed evidence: readiness probe is failing with HTTP 404.",
+                                        "- Inspect the configured readiness path and port; ensure the endpoint returns a successful HTTP status.",
+                                        f"- Inspect probe configuration: kubectl describe pod {pod_name} -n {requested_namespace}",
+                                        f"- Verify readiness: kubectl get pod {pod_name} -n {requested_namespace}",
+                                    ])
+                                else:
+                                    health_context.extend([
+                                        "- Inspect readiness probe settings, application health, and relevant container events.",
+                                        f"- Verification: kubectl describe pod {pod_name} -n {requested_namespace}",
+                                        f"- Check readiness: kubectl get pod {pod_name} -n {requested_namespace}",
+                                    ])
 
                             elif pod["status"] == "Pending":
                                 health_context.extend([
