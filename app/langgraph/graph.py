@@ -1382,11 +1382,11 @@ async def mcp_response(state: AgentState) -> dict:
                         requested_pod,
                         len(investigation_events),
                     )
-
+                
                 # Investigation: retrieve pod logs
                 investigation_logs = ""
 
-                if requested_pod:
+                if requested_pod and (investigation_intent or ownership_intent):
                     logger.info(
                         "Investigation: retrieving logs for pod %s in namespace %s",
                         requested_pod,
@@ -1405,14 +1405,17 @@ async def mcp_response(state: AgentState) -> dict:
 
                     if log_result.is_error:
                         logger.warning(
-                            "Investigation log retrieval failed for %s",
+                            "Investigation log retrieval failed for %s: %s",
                             requested_pod,
+                            log_result,
                         )
                         investigation_logs = (
                             "Logs unavailable because the container "
                             "has not started successfully."
                         )
                     else:
+                        investigation_logs = ""
+
                         if log_result.content:
                             for item in log_result.content:
                                 if hasattr(item, "text"):
@@ -1431,7 +1434,7 @@ async def mcp_response(state: AgentState) -> dict:
                 else:
                     logger.info(
                         "Skipping individual pod log retrieval: "
-                        "no specific pod requested."
+                        "no specific pod requested or no investigation required."
                     )
 
                 mcp_context = {
@@ -1441,7 +1444,12 @@ async def mcp_response(state: AgentState) -> dict:
                     "logs": investigation_logs,
                 }
 
-            if not investigation_intent and not ownership_intent:
+            if (
+                not investigation_intent
+                and not ownership_intent
+                and not health_check_intent
+                and requested_pod
+            ):
                 start_time, end_time = extract_log_time_range(question)
 
                 if start_time and end_time:
@@ -1459,7 +1467,6 @@ async def mcp_response(state: AgentState) -> dict:
                             "end_time": end_time,
                         },
                     )
-
                 else:
                     logger.info("MCP standard log request")
 
@@ -1473,25 +1480,15 @@ async def mcp_response(state: AgentState) -> dict:
                         },
                     )
 
-            log_result = await call_mcp_tool(
-                KUBERNETES_MCP_URL,
-                "get_pod_logs",
-                {
-                    "pod_name": requested_pod,
-                    "namespace": requested_namespace,
-                    "tail_lines": 100,
-                },
-            )
-
-            if log_result.is_error:
-                logger.warning(
-                    "Investigation log retrieval failed for %s: %s",
-                    requested_pod,
-                    log_result,
-                )
-                investigation_logs = "Unable to retrieve pod logs."
-            else:
-                investigation_logs = log_result.content
+                if result.is_error:
+                    logger.warning(
+                        "Investigation log retrieval failed for %s: %s",
+                        requested_pod,
+                        result,
+                    )
+                    investigation_logs = "Unable to retrieve pod logs."
+                else:
+                    investigation_logs = result.content
 
         # ---------------------------------------------------------
         # Deployments
