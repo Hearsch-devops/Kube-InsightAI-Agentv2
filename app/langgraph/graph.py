@@ -780,7 +780,7 @@ async def mcp_response(state: AgentState) -> dict:
                 # evidence instead of assuming it is the agent pod.
                 # For other requests, retain component-based resolution.
                 # -----------------------------------------------------
-                if investigation_intent:
+                if investigation_intent or health_check_intent:
                     issue_keywords = {
                         "imagepullbackoff": ("imagepullbackoff", "image pull"),
                         "errimagepull": ("errimagepull",),
