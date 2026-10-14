@@ -85,6 +85,10 @@ LIVE_CLUSTER_KEYWORDS = (
     "services running",
     "services currently running",
     "what services are available",
+    "list services",
+    "list the services",
+    "services in",
+    "service in",
 )
 
 INVESTIGATION_KEYWORDS = (
@@ -132,7 +136,6 @@ def extract_question(state: AgentState) -> str:
             return str(message.content)
 
     raise ValueError("No user question found in graph state")
-
 
 async def analyze_question(state: AgentState) -> dict:
     """Analyze the user's question using the configured LLM."""
@@ -350,7 +353,6 @@ def route_question(state: AgentState) -> dict:
         "investigation_intent": investigation_intent,
         "ownership_intent": ownership_intent,
     }
-
 
 def extract_log_time_range(question: str) -> tuple[str | None, str | None]:
     """
