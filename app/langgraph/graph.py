@@ -1714,13 +1714,16 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
         # Validate MCP result
         # =========================================================
-
-        if not investigation_intent and not ownership_intent:
+        if (
+            not investigation_intent
+            and not ownership_intent
+            and not health_check_intent
+            and requested_pod
+        ):
             if result.is_error:
                 raise RuntimeError(
                     f"MCP tool returned an error: {result}"
                 )
-
         # mcp_context is already prepared by the specific MCP workflow.
         # Do not overwrite filtered event/log context with the raw MCP result.
         # Preserve context prepared by the specific MCP workflow.
