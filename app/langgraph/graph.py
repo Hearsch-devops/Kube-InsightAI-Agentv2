@@ -1724,6 +1724,12 @@ async def mcp_response(state: AgentState) -> dict:
                 raise RuntimeError(
                     f"MCP tool returned an error: {result}"
                 )
+        logger.info(
+            "MCP CONTEXT CHECK: health_check_intent=%s mcp_context_exists=%s result_exists=%s",
+            health_check_intent,
+            "mcp_context" in locals(),
+            "result" in locals(),
+        )
         # mcp_context is already prepared by the specific MCP workflow.
         # Do not overwrite filtered event/log context with the raw MCP result.
         # Preserve context prepared by the specific MCP workflow.
