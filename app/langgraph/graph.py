@@ -468,6 +468,7 @@ async def mcp_response(state: AgentState) -> dict:
 )
 
     requested_pod = None
+    namespace_wide_investigation = False
 
     try:
         logger.info("Connecting to Kubernetes MCP server")
@@ -758,7 +759,6 @@ async def mcp_response(state: AgentState) -> dict:
                 )
 
             if requested_pod:
-
                 # -----------------------------------------------------
                 # Explicit pod name supplied by the user.
                 # Validate it against the current pod list.
@@ -1111,7 +1111,6 @@ async def mcp_response(state: AgentState) -> dict:
                                 for item in container_evidence
                             ]
 
-
                             health_context.append(
                                 f"UNHEALTHY: {pod_name} — {pod['status']}; "
                                 f"Issues: {issue_text}"
@@ -1229,7 +1228,6 @@ async def mcp_response(state: AgentState) -> dict:
                             mcp_context,
                         )
 
-
                     elif matching_issue_keywords:
                         candidates = [
                             pod for pod in pod_context
@@ -1262,10 +1260,51 @@ async def mcp_response(state: AgentState) -> dict:
                         )
 
                     else:
-                        raise ValueError(
-                            "Please specify the issue to investigate, "
-                            "such as ImagePullBackOff, CrashLoopBackOff, "
-                            "readiness failure, or an unschedulable pod."
+                        # Handle namespace-wide investigations.
+                        namespace_wide_investigation = True
+                        # Namespace-wide investigation:
+                        # analyze all pods and recent events rather than
+                        # requiring a single pod or predefined issue.
+                        logger.info(
+                            "NAMESPACE-WIDE INVESTIGATION: namespace=%s",
+                            requested_namespace,
+                        )
+
+                        event_result = await call_mcp_tool(
+                            KUBERNETES_MCP_URL,
+                            "list_events",
+                            {"namespace": requested_namespace},
+                        )
+
+                        if event_result.is_error:
+                            raise RuntimeError(
+                                "Unable to retrieve Kubernetes events "
+                                f"for namespace '{requested_namespace}'."
+                            )
+
+                        namespace_events = (
+                            event_result.structured_content.get("result", [])
+                            if event_result.structured_content
+                            else []
+                        )
+
+                        if not isinstance(namespace_events, list):
+                            namespace_events = []
+
+                        mcp_context = {
+                            "namespace": requested_namespace,
+                            "investigation_scope": "namespace-wide",
+                            "pods": pod_context,
+                            "events": namespace_events,
+                            "question": question,
+                        }
+
+                        logger.info(
+                            "NAMESPACE-WIDE INVESTIGATION CONTEXT BUILT: "
+                            "namespace=%s pods=%d events=%d",
+                            requested_namespace,
+                            len(pod_context),
+                            len(namespace_events),
                         )
 
                 else:
@@ -1344,8 +1383,6 @@ async def mcp_response(state: AgentState) -> dict:
                     "FINAL OWNERSHIP MCP CONTEXT BEFORE LLM: %s",
                     mcp_context,
                 )
-
-
 
             # =========================================================
             # Investigation: retrieve events for the resolved pod
@@ -1444,12 +1481,13 @@ async def mcp_response(state: AgentState) -> dict:
                         "no specific pod requested or no investigation required."
                     )
 
-                mcp_context = {
-                    "pod": pod_context,
-                    "owner": investigation_owner,
-                    "events": investigation_events,
-                    "logs": investigation_logs,
-                }
+                if not namespace_wide_investigation:
+                    mcp_context = {
+                        "pod": pod_context,
+                        "owner": investigation_owner,
+                        "events": investigation_events,
+                        "logs": investigation_logs,
+                    }
 
             if (
                 not investigation_intent
@@ -2220,6 +2258,5 @@ def build_graph():
     builder.add_edge("general", END)
 
     return builder.compile()
-
 
 graph = build_graph()
