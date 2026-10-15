@@ -39,12 +39,13 @@ def build_remediation_proposal(question: str) -> dict[str, Any] | None:
     if not restart_requested:
         return None
 
+    
     deployment_match = re.search(
-        r"\bdeployment(?:\s+named)?\s+([a-z0-9][a-z0-9.-]*)",
+        r"\bdeployment(?:\s+named)?\s+([^\s]+)",
         normalized,
     )
     namespace_match = re.search(
-        r"\bnamespace\s+([a-z0-9][a-z0-9.-]*)",
+        r"\bnamespace\s+([^\s]+)",
         normalized,
     )
 
