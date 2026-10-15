@@ -12,7 +12,9 @@ class AgentState(TypedDict, total=False):
 
     question: str
     analysis: str
-    route: Literal["kubernetes", "mcp", "general"]
+    route: Literal["kubernetes", "mcp", "general", "remediation"]
+
+    remediation_proposal: dict
 
     requested_pod: str
     requested_namespace: str
