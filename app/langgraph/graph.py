@@ -99,7 +99,10 @@ INVESTIGATION_KEYWORDS = (
     "why did",
     "what went wrong",
     "what is wrong",
-    "why",
+    "why is",
+    "why did",
+    "what went wrong",
+    "what is wrong",
     "crash",
     "crashed",
     "crashing",
@@ -234,43 +237,23 @@ def route_question(state: AgentState) -> dict:
             "ownership_intent": False,
         }
 
+    
     investigation_intent = (
-        any(
-            keyword in question
-            for keyword in INVESTIGATION_KEYWORDS
-        )
-        and any(
-            keyword in question
-            for keyword in (
-                "pod",
-                "pods",
-                "deployment",
-                "container",
-                "kubernetes",
-                "k8s",
-                "abnormal behavior",
-                "abnormal",
-                "unhealthy",
-                "not healthy",
-                "unexpected behavior",
-                "historical events",
-                "history of events",
-                "recent events",
-                "current health",
-                "health of",
-                "readiness",
-                "readiness failure",
-                "readiness probe",
-                "unschedulable",
-                "imagepullbackoff",
-                "errimagepull",
-                "crashloopbackoff",
-                "root cause",
-                "investigate",
-                "troubleshoot",
-                "diagnose",
-            )
-        )
+        any(keyword in question for keyword in INVESTIGATION_KEYWORDS)
+        and any(keyword in question for keyword in (
+            "pod", "pods", "deployment", "deployments",
+            "container", "containers",
+            "abnormal behavior", "abnormal",
+            "unhealthy", "not healthy",
+            "unexpected behavior",
+            "historical events", "history of events",
+            "recent events", "current health", "health of",
+            "readiness", "readiness failure", "readiness probe",
+            "unschedulable", "imagepullbackoff", "errimagepull",
+            "crashloopbackoff", "root cause",
+            "investigate", "troubleshoot", "diagnose",
+            "logs", "events",
+        ))
     )
 
     ownership_intent = (
