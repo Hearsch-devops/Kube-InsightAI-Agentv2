@@ -23,15 +23,14 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
 
-
 class ChatResponse(BaseModel):
     response: str
     route: str | None = None
     analysis: str | None = None
-    sources: list[str] = []
+    sources: list[str] = Field(default_factory=list)
     error: str | None = None
     error_message: str | None = None
-
+    remediation_proposal: dict | None = None
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest) -> ChatResponse:
