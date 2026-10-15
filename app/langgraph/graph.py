@@ -11,6 +11,7 @@ from typing import Literal
 import json
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import END, START, StateGraph
+from app.mcp.remediation import build_remediation_proposal
 
 from app.langgraph.state import AgentState
 from app.llm.llm import get_chat_model
@@ -217,6 +218,21 @@ def route_question(state: AgentState) -> dict:
     question = extract_question(state).lower()
 
     logger.info("ROUTER QUESTION RECEIVED: %r", question)
+
+    
+    # Phase 5: proposal-only remediation routing.
+    # This must run before existing investigation/live-cluster routing.
+    remediation_proposal = build_remediation_proposal(question)
+
+    if remediation_proposal is not None:
+        logger.info("Question routed to: remediation (proposal only)")
+
+        return {
+            "route": "remediation",
+            "remediation_proposal": remediation_proposal,
+            "investigation_intent": False,
+            "ownership_intent": False,
+        }
 
     investigation_intent = (
         any(
@@ -2198,6 +2214,37 @@ async def general_response(state: AgentState) -> dict:
             "error": "Unable to generate a response.",
         }
 
+def remediation_proposal_response(state: AgentState) -> dict:
+    """Explain a proposed remediation without executing it."""
+
+    proposal = state.get("remediation_proposal")
+
+    if not proposal:
+        answer = (
+            "I couldn't prepare a remediation proposal. "
+            "Please specify the requested action and target."
+        )
+    elif proposal.get("status") == "needs_clarification":
+        answer = (
+            "I need more information before preparing the remediation proposal.\n"
+            f"Reason: {proposal.get('reason', 'The target is incomplete.')}\n"
+            "Please provide both the Deployment name and namespace."
+        )
+    else:
+        answer = (
+            "## Remediation Proposal\n\n"
+            f"- **Action:** {proposal.get('action')}\n"
+            f"- **Deployment:** {proposal.get('deployment')}\n"
+            f"- **Namespace:** {proposal.get('namespace')}\n"
+            f"- **Reason:** {proposal.get('reason')}\n\n"
+            "**Status:** Proposed only. No Kubernetes operation was executed."
+        )
+
+    return {
+        "messages": [AIMessage(content=answer)],
+        "answer": answer,
+    }
+
 def choose_route(state: AgentState) -> str:
     """Return the route selected by the routing node."""
 
@@ -2227,9 +2274,16 @@ def build_graph():
 
     builder.add_node("general", general_response)
 
+    # Phase 5: proposal-only remediation
+    builder.add_node(
+        "remediation",
+        remediation_proposal_response,
+    )
+
     builder.add_edge(START, "analyze")
     builder.add_edge("analyze", "router")
 
+    # Route to exactly one workflow
     builder.add_conditional_edges(
         "router",
         choose_route,
@@ -2237,13 +2291,14 @@ def build_graph():
             "kubernetes": "retrieve_context",
             "mcp": "mcp",
             "general": "general",
+            "remediation": "remediation",
         },
     )
 
     builder.add_edge("retrieve_context", "kubernetes")
-
     builder.add_edge("kubernetes", END)
 
+    # Preserve the existing MCP → RCA workflow
     builder.add_conditional_edges(
         "mcp",
         choose_mcp_next,
@@ -2254,8 +2309,10 @@ def build_graph():
     )
 
     builder.add_edge("rca", END)
-
     builder.add_edge("general", END)
+
+    # Proposal-only path terminates here
+    builder.add_edge("remediation", END)
 
     return builder.compile()
 
