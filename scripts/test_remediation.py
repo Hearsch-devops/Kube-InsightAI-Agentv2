@@ -39,3 +39,36 @@ def test_unrelated_question_does_not_create_proposal():
     )
 
     assert result is None
+
+
+def test_invalid_deployment_name_requires_clarification():
+    result = build_remediation_proposal(
+        "Restart deployment Bad_Name in namespace testing-files"
+    )
+
+    assert result is not None
+    assert result["status"] == "needs_clarification"
+    assert result["execution_enabled"] is False
+
+
+def test_invalid_namespace_requires_clarification():
+    result = build_remediation_proposal(
+        "Restart deployment my-app in namespace Bad_Name"
+    )
+
+    assert result is not None
+    assert result["status"] == "needs_clarification"
+    assert result["execution_enabled"] is False
+
+
+def test_valid_hyphenated_names_create_proposal():
+    result = build_remediation_proposal(
+        "Restart deployment scenario-5-unschedulable "
+        "in namespace testing-files"
+    )
+
+    assert result is not None
+    assert result["status"] == "proposed"
+    assert result["deployment"] == "scenario-5-unschedulable"
+    assert result["namespace"] == "testing-files"
+    assert result["execution_enabled"] is False
