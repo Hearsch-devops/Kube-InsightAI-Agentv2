@@ -1,3 +1,9 @@
+from app.database import (
+    SessionLocal,
+    RemediationProposal,
+    AuditEvent,
+)
+
 from app.mcp_client import (
     call_mcp_tool,
     parse_mcp_result,
@@ -46,6 +52,13 @@ async def chat(request: ChatRequest) -> ChatResponse:
             }
         )
 
+        proposal = result.get("remediation_proposal")
+
+        if isinstance(proposal, dict):
+            result["remediation_proposal"] = persist_remediation_proposal(
+                proposal
+            )
+
         answer = result.get("answer")
 
         if not answer:
@@ -73,6 +86,72 @@ async def chat(request: ChatRequest) -> ChatResponse:
             status_code=500,
             detail="An internal error occurred while processing the request.",
         )
+
+# ============================================================
+# helper to persist proposals
+# ============================================================
+
+def persist_remediation_proposal(proposal: dict) -> dict:
+    """Persist a valid proposal without executing any Kubernetes operation."""
+
+    if proposal.get("status") != "proposed":
+        return proposal
+
+    action = proposal.get("action")
+    deployment = proposal.get("deployment")
+    namespace = proposal.get("namespace")
+
+    if (
+        action != "restart_deployment"
+        or not isinstance(deployment, str)
+        or not isinstance(namespace, str)
+        or not deployment
+        or not namespace
+    ):
+        raise ValueError("Invalid remediation proposal.")
+
+    # Enforce proposal-only behavior on the backend.
+    proposal_record = {
+        **proposal,
+        "execution_enabled": False,
+    }
+
+    with SessionLocal() as db:
+        try:
+            record = RemediationProposal(
+                action=action,
+                namespace=namespace,
+                deployment=deployment,
+                reason=str(proposal.get("reason", "")),
+                status="proposed",
+                execution_enabled=False,
+                requested_by=None,  # Authentication is not implemented yet.
+            )
+
+            db.add(record)
+            db.flush()
+
+            audit_event = AuditEvent(
+                proposal_id=record.id,
+                actor=None,
+                event_type="proposal_created",
+                details={
+                    "action": action,
+                    "namespace": namespace,
+                    "deployment": deployment,
+                    "execution_enabled": False,
+                },
+            )
+
+            db.add(audit_event)
+            db.commit()
+
+            proposal_record["id"] = record.id
+            return proposal_record
+
+        except Exception:
+            db.rollback()
+            raise
 
 # ============================================================
 # Kubernetes MCP Configuration
