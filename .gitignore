@@ -18,3 +18,8 @@ venv/
 .DS_Store
 __pycache__/
 *.pyc
+
+# Remediation database
+*.db
+*.db-shm
+*.db-wal

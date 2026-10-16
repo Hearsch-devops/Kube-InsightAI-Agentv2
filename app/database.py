@@ -1,0 +1,110 @@
+
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    create_engine,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+
+
+# Store the database outside the application source directory.
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parent.parent / "data" / "kube_insightai.db"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"sqlite:///{DEFAULT_DATABASE_PATH}",
+)
+
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    expire_on_commit=False,
+)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class RemediationProposal(Base):
+    __tablename__ = "remediation_proposals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    namespace: Mapped[str] = mapped_column(String(63), nullable=False)
+    deployment: Mapped[str] = mapped_column(String(253), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="proposed"
+    )
+    execution_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    requested_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+
+class ApprovalDecision(Base):
+    __tablename__ = "approval_decisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    proposal_id: Mapped[int] = mapped_column(
+        ForeignKey("remediation_proposals.id"), nullable=False, index=True
+    )
+    decided_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    decision: Mapped[str] = mapped_column(String(20), nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    proposal_id: Mapped[int | None] = mapped_column(
+        ForeignKey("remediation_proposals.id"), nullable=True, index=True
+    )
+    actor: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+
+def init_db() -> None:
+    """Create the database directory and tables if they do not exist."""
+    if DATABASE_URL.startswith("sqlite:///"):
+        database_path = DATABASE_URL.removeprefix("sqlite:///")
+
+        if database_path != ":memory:":
+            Path(database_path).expanduser().resolve().parent.mkdir(
+                parents=True, exist_ok=True
+            )
+
+    Base.metadata.create_all(bind=engine)

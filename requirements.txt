@@ -12,3 +12,4 @@ chromadb
 openai
 httpx
 mcp==2.2.0
+sqlalchemy
