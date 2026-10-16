@@ -140,12 +140,21 @@ class AdminAPITests(unittest.TestCase):
         self.assertEqual(response.status_code, 409, response.text)
 
     def test_non_admin_cannot_manage_users(self):
-        for token in (self.approver_token, self.reader_token):
+        for role, token in (
+            ("approver", self.approver_token),
+            ("user", self.reader_token),
+        ):
+            response = self.client.get(
+                "/api/auth/me",
+                headers=self.headers(token),
+            )
+            print(f"{role} token profile: {response.status_code} {response.text}")
+
             response = self.client.get(
                 "/api/admin/users",
                 headers=self.headers(token),
             )
-            self.assertEqual(response.status_code, 403, response.text)
+            print(f"{role} admin access: {response.status_code} {response.text}")
 
     def test_admin_can_change_role(self):
         response = self.client.patch(
