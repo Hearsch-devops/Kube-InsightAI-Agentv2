@@ -320,13 +320,14 @@ class RemediationAPITests(unittest.TestCase):
                 proposal["id"] = record.id
                 db.add(
                     AuditEvent(
-                        proposal_id=record.id,
+                        proposal_id=saved.id,
                         actor=requested_by,
                         event_type="proposal_created",
                         details={
+                            "action": saved.action,
+                            "namespace": saved.namespace,
+                            "deployment": saved.deployment,
                             "execution_enabled": False,
-                            "namespace": record.namespace,
-                            "deployment": record.deployment,
                         },
                     )
                 )
