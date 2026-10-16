@@ -134,7 +134,7 @@ def persist_remediation_proposal(
                 reason=str(proposal.get("reason", "")),
                 status="proposed",
                 execution_enabled=False,
-                requested_by=requested_by, # Authentication is not implemented yet.
+                requested_by=requested_by,  # Username from the authenticated request.
             )
 
             db.add(record)
@@ -176,7 +176,9 @@ KUBERNETES_MCP_URL = os.getenv(
 # ============================================================
 
 @router.get("/cluster/namespaces")
-async def get_namespaces():
+async def get_namespaces(
+    current_user: User = Depends(get_current_user),
+):
 
     try:
 
@@ -210,6 +212,7 @@ async def get_namespaces():
 @router.get("/cluster/overview")
 async def get_cluster_overview(
     namespace: str = "kube-insightaiv2",
+    current_user: User = Depends(get_current_user),
 ):
 
     try:
@@ -271,7 +274,9 @@ async def get_cluster_overview(
 # ============================================================
 
 @router.get("/cluster/metrics")
-async def get_cluster_metrics():
+async def get_cluster_metrics(
+    current_user: User = Depends(get_current_user),
+):
 
     try:
         result = await call_mcp_tool(
@@ -300,6 +305,7 @@ async def get_cluster_metrics():
 @router.get("/cluster/ingresses")
 async def get_cluster_ingresses(
     namespace: str | None = None,
+    current_user: User = Depends(get_current_user),
 ):
     try:
         result = await call_mcp_tool(
