@@ -59,6 +59,17 @@ async def chat(
 
         proposal = result.get("remediation_proposal")
 
+        if (
+            proposal
+            and proposal.get("status") == "proposed"
+            and proposal.get("action") == "restart_deployment"
+            and current_user.role not in ("admin", "approver")
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Your role is not permitted to create remediation proposals.",
+            )
+
         if isinstance(proposal, dict):
             result["remediation_proposal"] = persist_remediation_proposal(
             proposal,
@@ -84,6 +95,9 @@ async def chat(
             error_message=result.get("error_message"),
             remediation_proposal=result.get("remediation_proposal"),
         )
+    
+    except HTTPException:
+        raise
 
     except Exception:
         logger.exception("Chat request failed")
