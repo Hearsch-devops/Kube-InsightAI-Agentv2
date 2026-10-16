@@ -383,5 +383,105 @@ class RemediationAPITests(unittest.TestCase):
                 any(event.event_type == "proposal_created" for event in events)
             )
 
+    
+    def test_approver_can_create_proposal_via_chat(self):
+        from unittest.mock import AsyncMock, patch
+
+        mock_result = {
+            "answer": "A restart proposal has been prepared for review.",
+            "route": "remediation",
+            "remediation_proposal": {
+                "action": "restart_deployment",
+                "status": "proposed",
+                "deployment": "scenario-3-crashloopbackoff",
+                "namespace": "testing-files",
+                "reason": "Test proposal only",
+                "execution_enabled": False,
+            },
+        }
+
+        def persist_to_test_db(proposal, requested_by):
+            with self.TestSession() as db:
+                saved = RemediationProposal(
+                    action=proposal["action"],
+                    namespace=proposal["namespace"],
+                    deployment=proposal["deployment"],
+                    reason=proposal["reason"],
+                    status="proposed",
+                    execution_enabled=False,
+                    requested_by=requested_by,
+                )
+                db.add(saved)
+                db.flush()
+
+                db.add(
+                    AuditEvent(
+                        actor=requested_by,
+                        event_type="proposal_created",
+                        details={
+                            "proposal_id": saved.id,
+                            "action": saved.action,
+                            "namespace": saved.namespace,
+                            "deployment": saved.deployment,
+                        },
+                    )
+                )
+                db.commit()
+                db.refresh(saved)
+
+                return {
+                    **proposal,
+                    "id": saved.id,
+                    "requested_by": requested_by,
+                    "execution_enabled": False,
+                }
+
+        with (
+            patch(
+                "app.api.routes.graph.ainvoke",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ),
+            patch(
+                "app.api.routes.persist_remediation_proposal",
+                side_effect=persist_to_test_db,
+            ),
+        ):
+            response = self.client.post(
+                "/api/chat",
+                headers=self.headers(self.approver_token),
+                json={
+                    "message": (
+                        "Restart deployment scenario-3-crashloopbackoff "
+                        "in namespace testing-files"
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+
+        proposal = response.json()["remediation_proposal"]
+        self.assertEqual(proposal["requested_by"], "testapprover")
+        self.assertFalse(proposal["execution_enabled"])
+
+        with self.TestSession() as db:
+            saved = db.scalar(
+                select(RemediationProposal).where(
+                    RemediationProposal.id == proposal["id"]
+                )
+            )
+            self.assertIsNotNone(saved)
+            self.assertEqual(saved.requested_by, "testapprover")
+            self.assertEqual(saved.status, "proposed")
+            self.assertFalse(saved.execution_enabled)
+
+            audit = db.scalar(
+                select(AuditEvent).where(
+                    AuditEvent.proposal_id == saved.id,
+                    AuditEvent.event_type == "proposal_created",
+                )
+            )
+            self.assertIsNotNone(audit)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
