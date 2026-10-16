@@ -482,6 +482,19 @@ class RemediationAPITests(unittest.TestCase):
                     AuditEvent.event_type == "proposal_created",
                 )
             )
+            all_audits = db.scalars(select(AuditEvent)).all()
+
+            print("\nDEBUG proposal ID:", saved.id)
+            print("DEBUG audit rows:", [
+                {
+                    "id": event.id,
+                    "proposal_id": event.proposal_id,
+                    "actor": event.actor,
+                    "event_type": event.event_type,
+                }
+                for event in all_audits
+            ])
+
             self.assertIsNotNone(audit)
 
 if __name__ == "__main__":
