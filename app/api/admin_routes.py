@@ -6,6 +6,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from fastapi import Query
+from sqlalchemy import select
+from app.auth import require_roles
+from app.database import AuditEvent
 
 from app.auth import get_current_user, get_db, hash_password, require_roles
 from app.database import AuditEvent, User
@@ -25,17 +29,14 @@ class CreateUserRequest(BaseModel):
 class ChangeRoleRequest(BaseModel):
     role: RoleName
 
-
 class ChangeStatusRequest(BaseModel):
     is_active: bool
-
 
 class UserResponse(BaseModel):
     id: int
     username: str
     role: str
     is_active: bool
-
 
 def user_response(user: User) -> UserResponse:
     return UserResponse(
@@ -44,7 +45,6 @@ def user_response(user: User) -> UserResponse:
         role=user.role,
         is_active=user.is_active,
     )
-
 
 def record_audit(
     db: Session,
@@ -59,7 +59,6 @@ def record_audit(
             details=details,
         )
     )
-
 
 @router.post("/users", response_model=UserResponse, status_code=201)
 def create_user(
@@ -106,7 +105,6 @@ def create_user(
 
     return user_response(user)
 
-
 @router.get("/users", response_model=list[UserResponse])
 def list_users(
     db: Session = Depends(get_db),
@@ -149,7 +147,6 @@ def change_user_role(
     db.commit()
     db.refresh(user)
     return user_response(user)
-
 
 @router.patch("/users/{user_id}/status", response_model=UserResponse)
 def change_user_status(
@@ -194,3 +191,37 @@ def change_user_status(
     db.commit()
     db.refresh(user)
     return user_response(user)
+
+
+@router.get("/audit")
+def list_audit_events(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin", "approver")),
+):
+    events = db.scalars(
+        select(AuditEvent)
+        .order_by(
+            AuditEvent.created_at.desc(),
+            AuditEvent.id.desc(),
+        )
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    return {
+        "items": [
+            {
+                "id": event.id,
+                "proposal_id": event.proposal_id,
+                "actor": event.actor,
+                "event_type": event.event_type,
+                "details": event.details,
+                "created_at": event.created_at.isoformat(),
+            }
+            for event in events
+        ],
+        "limit": limit,
+        "offset": offset,
+    }
