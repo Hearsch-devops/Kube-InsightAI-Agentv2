@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Callable
@@ -37,7 +36,6 @@ def get_auth_secret() -> str:
 
     return secret
 
-
 def get_db():
     """Provide a database session for one request."""
     db = SessionLocal()
@@ -46,14 +44,11 @@ def get_db():
     finally:
         db.close()
 
-
 def hash_password(password: str) -> str:
     return password_hash.hash(password)
 
-
 def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
-
 
 def authenticate_user(
     db: Session,
@@ -73,7 +68,6 @@ def authenticate_user(
         return None
 
     return user
-
 
 def create_access_token(
     user: User,
@@ -104,7 +98,6 @@ def create_access_token(
         get_auth_secret(),
         algorithm=ALGORITHM,
     )
-
 
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
@@ -144,7 +137,6 @@ def get_current_user(
         raise unauthorized
 
     return user
-
 
 def require_roles(*allowed_roles: str) -> Callable:
     """Build a dependency that restricts access to specified roles."""

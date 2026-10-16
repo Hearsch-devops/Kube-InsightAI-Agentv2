@@ -8,6 +8,8 @@ from app.database import init_db
 
 from app.api.auth_routes import router as auth_router
 
+from app.api.admin_routes import router as admin_router
+
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -30,3 +32,5 @@ async def health_check():
 app.include_router(router, prefix="/api")
 
 app.include_router(auth_router, prefix="/api")
+
+app.include_router(admin_router, prefix="/api")
