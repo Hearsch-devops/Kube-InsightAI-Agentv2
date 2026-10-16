@@ -102,7 +102,11 @@ def decide_proposal(
         AuditEvent(
             proposal_id=proposal.id,
             actor=current_user.username,
-            event_type=f"proposal_{decision}d",
+            event_type=(
+                "proposal_approved"
+                if decision == "approve"
+                else "proposal_rejected"
+            ),
             details={
                 "decision": decision,
                 "namespace": proposal.namespace,
