@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, get_db, require_roles
@@ -61,7 +61,6 @@ def list_proposals(
     ).all()
     return [proposal_response(item) for item in proposals]
 
-
 def decide_proposal(
     proposal_id: int,
     decision: Decision,
@@ -69,57 +68,94 @@ def decide_proposal(
     db: Session,
     current_user: User,
 ) -> dict:
-    # Serialize decisions with a row-level lock where the database supports it.
-    proposal = db.scalar(
-        select(RemediationProposal)
-        .where(RemediationProposal.id == proposal_id)
-        .with_for_update()
+    if decision not in ("approve", "reject"):
+        raise HTTPException(status_code=400, detail="Invalid decision")
+
+    new_status = "approved" if decision == "approve" else "rejected"
+    event_type = (
+        "proposal_approved"
+        if decision == "approve"
+        else "proposal_rejected"
     )
 
-    if proposal is None:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-
-    if proposal.status != "proposed":
-        raise HTTPException(
-            status_code=409,
-            detail="Proposal has already been decided",
+    try:
+        # Atomically change status only if the proposal is still pending.
+        result = db.execute(
+            update(RemediationProposal)
+            .where(
+                RemediationProposal.id == proposal_id,
+                RemediationProposal.status == "proposed",
+            )
+            .values(
+                status=new_status,
+                execution_enabled=False,
+            )
+            .execution_options(synchronize_session=False)
         )
 
-    # Preserve proposal-only mode, regardless of the stored value.
-    proposal.execution_enabled = False
-    proposal.status = "approved" if decision == "approve" else "rejected"
+        if result.rowcount != 1:
+            db.rollback()
 
-    db.add(
-        ApprovalDecision(
-            proposal_id=proposal.id,
-            decided_by=current_user.username,
-            decision=decision,
-            comment=payload.comment,
+            proposal_exists = db.scalar(
+                select(RemediationProposal.id).where(
+                    RemediationProposal.id == proposal_id
+                )
+            )
+
+            if proposal_exists is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Proposal not found",
+                )
+
+            raise HTTPException(
+                status_code=409,
+                detail="Proposal has already been decided",
+            )
+
+        # Read the persisted proposal values for the audit record.
+        proposal = db.get(RemediationProposal, proposal_id)
+        if proposal is None:
+            db.rollback()
+            raise HTTPException(
+                status_code=404,
+                detail="Proposal not found",
+            )
+
+        db.add(
+            ApprovalDecision(
+                proposal_id=proposal_id,
+                decided_by=current_user.username,
+                decision=decision,
+                comment=payload.comment,
+            )
         )
-    )
 
-    db.add(
-        AuditEvent(
-            proposal_id=proposal.id,
-            actor=current_user.username,
-            event_type=(
-                "proposal_approved"
-                if decision == "approve"
-                else "proposal_rejected"
-            ),
-            details={
-                "decision": decision,
-                "namespace": proposal.namespace,
-                "deployment": proposal.deployment,
-                "execution_enabled": False,
-            },
+        db.add(
+            AuditEvent(
+                proposal_id=proposal_id,
+                actor=current_user.username,
+                event_type=event_type,
+                details={
+                    "decision": decision,
+                    "namespace": proposal.namespace,
+                    "deployment": proposal.deployment,
+                    "execution_enabled": False,
+                },
+            )
         )
-    )
 
-    db.commit()
-    db.refresh(proposal)
-    return proposal_response(proposal)
+        db.commit()
 
+        # Refresh so the response reflects the committed state.
+        db.refresh(proposal)
+        return proposal_response(proposal)
+
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        raise
 
 @router.post("/proposals/{proposal_id}/approve", response_model=ProposalResponse)
 def approve_proposal(
@@ -131,7 +167,6 @@ def approve_proposal(
     return decide_proposal(
         proposal_id, "approve", payload, db, current_user
     )
-
 
 @router.post("/proposals/{proposal_id}/reject", response_model=ProposalResponse)
 def reject_proposal(
