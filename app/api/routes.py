@@ -63,6 +63,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             sources=result.get("sources", []),
             error=result.get("error"),
             error_message=result.get("error_message"),
+            remediation_proposal=result.get("remediation_proposal"),
         )
 
     except Exception:
