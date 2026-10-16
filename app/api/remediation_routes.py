@@ -51,11 +51,17 @@ def list_proposals(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    proposals = db.scalars(
-        select(RemediationProposal).order_by(
-            RemediationProposal.created_at.desc()
+    query = select(RemediationProposal)
+
+    if current_user.role == "user":
+        query = query.where(
+            RemediationProposal.requested_by == current_user.username
         )
+
+    proposals = db.scalars(
+        query.order_by(RemediationProposal.created_at.desc())
     ).all()
+
     return [proposal_response(item) for item in proposals]
 
 @router.get(
@@ -70,6 +76,15 @@ def get_proposal(
     proposal = db.get(RemediationProposal, proposal_id)
 
     if proposal is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Proposal not found",
+        )
+
+    if (
+        current_user.role == "user"
+        and proposal.requested_by != current_user.username
+    ):
         raise HTTPException(
             status_code=404,
             detail="Proposal not found",

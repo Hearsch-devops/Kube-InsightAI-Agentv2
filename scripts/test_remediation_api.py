@@ -202,6 +202,47 @@ class RemediationAPITests(unittest.TestCase):
             any(item["id"] == self.proposal_id for item in response.json())
         )
 
+    def test_readonly_user_sees_only_own_proposals(self):
+        with self.TestSession() as db:
+            own_proposal = RemediationProposal(
+                action="restart_deployment",
+                namespace="testing-files",
+                deployment="scenario-2-imagepullbackoff",
+                reason="Owned by readonly user",
+                status="proposed",
+                execution_enabled=False,
+                requested_by="testreadonly",
+            )
+            db.add(own_proposal)
+            db.commit()
+            db.refresh(own_proposal)
+            own_id = own_proposal.id
+
+        response = self.client.get(
+            "/api/remediation/proposals",
+            headers=self.headers(self.readonly_token),
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        ids = {item["id"] for item in response.json()}
+        self.assertIn(own_id, ids)
+        self.assertNotIn(self.proposal_id, ids)
+
+    def test_readonly_user_cannot_view_another_users_proposal(self):
+        response = self.client.get(
+            f"/api/remediation/proposals/{self.proposal_id}",
+            headers=self.headers(self.readonly_token),
+        )
+
+        self.assertEqual(response.status_code, 404, response.text)
+
+    def test_admin_can_view_another_users_proposal(self):
+        response = self.client.get(
+            f"/api/remediation/proposals/{self.proposal_id}",
+            headers=self.headers(self.admin_token),
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
