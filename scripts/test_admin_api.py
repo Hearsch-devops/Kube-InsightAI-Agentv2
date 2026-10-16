@@ -1,4 +1,3 @@
-
 import os
 import tempfile
 import unittest
@@ -144,17 +143,16 @@ class AdminAPITests(unittest.TestCase):
             ("approver", self.approver_token),
             ("user", self.reader_token),
         ):
-            response = self.client.get(
-                "/api/auth/me",
-                headers=self.headers(token),
-            )
-            print(f"{role} token profile: {response.status_code} {response.text}")
-
-            response = self.client.get(
-                "/api/admin/users",
-                headers=self.headers(token),
-            )
-            print(f"{role} admin access: {response.status_code} {response.text}")
+            with self.subTest(role=role):
+                response = self.client.get(
+                    "/api/admin/users",
+                    headers=self.headers(token),
+                )
+                self.assertEqual(
+                    response.status_code,
+                    403,
+                    f"{role} should not manage users: {response.text}",
+                )
 
     def test_admin_can_change_role(self):
         response = self.client.patch(
@@ -166,13 +164,34 @@ class AdminAPITests(unittest.TestCase):
         self.assertEqual(response.json()["role"], "approver")
 
     def test_admin_can_deactivate_user(self):
-        response = self.client.patch(
-            f"/api/admin/users/{self.reader_id}/status",
-            headers=self.headers(self.admin_token),
-            json={"is_active": False},
-        )
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertFalse(response.json()["is_active"])
+        # Use a dedicated account so other tests remain independent.
+        with self.TestSession() as db:
+            reader = User(
+                username="deactivation_target",
+                password_hash=hash_password(
+                    "Deactivation-Test-Password-123!"
+                ),
+                role="user",
+                is_active=True,
+            )
+            db.add(reader)
+            db.commit()
+            reader_id = reader.id
+
+        try:
+            response = self.client.patch(
+                f"/api/admin/users/{reader_id}/status",
+                headers=self.headers(self.admin_token),
+                json={"is_active": False},
+            )
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertFalse(response.json()["is_active"])
+        finally:
+            with self.TestSession() as db:
+                reader = db.get(User, reader_id)
+                if reader is not None:
+                    db.delete(reader)
+                    db.commit()
 
     def test_last_active_admin_cannot_be_demoted(self):
         response = self.client.patch(
