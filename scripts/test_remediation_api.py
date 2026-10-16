@@ -3,6 +3,8 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
+from app.api.routes import persist_remediation_proposal
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
@@ -243,6 +245,134 @@ class RemediationAPITests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200, response.text)
+
+    def test_readonly_user_cannot_create_proposal_via_chat(self):
+        graph_result = {
+            "answer": "A restart proposal is ready.",
+            "route": "remediation",
+            "remediation_proposal": {
+                "action": "restart_deployment",
+                "status": "proposed",
+                "deployment": "scenario-3-crashloopbackoff",
+                "namespace": "testing-files",
+                "reason": "Test proposal only",
+                "execution_enabled": False,
+            },
+        }
+
+        with patch(
+            "app.api.routes.graph.ainvoke",
+            new_callable=AsyncMock,
+            return_value=graph_result,
+        ):
+            response = self.client.post(
+                "/api/chat",
+                headers=self.headers(self.readonly_token),
+                json={
+                    "message": (
+                        "Restart deployment scenario-3-crashloopbackoff "
+                        "in namespace testing-files"
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 403, response.text)
+
+        with self.TestSession() as db:
+            proposals = db.scalars(
+                select(RemediationProposal).where(
+                    RemediationProposal.requested_by == "testreadonly"
+                )
+            ).all()
+            self.assertEqual(len(proposals), 0)
+
+    def test_admin_can_create_proposal_via_chat(self):
+        graph_result = {
+            "answer": "A restart proposal is ready.",
+            "route": "remediation",
+            "remediation_proposal": {
+                "action": "restart_deployment",
+                "status": "proposed",
+                "deployment": "scenario-3-crashloopbackoff",
+                "namespace": "testing-files",
+                "reason": "Test proposal only",
+                "execution_enabled": False,
+            },
+        }
+
+        def persist_to_test_db(proposal, requested_by):
+            proposal = {
+                **proposal,
+                "execution_enabled": False,
+            }
+            with self.TestSession() as db:
+                record = RemediationProposal(
+                    action=proposal["action"],
+                    namespace=proposal["namespace"],
+                    deployment=proposal["deployment"],
+                    reason=proposal["reason"],
+                    status="proposed",
+                    execution_enabled=False,
+                    requested_by=requested_by,
+                )
+                db.add(record)
+                db.flush()
+                proposal["id"] = record.id
+                db.add(
+                    AuditEvent(
+                        proposal_id=record.id,
+                        actor=requested_by,
+                        event_type="proposal_created",
+                        details={
+                            "execution_enabled": False,
+                            "namespace": record.namespace,
+                            "deployment": record.deployment,
+                        },
+                    )
+                )
+                db.commit()
+                return proposal
+
+        with (
+            patch(
+                "app.api.routes.graph.ainvoke",
+                new_callable=AsyncMock,
+                return_value=graph_result,
+            ),
+            patch(
+                "app.api.routes.persist_remediation_proposal",
+                side_effect=persist_to_test_db,
+            ),
+        ):
+            response = self.client.post(
+                "/api/chat",
+                headers=self.headers(self.admin_token),
+                json={
+                    "message": (
+                        "Restart deployment scenario-3-crashloopbackoff "
+                        "in namespace testing-files"
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        proposal = response.json()["remediation_proposal"]
+        self.assertEqual(proposal["requested_by"], "testadmin")
+        self.assertFalse(proposal["execution_enabled"])
+
+        with self.TestSession() as db:
+            record = db.get(RemediationProposal, proposal["id"])
+            self.assertIsNotNone(record)
+            self.assertEqual(record.requested_by, "testadmin")
+            self.assertFalse(record.execution_enabled)
+            events = db.scalars(
+                select(AuditEvent).where(
+                    AuditEvent.proposal_id == proposal["id"]
+                )
+            ).all()
+            self.assertTrue(
+                any(event.event_type == "proposal_created" for event in events)
+            )
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
