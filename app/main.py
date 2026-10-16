@@ -6,6 +6,7 @@ from app.api.routes import router
 
 from app.database import init_db
 
+from app.api.auth_routes import router as auth_router
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,3 +28,5 @@ async def health_check():
 
 
 app.include_router(router, prefix="/api")
+
+app.include_router(auth_router, prefix="/api")
