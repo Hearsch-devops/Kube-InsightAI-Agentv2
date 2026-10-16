@@ -2223,9 +2223,11 @@ def remediation_proposal_response(state: AgentState) -> dict:
             "**Status:** Proposed only. No Kubernetes operation was executed."
         )
 
+    
     return {
         "messages": [AIMessage(content=answer)],
         "answer": answer,
+        "remediation_proposal": proposal,
     }
 
 def choose_route(state: AgentState) -> str:
