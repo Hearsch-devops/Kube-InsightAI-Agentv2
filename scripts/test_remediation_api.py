@@ -357,7 +357,16 @@ class RemediationAPITests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.text)
         proposal = response.json()["remediation_proposal"]
-        self.assertEqual(proposal["requested_by"], "testadmin")
+        with self.TestSession() as db:
+            saved_proposal = db.scalar(
+                select(RemediationProposal).where(
+                    RemediationProposal.requested_by == "testadmin"
+                )
+            )
+
+            self.assertIsNotNone(saved_proposal)
+            self.assertEqual(saved_proposal.requested_by, "testadmin")
+            self.assertFalse(saved_proposal.execution_enabled)
         self.assertFalse(proposal["execution_enabled"])
 
         with self.TestSession() as db:
