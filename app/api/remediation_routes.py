@@ -22,7 +22,6 @@ Decision = Literal["approve", "reject"]
 class DecisionRequest(BaseModel):
     comment: str | None = Field(default=None, max_length=2000)
 
-
 class ProposalResponse(BaseModel):
     id: int
     action: str
@@ -33,7 +32,6 @@ class ProposalResponse(BaseModel):
     execution_enabled: bool
     requested_by: str | None
     created_at: str
-
 
 def proposal_response(proposal: RemediationProposal) -> dict:
     return {
@@ -48,7 +46,6 @@ def proposal_response(proposal: RemediationProposal) -> dict:
         "created_at": proposal.created_at.isoformat(),
     }
 
-
 @router.get("/proposals", response_model=list[ProposalResponse])
 def list_proposals(
     db: Session = Depends(get_db),
@@ -60,6 +57,75 @@ def list_proposals(
         )
     ).all()
     return [proposal_response(item) for item in proposals]
+
+@router.get(
+    "/proposals/{proposal_id}",
+    response_model=ProposalResponse,
+)
+def get_proposal(
+    proposal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    proposal = db.get(RemediationProposal, proposal_id)
+
+    if proposal is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Proposal not found",
+        )
+
+    return proposal_response(proposal)
+
+@router.get("/proposals/{proposal_id}/history")
+def get_proposal_history(
+    proposal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin", "approver")),
+):
+    proposal = db.get(RemediationProposal, proposal_id)
+
+    if proposal is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Proposal not found",
+        )
+
+    decisions = db.scalars(
+        select(ApprovalDecision)
+        .where(ApprovalDecision.proposal_id == proposal_id)
+        .order_by(ApprovalDecision.decided_at.desc())
+    ).all()
+
+    events = db.scalars(
+        select(AuditEvent)
+        .where(AuditEvent.proposal_id == proposal_id)
+        .order_by(AuditEvent.created_at.desc())
+    ).all()
+
+    return {
+        "proposal": proposal_response(proposal),
+        "decisions": [
+            {
+                "id": item.id,
+                "decided_by": item.decided_by,
+                "decision": item.decision,
+                "comment": item.comment,
+                "decided_at": item.decided_at.isoformat(),
+            }
+            for item in decisions
+        ],
+        "audit_events": [
+            {
+                "id": item.id,
+                "actor": item.actor,
+                "event_type": item.event_type,
+                "details": item.details,
+                "created_at": item.created_at.isoformat(),
+            }
+            for item in events
+        ],
+    }
 
 def decide_proposal(
     proposal_id: int,
