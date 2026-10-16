@@ -13,9 +13,11 @@ import json
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
+from app.auth import get_current_user
+from app.database import User
 
 from app.langgraph.graph import graph
 from app.mcp_client import call_mcp_tool
@@ -39,7 +41,10 @@ class ChatResponse(BaseModel):
     remediation_proposal: dict | None = None
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+) -> ChatResponse:
     """Process a user question through the Kube-InsightAI LangGraph workflow."""
 
     try:
@@ -56,8 +61,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
         if isinstance(proposal, dict):
             result["remediation_proposal"] = persist_remediation_proposal(
-                proposal
-            )
+            proposal,
+            requested_by=current_user.username,
+        )
 
         answer = result.get("answer")
 
@@ -91,7 +97,10 @@ async def chat(request: ChatRequest) -> ChatResponse:
 # helper to persist proposals
 # ============================================================
 
-def persist_remediation_proposal(proposal: dict) -> dict:
+def persist_remediation_proposal(
+    proposal: dict,
+    requested_by: str,
+) -> dict:
     """Persist a valid proposal without executing any Kubernetes operation."""
 
     if proposal.get("status") != "proposed":
@@ -125,7 +134,7 @@ def persist_remediation_proposal(proposal: dict) -> dict:
                 reason=str(proposal.get("reason", "")),
                 status="proposed",
                 execution_enabled=False,
-                requested_by=None,  # Authentication is not implemented yet.
+                requested_by=requested_by, # Authentication is not implemented yet.
             )
 
             db.add(record)
@@ -133,7 +142,7 @@ def persist_remediation_proposal(proposal: dict) -> dict:
 
             audit_event = AuditEvent(
                 proposal_id=record.id,
-                actor=None,
+                actor=requested_by,
                 event_type="proposal_created",
                 details={
                     "action": action,
