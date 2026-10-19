@@ -384,7 +384,6 @@ class RemediationAPITests(unittest.TestCase):
                 any(event.event_type == "proposal_created" for event in events)
             )
 
-    
     def test_approver_can_create_proposal_via_chat(self):
         from unittest.mock import AsyncMock, patch
 
@@ -488,6 +487,76 @@ class RemediationAPITests(unittest.TestCase):
             all_audits = db.scalars(select(AuditEvent)).all()
 
             self.assertIsNotNone(audit)
+
+    def test_readonly_user_cannot_create_proposal_via_chat(self):
+        from unittest.mock import AsyncMock, patch
+
+        graph_result = {
+            "answer": "A restart proposal has been prepared.",
+            "route": "remediation",
+            "remediation_proposal": {
+                "action": "restart_deployment",
+                "status": "proposed",
+                "deployment": "scenario-3-crashloopbackoff",
+                "namespace": "testing-files",
+                "reason": "Test proposal only",
+                "execution_enabled": False,
+            },
+        }
+
+        with patch(
+            "app.api.routes.graph.ainvoke",
+            new_callable=AsyncMock,
+            return_value=graph_result,
+        ):
+            response = self.client.post(
+                "/api/chat",
+                headers=self.headers(self.readonly_token),
+                json={
+                    "message": (
+                        "Restart deployment scenario-3-crashloopbackoff "
+                        "in namespace testing-files"
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 403, response.text)
+
+        with self.TestSession() as db:
+            created = db.scalar(
+                select(RemediationProposal).where(
+                    RemediationProposal.requested_by == "testreadonly"
+                )
+            )
+            self.assertIsNone(created)
+        
+    def test_readonly_user_can_use_chat_for_diagnostics(self):
+        from unittest.mock import AsyncMock, patch
+
+        graph_result = {
+            "answer": "Deployment scenario-3-crashloopbackoff is unhealthy.",
+            "route": "mcp",
+            "remediation_proposal": None,
+        }
+
+        with patch(
+            "app.api.routes.graph.ainvoke",
+            new_callable=AsyncMock,
+            return_value=graph_result,
+        ):
+            response = self.client.post(
+                "/api/chat",
+                headers=self.headers(self.readonly_token),
+                json={
+                    "message": (
+                        "Why is deployment scenario-3-crashloopbackoff "
+                        "unhealthy in namespace testing-files?"
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("unhealthy", response.json()["response"].lower())
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
