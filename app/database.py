@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    text,
     UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
@@ -130,8 +131,9 @@ class AuditEvent(Base):
     )
 
 
+
 def init_db() -> None:
-    """Create the database directory and tables if they do not exist."""
+    """Create tables and safely migrate existing remediation proposals."""
     if DATABASE_URL.startswith("sqlite:///"):
         database_path = DATABASE_URL.removeprefix("sqlite:///")
 
@@ -140,4 +142,47 @@ def init_db() -> None:
                 parents=True, exist_ok=True
             )
 
+    # Create tables that do not yet exist.
     Base.metadata.create_all(bind=engine)
+
+    # SQLite create_all() does not add columns to existing tables.
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as connection:
+            columns = {
+                row[1]
+                for row in connection.execute(
+                    text("PRAGMA table_info(remediation_proposals)")
+                )
+            }
+
+            if not columns:
+                return
+
+            if "resource_kind" not in columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE remediation_proposals "
+                        "ADD COLUMN resource_kind VARCHAR(63) "
+                        "NOT NULL DEFAULT 'Deployment'"
+                    )
+                )
+
+            if "resource_name" not in columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE remediation_proposals "
+                        "ADD COLUMN resource_name VARCHAR(253) "
+                        "NOT NULL DEFAULT ''"
+                    )
+                )
+
+            # Backfill generic targets for historical Deployment proposals.
+            connection.execute(
+                text(
+                    "UPDATE remediation_proposals "
+                    "SET resource_kind = 'Deployment', "
+                    "resource_name = deployment "
+                    "WHERE resource_name = '' AND deployment IS NOT NULL"
+                )
+            )
+
