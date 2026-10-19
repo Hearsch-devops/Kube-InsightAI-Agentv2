@@ -21,23 +21,40 @@ Decision = Literal["approve", "reject"]
 class DecisionRequest(BaseModel):
     comment: str | None = Field(default=None, max_length=2000)
 
+
 class ProposalResponse(BaseModel):
     id: int
     action: str
     namespace: str
-    deployment: str
+    deployment: str | None
+    resource_kind: str
+    resource_name: str
     reason: str
     status: str
     execution_enabled: bool
     requested_by: str | None
     created_at: str
 
+
 def proposal_response(proposal: RemediationProposal) -> dict:
+    resource_kind = proposal.resource_kind or "Deployment"
+    resource_name = (
+        proposal.resource_name
+        or proposal.deployment
+        or ""
+    )
+
     return {
         "id": proposal.id,
         "action": proposal.action,
         "namespace": proposal.namespace,
-        "deployment": proposal.deployment,
+        "deployment": (
+            proposal.deployment
+            if resource_kind == "Deployment"
+            else None
+        ),
+        "resource_kind": resource_kind,
+        "resource_name": resource_name,
         "reason": proposal.reason,
         "status": proposal.status,
         "execution_enabled": False,
@@ -219,6 +236,12 @@ def decide_proposal(
                 details={
                     "decision": decision,
                     "namespace": proposal.namespace,
+                    "resource_kind": proposal.resource_kind or "Deployment",
+                    "resource_name": (
+                        proposal.resource_name
+                        or proposal.deployment
+                        or ""
+                    ),
                     "deployment": proposal.deployment,
                     "execution_enabled": False,
                 },
