@@ -1,0 +1,31 @@
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kube-insightai-data-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - vers=4.1
+  nfs:
+    server: 192.168.48.171
+    path: /srv/nfs/kube-insightai-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kube-insightai-data-pvc
+  namespace: kube-insightaiv2
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: kube-insightai-data-pv
+  resources:
+    requests:
+      storage: 5Gi

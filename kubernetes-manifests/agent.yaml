@@ -27,6 +27,10 @@ spec:
           ports:
             - containerPort: 8000
 
+          volumeMounts:
+          - name: kube-insightai-data
+            mountPath: /app/data
+
           env:
             - name: LLMFOUNDRY_TOKEN
               valueFrom:
@@ -48,6 +52,10 @@ spec:
               cpu: 1000m
               memory: 1Gi
 
+      volumes:
+      - name: kube-insightai-data
+        persistentVolumeClaim:
+          claimName: kube-insightai-data-pvc
 ---
 apiVersion: v1
 kind: Service
