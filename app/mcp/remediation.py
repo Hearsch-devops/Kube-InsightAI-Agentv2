@@ -87,6 +87,15 @@ def build_remediation_proposal(question: str) -> dict[str, Any] | None:
     target = _extract_target(normalized, resource)
     namespace = _extract_namespace(normalized)
 
+    if resource == "pod" and target in {
+        "scheduling",
+        "is",
+        "named",
+        "in",
+        "for",
+    }:
+        target = None
+
     if (
         not target
         or not namespace
