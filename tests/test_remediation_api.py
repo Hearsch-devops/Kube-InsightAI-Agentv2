@@ -107,7 +107,7 @@ def test_decision_records_audit_without_execution(
     user = User(
         username="test-approver",
         role="approver",
-        hashed_password="not-used-in-this-test",
+        password_hash="not-used-in-this-test",
     )
 
     response = decide_proposal(
@@ -158,7 +158,7 @@ def test_cannot_decide_proposal_twice(db):
     user = User(
         username="test-approver",
         role="approver",
-        hashed_password="not-used-in-this-test",
+        password_hash="not-used-in-this-test",
     )
 
     decide_proposal(
