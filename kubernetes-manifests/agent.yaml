@@ -44,6 +44,12 @@ spec:
                   name: kube-insightai-llm
                   key: PROJECT_NAME
 
+            - name: AUTH_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kube-insightai-auth
+                  key: AUTH_SECRET_KEY
+
           resources:
             requests:
               cpu: 200m
