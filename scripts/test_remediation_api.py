@@ -412,21 +412,24 @@ class RemediationAPITests(unittest.TestCase):
                     execution_enabled=False,
                     requested_by=requested_by,
                 )
+
                 db.add(saved)
-                db.flush()
+                db.flush()  # Generates saved.id
 
                 db.add(
                     AuditEvent(
+                        proposal_id=saved.id,  # Important: link to this proposal
                         actor=requested_by,
                         event_type="proposal_created",
                         details={
-                            "proposal_id": saved.id,
                             "action": saved.action,
                             "namespace": saved.namespace,
                             "deployment": saved.deployment,
+                            "execution_enabled": False,
                         },
                     )
                 )
+
                 db.commit()
                 db.refresh(saved)
 
@@ -483,17 +486,6 @@ class RemediationAPITests(unittest.TestCase):
                 )
             )
             all_audits = db.scalars(select(AuditEvent)).all()
-
-            print("\nDEBUG proposal ID:", saved.id)
-            print("DEBUG audit rows:", [
-                {
-                    "id": event.id,
-                    "proposal_id": event.proposal_id,
-                    "actor": event.actor,
-                    "event_type": event.event_type,
-                }
-                for event in all_audits
-            ])
 
             self.assertIsNotNone(audit)
 
