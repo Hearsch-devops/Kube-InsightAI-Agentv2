@@ -2197,6 +2197,7 @@ async def general_response(state: AgentState) -> dict:
             "error": "Unable to generate a response.",
         }
 
+
 def remediation_proposal_response(state: AgentState) -> dict:
     """Explain a proposed remediation without executing it."""
 
@@ -2208,22 +2209,30 @@ def remediation_proposal_response(state: AgentState) -> dict:
             "Please specify the requested action and target."
         )
     elif proposal.get("status") == "needs_clarification":
+        resource_kind = proposal.get("resource_kind", "resource")
         answer = (
             "I need more information before preparing the remediation proposal.\n"
             f"Reason: {proposal.get('reason', 'The target is incomplete.')}\n"
-            "Please provide both the Deployment name and namespace."
+            f"Please provide the {resource_kind} name and namespace."
         )
     else:
+        resource_kind = proposal.get("resource_kind", "Deployment")
+        resource_name = (
+            proposal.get("resource_name")
+            or proposal.get("deployment")
+            or "Not specified"
+        )
+
         answer = (
             "## Remediation Proposal\n\n"
             f"- **Action:** {proposal.get('action')}\n"
-            f"- **Deployment:** {proposal.get('deployment')}\n"
+            f"- **Resource kind:** {resource_kind}\n"
+            f"- **Resource name:** {resource_name}\n"
             f"- **Namespace:** {proposal.get('namespace')}\n"
             f"- **Reason:** {proposal.get('reason')}\n\n"
             "**Status:** Proposed only. No Kubernetes operation was executed."
         )
 
-    
     return {
         "messages": [AIMessage(content=answer)],
         "answer": answer,
