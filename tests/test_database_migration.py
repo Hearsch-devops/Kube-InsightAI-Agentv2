@@ -46,14 +46,20 @@ from app.database import engine, init_db
 init_db()
 
 with engine.connect() as connection:
-    columns = {column["name"]: column for column in inspect(engine).get_columns("remediation_proposals")}
+    columns = {
+        column["name"]: column
+        for column in inspect(engine).get_columns(
+            "remediation_proposals"
+        )
+    }
     assert "resource_kind" in columns
     assert "resource_name" in columns
     assert columns["deployment"]["nullable"] is False
 
     row = connection.execute(
         text(
-            "SELECT deployment, resource_kind, resource_name "
+            "SELECT deployment, resource_kind, resource_name, "
+            "reason, status, execution_enabled, requested_by "
             "FROM remediation_proposals WHERE id = 1"
         )
     ).one()
@@ -61,6 +67,10 @@ with engine.connect() as connection:
     assert row.deployment == "kube-insightaiv2-agent"
     assert row.resource_kind == "Deployment"
     assert row.resource_name == "kube-insightaiv2-agent"
+    assert row.reason == "Legacy proposal"
+    assert row.status == "proposed"
+    assert row.execution_enabled == 0
+    assert row.requested_by is None
 
 init_db()
 print("Legacy migration and idempotency passed")
@@ -76,3 +86,4 @@ print("Legacy migration and idempotency passed")
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Legacy migration and idempotency passed" in result.stdout
+
