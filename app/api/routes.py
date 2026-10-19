@@ -62,7 +62,10 @@ async def chat(
         if (
             proposal
             and proposal.get("status") == "proposed"
-            and proposal.get("action") == "restart_deployment"
+            and proposal.get("action") in (
+                "restart_deployment",
+                "review_pod_scheduling",
+            )
             and current_user.role not in ("admin", "approver")
         ):
             raise HTTPException(
@@ -115,20 +118,40 @@ def persist_remediation_proposal(
     proposal: dict,
     requested_by: str,
 ) -> dict:
-    """Persist a valid proposal without executing any Kubernetes operation."""
+    """Persist a valid proposal without executing Kubernetes operations."""
 
     if proposal.get("status") != "proposed":
         return proposal
 
     action = proposal.get("action")
-    deployment = proposal.get("deployment")
     namespace = proposal.get("namespace")
 
+    supported_actions = {
+        "restart_deployment": "Deployment",
+        "review_pod_scheduling": "Pod",
+    }
+
+    expected_kind = supported_actions.get(action)
+    if expected_kind is None:
+        raise ValueError("Unsupported remediation action.")
+
+    resource_kind = proposal.get("resource_kind", expected_kind)
+    resource_name = proposal.get("resource_name")
+
+    # Backward compatibility with existing Deployment proposals.
+    deployment = proposal.get("deployment")
+    if expected_kind == "Deployment":
+        resource_name = resource_name or deployment
+        deployment = resource_name
+    else:
+        # The existing SQLite deployment column may be NOT NULL.
+        deployment = ""
+
     if (
-        action != "restart_deployment"
-        or not isinstance(deployment, str)
+        resource_kind != expected_kind
+        or not isinstance(resource_name, str)
+        or not resource_name
         or not isinstance(namespace, str)
-        or not deployment
         or not namespace
     ):
         raise ValueError("Invalid remediation proposal.")
@@ -136,6 +159,9 @@ def persist_remediation_proposal(
     # Enforce proposal-only behavior on the backend.
     proposal_record = {
         **proposal,
+        "resource_kind": resource_kind,
+        "resource_name": resource_name,
+        "deployment": deployment if expected_kind == "Deployment" else None,
         "execution_enabled": False,
     }
 
@@ -145,10 +171,12 @@ def persist_remediation_proposal(
                 action=action,
                 namespace=namespace,
                 deployment=deployment,
+                resource_kind=resource_kind,
+                resource_name=resource_name,
                 reason=str(proposal.get("reason", "")),
                 status="proposed",
                 execution_enabled=False,
-                requested_by=requested_by,  # Username from the authenticated request.
+                requested_by=requested_by,
             )
 
             db.add(record)
@@ -161,7 +189,11 @@ def persist_remediation_proposal(
                 details={
                     "action": action,
                     "namespace": namespace,
-                    "deployment": deployment,
+                    "resource_kind": resource_kind,
+                    "resource_name": resource_name,
+                    "deployment": (
+                        resource_name if expected_kind == "Deployment" else None
+                    ),
                     "execution_enabled": False,
                 },
             )
