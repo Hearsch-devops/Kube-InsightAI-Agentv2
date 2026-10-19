@@ -72,10 +72,10 @@ class RemediationProposal(Base):
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     namespace: Mapped[str] = mapped_column(String(63), nullable=False)
 
-    # Kept for compatibility with existing Deployment proposals.
-    # New Pod proposals store NULL here.
-    deployment: Mapped[str | None] = mapped_column(
-        String(253), nullable=True
+    # Retain the legacy non-null database column for compatibility.
+    # Pod proposals will store an empty string in this field.
+    deployment: Mapped[str] = mapped_column(
+        String(253), nullable=False, default=""
     )
 
     # Generic target fields support multiple Kubernetes resource types.
