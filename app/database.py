@@ -70,7 +70,21 @@ class RemediationProposal(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     namespace: Mapped[str] = mapped_column(String(63), nullable=False)
-    deployment: Mapped[str] = mapped_column(String(253), nullable=False)
+
+    # Kept for compatibility with existing Deployment proposals.
+    # New Pod proposals store NULL here.
+    deployment: Mapped[str | None] = mapped_column(
+        String(253), nullable=True
+    )
+
+    # Generic target fields support multiple Kubernetes resource types.
+    resource_kind: Mapped[str] = mapped_column(
+        String(63), nullable=False, default="Deployment"
+    )
+    resource_name: Mapped[str] = mapped_column(
+        String(253), nullable=False, default=""
+    )
+
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default="proposed"
@@ -78,7 +92,9 @@ class RemediationProposal(Base):
     execution_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
     )
-    requested_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    requested_by: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
