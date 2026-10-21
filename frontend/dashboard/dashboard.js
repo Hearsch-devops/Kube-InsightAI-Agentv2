@@ -20,9 +20,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function showDashboard() {
+        const user = window.KubeAuth.getUser();
+
         loginView.classList.add("hidden");
         appShell.classList.remove("hidden");
+
+        document.getElementById("userSession").classList.remove("hidden");
+        document.getElementById("currentUsername").textContent =
+            user?.username || "";
+        document.getElementById("currentUserRole").textContent =
+            user?.role || "";
     }
+
+    document.getElementById("logoutButton").addEventListener("click", () => {
+        window.KubeAuth.clearSession();
+        loginPassword.value = "";
+        showLogin();
+    });
 
     loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
