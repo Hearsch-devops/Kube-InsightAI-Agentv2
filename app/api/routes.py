@@ -19,7 +19,6 @@ from langchain_core.messages import HumanMessage
 from app.auth import get_current_user
 from app.database import User
 
-from app.langgraph.graph import graph
 from app.mcp_client import call_mcp_tool
 
 
@@ -48,6 +47,9 @@ async def chat(
     """Process a user question through the Kube-InsightAI LangGraph workflow."""
 
     try:
+        # Import the graph only when a chat request is processed.
+        from app.langgraph.graph import graph
+
         result = await graph.ainvoke(
             {
                 "messages": [
@@ -59,25 +61,30 @@ async def chat(
 
         proposal = result.get("remediation_proposal")
 
+        # Only approvers and admins may create remediation proposals.
         if (
             proposal
             and proposal.get("status") == "proposed"
-            and proposal.get("action") in (
-                "restart_deployment",
-                "review_pod_scheduling",
-            )
+            and proposal.get("action")
+            in ("restart_deployment", "review_pod_scheduling")
             and current_user.role not in ("admin", "approver")
         ):
             raise HTTPException(
                 status_code=403,
-                detail="Your role is not permitted to create remediation proposals.",
+                detail=(
+                    "Your role is not permitted to create "
+                    "remediation proposals."
+                ),
             )
 
+        # Persist proposals without executing Kubernetes operations.
         if isinstance(proposal, dict):
-            result["remediation_proposal"] = persist_remediation_proposal(
-            proposal,
-            requested_by=current_user.username,
-        )
+            result["remediation_proposal"] = (
+                persist_remediation_proposal(
+                    proposal,
+                    requested_by=current_user.username,
+                )
+            )
 
         answer = result.get("answer")
 
@@ -98,7 +105,7 @@ async def chat(
             error_message=result.get("error_message"),
             remediation_proposal=result.get("remediation_proposal"),
         )
-    
+
     except HTTPException:
         raise
 
