@@ -11,6 +11,53 @@
 </head>
 <body>
 
+<!-- Authentication / Login -->
+<section id="loginView" class="login-view">
+    <div class="login-card">
+        <div class="login-brand-icon">⌁</div>
+
+        <span class="login-eyebrow">KUBE-INSIGHTAI • V2.0</span>
+        <h1>Welcome back</h1>
+        <p class="login-description">
+            Sign in to monitor, troubleshoot, and optimize your Kubernetes cluster.
+        </p>
+
+        <form id="loginForm">
+            <label for="loginUsername">Username</label>
+            <input
+                type="text"
+                id="loginUsername"
+                name="username"
+                placeholder="Enter your username"
+                autocomplete="username"
+                required
+            />
+
+            <label for="loginPassword">Password</label>
+            <input
+                type="password"
+                id="loginPassword"
+                name="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+            />
+
+            <p id="loginError" class="login-error hidden" role="alert"></p>
+
+            <button type="submit" id="loginButton" class="login-submit">
+                Sign in
+            </button>
+        </form>
+
+        <p class="login-footer">
+            Secure access to your Kubernetes environment
+        </p>
+    </div>
+</section>
+
+<div class="app-shell hidden">
+
 <div class="app-shell hidden">
 
     <!-- Sidebar -->
