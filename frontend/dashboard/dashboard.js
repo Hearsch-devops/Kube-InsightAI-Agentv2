@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             namespaceSelector.innerHTML = `<option value="">Loading...</option>`;
 
-            const response = await fetch("/api/cluster/namespaces");
+            const response = await window.KubeAuth.apiFetch("/api/cluster/namespaces");
 
             if (!response.ok) {
                 throw new Error("Failed to load namespaces.");
@@ -226,7 +226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const namespace = namespaceSelector.value;
 
         try {
-            const response = await fetch(
+            const response = await window.KubeAuth.apiFetch(
                 `/api/cluster/overview?namespace=${encodeURIComponent(namespace)}`
             );
 
@@ -250,54 +250,54 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadClusterMetrics() {
         try {
-            const response = await fetch("/api/cluster/metrics");
-    
+            const response = await window.KubeAuth.apiFetch("/api/cluster/metrics");
+
             if (!response.ok) {
                 throw new Error("Failed to load cluster metrics.");
             }
-    
+
             const data = await response.json();
-    
+
             console.log("Live cluster metrics:", data);
-    
+
             const totalNodes = data.nodes?.total ?? 0;
             const readyNodes = data.nodes?.ready ?? 0;
             const notReadyNodes = data.nodes?.not_ready ?? 0;
-    
+
             const cpuCapacity = data.resources?.cpu?.capacity ?? "0";
             const memoryAllocatable = data.resources?.memory?.allocatable ?? "0Ki";
-    
+
             const readyNodesElement = document.getElementById("readyNodes");
             const notReadyNodesElement = document.getElementById("notReadyNodes");
             const cpuCapacityElement = document.getElementById("cpuCapacity");
             const memoryAllocatableElement = document.getElementById("memoryAllocatable");
-    
+
             if (readyNodesElement) {
                 readyNodesElement.textContent = `${readyNodes} ready`;
             }
-    
+
             if (notReadyNodesElement) {
                 notReadyNodesElement.textContent = `${notReadyNodes} down`;
             }
-    
+
             if (cpuCapacityElement) {
                 cpuCapacityElement.textContent = `${cpuCapacity} cores`;
             }
-    
+
             if (memoryAllocatableElement) {
                 const memoryKi = parseInt(
                     String(memoryAllocatable).replace("Ki", ""),
                     10
                 );
-    
+
                 const memoryGiB = memoryKi / (1024 * 1024);
-    
+
                 memoryAllocatableElement.textContent =
                     `${memoryGiB.toFixed(2)} GiB`;
             }
-    
+
             updateHealthStatus(readyNodes, totalNodes);
-    
+
         } catch (error) {
             console.error("Failed to load cluster metrics:", error);
         }
@@ -305,7 +305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadIngresses() {
         try {
-            const response = await fetch(
+            const response = await window.KubeAuth.apiFetch(
                 `/api/cluster/ingresses?namespace=${encodeURIComponent(namespaceSelector.value)}`
             );
 
@@ -400,16 +400,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updateHealthStatus(readyNodes, totalNodes) {
         const healthLabel = document.getElementById("healthLabel");
-    
+
         if (!healthLabel) {
             return;
         }
-    
+
         if (totalNodes === 0) {
             healthLabel.textContent = "Unavailable";
             return;
         }
-    
+
         if (readyNodes === totalNodes) {
             healthLabel.textContent = "Healthy";
         } else if (readyNodes > 0) {
@@ -421,42 +421,42 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updatePods(pods) {
         const total = pods.length;
-    
+
         const healthy = pods.filter(
             pod => pod.status === "Running"
         ).length;
-    
+
         const percentage = total > 0
             ? Math.round((healthy / total) * 100)
             : 0;
-    
+
         const healthyElement = document.getElementById("podsHealthy");
         const totalElement = document.getElementById("podsTotal");
         const percentageElement = document.getElementById("podsPercentage");
         const progressElement = document.getElementById("podsProgress");
         const listElement = document.getElementById("podsList");
-    
+
         if (healthyElement) {
             healthyElement.textContent = healthy;
         }
-    
+
         if (totalElement) {
             totalElement.textContent = total;
         }
-    
+
         if (percentageElement) {
             percentageElement.textContent = `${percentage}%`;
         }
-    
+
         if (progressElement) {
             progressElement.style.width = `${percentage}%`;
         }
-    
+
         if (listElement) {
             listElement.innerHTML = pods.length
                 ? pods.map(pod => {
                     const isRunning = pod.status === "Running";
-    
+
                     return `
                         <div class="${isRunning ? "" : "unhealthy"}">
                             <span class="status-dot"></span>
@@ -471,45 +471,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updateDeployments(deployments) {
         const total = deployments.length;
-    
+
         const healthy = deployments.filter(deployment =>
             deployment.ready_replicas === deployment.desired_replicas &&
             deployment.available_replicas === deployment.desired_replicas
         ).length;
-    
+
         const percentage = total > 0
             ? Math.round((healthy / total) * 100)
             : 0;
-    
+
         const healthyElement = document.getElementById("deploymentsHealthy");
         const totalElement = document.getElementById("deploymentsTotal");
         const percentageElement = document.getElementById("deploymentsPercentage");
         const progressElement = document.getElementById("deploymentsProgress");
         const listElement = document.getElementById("deploymentsList");
-    
+
         if (healthyElement) {
             healthyElement.textContent = healthy;
         }
-    
+
         if (totalElement) {
             totalElement.textContent = total;
         }
-    
+
         if (percentageElement) {
             percentageElement.textContent = `${percentage}%`;
         }
-    
+
         if (progressElement) {
             progressElement.style.width = `${percentage}%`;
         }
-    
+
         if (listElement) {
             listElement.innerHTML = deployments.length
                 ? deployments.map(deployment => {
                     const healthyDeployment =
                         deployment.ready_replicas === deployment.desired_replicas &&
                         deployment.available_replicas === deployment.desired_replicas;
-    
+
                     return `
                         <div class="${healthyDeployment ? "" : "unhealthy"}">
                             <span class="status-dot"></span>
@@ -526,7 +526,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updateServices(services) {
         const total = services.length;
-    
+
         /*
          * Kubernetes Services do not have a ready/healthy status
          * like Pods or Deployments.
@@ -537,33 +537,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         const healthy = services.filter(
             service => !service.error
         ).length;
-    
+
         const percentage = total > 0
             ? Math.round((healthy / total) * 100)
             : 0;
-    
+
         const healthyElement = document.getElementById("servicesHealthy");
         const totalElement = document.getElementById("servicesTotal");
         const percentageElement = document.getElementById("servicesPercentage");
         const progressElement = document.getElementById("servicesProgress");
         const listElement = document.getElementById("servicesList");
-    
+
         if (healthyElement) {
             healthyElement.textContent = healthy;
         }
-    
+
         if (totalElement) {
             totalElement.textContent = total;
         }
-    
+
         if (percentageElement) {
             percentageElement.textContent = `${percentage}%`;
         }
-    
+
         if (progressElement) {
             progressElement.style.width = `${percentage}%`;
         }
-    
+
         if (listElement) {
             listElement.innerHTML = services.length
                 ? services.map(service => `
@@ -579,11 +579,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updateEvents(events) {
         const listElement = document.getElementById("activityList");
-    
+
         if (!listElement) {
             return;
         }
-    
+
         if (!events.length) {
             listElement.innerHTML = `
                 <div class="activity-item">
@@ -593,48 +593,48 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 </div>
             `;
-    
+
             return;
         }
-    
+
         const recentEvents = [...events]
             .sort((a, b) => {
                 const dateA = new Date(
                     a.last_timestamp || a.first_timestamp || 0
                 );
-    
+
                 const dateB = new Date(
                     b.last_timestamp || b.first_timestamp || 0
                 );
-    
+
                 return dateB - dateA;
             })
             .slice(0, 5);
-    
+
         listElement.innerHTML = recentEvents.map(event => {
             const eventType = event.type || "Normal";
-    
+
             let iconClass = "success";
             let icon = "✓";
-    
+
             if (eventType === "Warning") {
                 iconClass = "warning";
                 icon = "△";
             }
-    
+
             return `
                 <div class="activity-item">
                     <span class="activity-icon ${iconClass}">
                         ${icon}
                     </span>
-    
+
                     <div>
                         <strong>${event.reason || "Kubernetes Event"}</strong>
-    
+
                         <p>
                             ${event.message || "No event message available."}
                         </p>
-    
+
                         <small>
                             ${event.object_kind || "Object"}:
                             ${event.object || "Unknown"}
@@ -809,7 +809,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         async function fetchBotReply(userMessage) {
                 try {
-                        const response = await fetch(API_URL, {
+                        const response = await window.KubeAuth.apiFetch(API_URL, {
                                 method: "POST",
                                 headers: {
                                         "Content-Type": "application/json"
