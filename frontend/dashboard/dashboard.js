@@ -2,7 +2,66 @@
 // Dashboard mock data + live Kube-InsightAI assistant
 // Backend: FastAPI → LangGraph → RAG
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const loginView = document.getElementById("loginView");
+    const loginForm = document.getElementById("loginForm");
+    const loginUsername = document.getElementById("loginUsername");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginError = document.getElementById("loginError");
+    const loginButton = document.getElementById("loginButton");
+    const appShell = document.querySelector(".app-shell");
+
+    function showLogin(message = "") {
+        loginView.classList.remove("hidden");
+        appShell.classList.add("hidden");
+        loginError.textContent = message;
+        loginError.classList.toggle("hidden", !message);
+    }
+
+    function showDashboard() {
+        loginView.classList.add("hidden");
+        appShell.classList.remove("hidden");
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        loginError.textContent = "";
+        loginError.classList.add("hidden");
+        loginButton.disabled = true;
+        loginButton.textContent = "Signing in...";
+
+        try {
+            await window.KubeAuth.login(
+                loginUsername.value.trim(),
+                loginPassword.value
+            );
+
+            // Reload so the existing dashboard initializes
+            // only after the saved session is restored.
+            window.location.reload();
+        } catch (error) {
+            showLogin(error.message || "Unable to sign in.");
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = "Sign in";
+        }
+    });
+
+    window.addEventListener("auth:unauthorized", () => {
+        showLogin("Your session has expired. Please sign in again.");
+    });
+
+    const currentUser = await window.KubeAuth.restoreSession();
+
+    if (!currentUser) {
+        showLogin();
+        return;
+    }
+
+    showDashboard();
+
         const backToOverview = document.getElementById("backToOverview");
     const assistantLauncher = document.getElementById("assistantLauncher");
     const assistantPanel = document.getElementById("assistantPanel");
