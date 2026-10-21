@@ -64,6 +64,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     window.addEventListener("auth:unauthorized", () => {
+        window.KubeAuth.clearSession();
+
+        if (assistantPanel) {
+            assistantPanel.classList.remove("open");
+        }
+
+        loginPassword.value = "";
         showLogin("Your session has expired. Please sign in again.");
     });
 

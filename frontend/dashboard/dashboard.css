@@ -677,3 +677,65 @@ button:disabled { cursor: not-allowed; opacity: .5; }
         padding: 26px;
     }
 }
+
+
+/* Authenticated user controls */
+.user-session {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    background: var(--card-bg, #ffffff);
+}
+
+.user-session-details {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.user-session-details strong {
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.user-session-details span {
+    font-size: 11px;
+    color: var(--text-muted, #64748b);
+    text-transform: capitalize;
+}
+
+.logout-button {
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background: var(--hover-bg, #f1f5f9);
+}
+
+.logout-button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+    .user-session {
+        gap: 8px;
+        padding: 6px;
+    }
+
+    .logout-button {
+        padding: 7px;
+    }
+}
