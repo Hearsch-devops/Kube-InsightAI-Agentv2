@@ -220,6 +220,31 @@ def route_question(state: AgentState) -> dict:
 
     question = extract_question(state).lower()
 
+    documentation_intent = any(
+        phrase in question
+        for phrase in (
+            "according to the",
+            "according to our",
+            "according to the sop",
+            "from the sop",
+            "in the documentation",
+            "from the documentation",
+            "how do i troubleshoot",
+            "how to troubleshoot",
+            "steps should i follow",
+            "do not investigate the live cluster",
+            "without investigating the live cluster",
+        )
+    )
+
+    if documentation_intent:
+        logger.info("Documentation intent detected; routing to RAG")
+        return {
+            "route": "kubernetes",
+            "investigation_intent": False,
+            "ownership_intent": False,
+        }
+
     logger.info("ROUTER QUESTION RECEIVED: %r", question)
 
     
