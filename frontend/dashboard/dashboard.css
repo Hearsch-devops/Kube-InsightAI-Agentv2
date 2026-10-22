@@ -125,12 +125,22 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .breadcrumb, .section-eyebrow { font: 10px var(--mono); color: #6d7b9f; letter-spacing: 1.5px; margin-bottom: 10px; }
 .topbar h1 { font: 700 26px var(--mono); letter-spacing: -1px; }
 .subtitle { color: var(--muted); font-size: 13px; margin-top: 9px; }
-.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; width: 100%; flex-wrap: wrap; }
+
+#refreshButton {
+    order: 3;
+}
+
+.user-session {
+    order: 4;
+    margin-left: auto;
+}
 
 .dashboard-filters {
     display: flex;
     align-items: center;
     gap: 14px;
+    order: 1;
 }
 
 .dashboard-filters label {
@@ -154,6 +164,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .dashboard-filters select:focus {
     border-color: var(--purple);
 }
+
 .environment-badge {
     color: var(--green);
     border: 1px solid #29d69a55;
@@ -161,7 +172,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     border-radius: 7px;
     padding: 9px 12px;
     font: 10px var(--mono);
+    order: 2;
 }
+
 .environment-badge .status-dot { margin-right: 7px; width: 6px; height: 6px; }
 .icon-button, .close-button {
     background: var(--panel);
@@ -688,6 +701,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     border-radius: 12px;
     background: var(--panel, #10162b);
     color: var(--text, #e5eaf7);
+
+    /* Position Admin / Sign out at the right */
+    order: 4;
+    margin-left: auto;
 }
 
 .user-session-details {
