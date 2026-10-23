@@ -259,21 +259,42 @@ def route_question(state: AgentState) -> dict:
 
     logger.info("ROUTER QUESTION RECEIVED: %r", question)
 
-    
-    # Phase 5: proposal-only remediation routing.
-    # This must run before existing investigation/live-cluster routing.
+    # Phase 4: evidence-based remediation requests must use MCP → RCA.
     remediation_proposal = build_remediation_proposal(question)
 
+    evidence_based_remediation = (
+        remediation_proposal is not None
+        and any(
+            phrase in question
+            for phrase in (
+                "live cluster evidence",
+                "using live evidence",
+                "based on live evidence",
+                "investigate the live cluster",
+                "from the live cluster",
+            )
+        )
+    )
+
+    if evidence_based_remediation:
+        logger.info(
+            "Evidence-based remediation detected; routing to MCP → RCA"
+        )
+        return {
+            "route": "mcp",
+            "investigation_intent": True,
+            "ownership_intent": False,
+        }
+
+    # Preserve the standalone proposal-only workflow.
     if remediation_proposal is not None:
         logger.info("Question routed to: remediation (proposal only)")
-
         return {
             "route": "remediation",
             "remediation_proposal": remediation_proposal,
             "investigation_intent": False,
             "ownership_intent": False,
         }
-
     
     investigation_intent = (
         any(keyword in question for keyword in INVESTIGATION_KEYWORDS)
