@@ -263,7 +263,16 @@ def route_question(state: AgentState) -> dict:
     remediation_proposal = build_remediation_proposal(question)
 
     evidence_based_remediation = (
-        remediation_proposal is not None
+        any(
+            phrase in question
+            for phrase in (
+                "recommend a remediation",
+                "recommend remediation",
+                "propose a remediation",
+                "suggest remediation",
+                "remediation for",
+            )
+        )
         and any(
             phrase in question
             for phrase in (
