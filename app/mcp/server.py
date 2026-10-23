@@ -877,43 +877,47 @@ def list_namespaces() -> list[dict]:
                 )
             }
         ]
-
-# get_node_scheduling_details
+# get_pod_scheduling_details
 @server.tool()
-def get_node_scheduling_details() -> list[dict]:
-    """Return read-only labels, taints, and readiness for cluster nodes."""
+def get_pod_scheduling_details(
+    pod_name: str,
+    namespace: str = "default",
+) -> dict:
+    """Return read-only scheduling configuration for a pod."""
     try:
         v1 = get_kubernetes_client()
-        nodes = v1.list_node()
-        results = []
+        pod = v1.read_namespaced_pod(
+            name=pod_name,
+            namespace=namespace,
+        )
 
-        for node in nodes.items:
-            ready = False
+        spec = pod.spec
+        affinity = spec.affinity
 
-            for condition in (node.status.conditions or []):
-                if condition.type == "Ready":
-                    ready = condition.status == "True"
-                    break
+        node_affinity = None
+        if affinity and affinity.node_affinity:
+            node_affinity = affinity.node_affinity.to_dict()
 
-            results.append({
-                "name": node.metadata.name,
-                "ready": ready,
-                "labels": node.metadata.labels or {},
-                "taints": [
-                    taint.to_dict()
-                    for taint in (node.spec.taints or [])
-                ],
-            })
-
-        return results
+        return {
+            "pod": pod.metadata.name,
+            "namespace": pod.metadata.namespace,
+            "phase": pod.status.phase if pod.status else "Unknown",
+            "node_name": spec.node_name,
+            "node_selector": spec.node_selector or {},
+            "node_affinity": node_affinity,
+            "tolerations": [
+                item.to_dict()
+                for item in (spec.tolerations or [])
+            ],
+        }
 
     except Exception as exc:
-        return [{
+        return {
             "error": (
                 f"Kubernetes MCP error: "
                 f"{type(exc).__name__}: {exc}"
             )
-        }]
+        }
 
 if __name__ == "__main__":
     server.run(
