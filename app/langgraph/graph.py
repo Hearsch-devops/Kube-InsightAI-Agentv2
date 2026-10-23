@@ -1547,6 +1547,49 @@ async def mcp_response(state: AgentState) -> dict:
                         "no specific pod requested or no investigation required."
                     )
 
+                # Retrieve live scheduling configuration for the requested pod
+                scheduling_details = {}
+                node_scheduling_details = []
+
+                if requested_pod and investigation_intent:
+                    scheduling_result = await call_mcp_tool(
+                        KUBERNETES_MCP_URL,
+                        "get_pod_scheduling_details",
+                        {
+                            "pod_name": requested_pod,
+                            "namespace": requested_namespace,
+                        },
+                    )
+
+                    if scheduling_result.is_error:
+                        logger.warning(
+                            "Pod scheduling details retrieval failed: %s",
+                            scheduling_result,
+                        )
+                    elif scheduling_result.content:
+                        for item in scheduling_result.content:
+                            if hasattr(item, "text"):
+                                scheduling_details = item.text
+                                break
+
+                    # Retrieve live node labels and taints
+                    nodes_result = await call_mcp_tool(
+                        KUBERNETES_MCP_URL,
+                        "get_node_scheduling_details",
+                        {},
+                    )
+
+                    if nodes_result.is_error:
+                        logger.warning(
+                            "Node scheduling details retrieval failed: %s",
+                            nodes_result,
+                        )
+                    elif nodes_result.content:
+                        for item in nodes_result.content:
+                            if hasattr(item, "text"):
+                                node_scheduling_details = item.text
+                                break
+
                 if not namespace_wide_investigation:
                     mcp_context = {
                         "pod": pod_context,
