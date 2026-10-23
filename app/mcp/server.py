@@ -878,6 +878,53 @@ def list_namespaces() -> list[dict]:
             }
         ]
 
+# get_pod_scheduling_details
+@server.tool()
+def get_pod_scheduling_details(
+    pod_name: str,
+    namespace: str = "default",
+) -> dict:
+    """Return read-only scheduling configuration for a pod."""
+    try:
+        v1 = get_kubernetes_client()
+        pod = v1.read_namespaced_pod(
+            name=pod_name,
+            namespace=namespace,
+        )
+
+        spec = pod.spec
+        affinity = spec.affinity
+
+        node_affinity = None
+        if affinity and affinity.node_affinity:
+            node_affinity = (
+                affinity.node_affinity.to_dict()
+            )
+
+        return {
+            "pod": pod.metadata.name,
+            "namespace": pod.metadata.namespace,
+            "phase": (
+                pod.status.phase
+                if pod.status else "Unknown"
+            ),
+            "node_name": spec.node_name,
+            "node_selector": spec.node_selector or {},
+            "node_affinity": node_affinity,
+            "tolerations": [
+                item.to_dict()
+                for item in (spec.tolerations or [])
+            ],
+        }
+
+    except Exception as exc:
+        return {
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
+        }
+
 if __name__ == "__main__":
     server.run(
         transport="streamable-http",
