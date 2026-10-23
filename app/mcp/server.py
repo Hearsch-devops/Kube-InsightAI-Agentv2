@@ -919,6 +919,42 @@ def get_pod_scheduling_details(
             )
         }
 
+# get_node_scheduling_details
+@server.tool()
+def get_node_scheduling_details() -> list[dict]:
+    """Return read-only labels, taints, and readiness for cluster nodes."""
+    try:
+        v1 = get_kubernetes_client()
+        nodes = v1.list_node()
+        results = []
+
+        for node in nodes.items:
+            ready = False
+            for condition in (node.status.conditions or []):
+                if condition.type == "Ready":
+                    ready = condition.status == "True"
+                    break
+
+            results.append({
+                "name": node.metadata.name,
+                "ready": ready,
+                "labels": node.metadata.labels or {},
+                "taints": [
+                    taint.to_dict()
+                    for taint in (node.spec.taints or [])
+                ],
+            })
+
+        return results
+
+    except Exception as exc:
+        return [{
+            "error": (
+                f"Kubernetes MCP error: "
+                f"{type(exc).__name__}: {exc}"
+            )
+        }]
+
 if __name__ == "__main__":
     server.run(
         transport="streamable-http",
