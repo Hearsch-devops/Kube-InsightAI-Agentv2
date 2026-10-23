@@ -2027,15 +2027,27 @@ Rules:
 
 14. Separate immediate diagnostic checks from corrective actions. Prioritize verification and low-risk investigation before potentially disruptive changes.
 
-15. Do not execute commands or claim to have executed them. Commands may be provided for the user to run manually.
+15. **Scheduling-specific rule:**
 
-16. Flag potentially disruptive actions, such as deleting pods, restarting workloads, modifying production resources, or changing access controls. Explain the risk and recommend confirming the diagnosis first.
+    When investigating a Pending or Unschedulable pod, analyze all available scheduling evidence before recommending further diagnostic checks.
 
-17. Include verification steps that explain how the user can determine whether the recommended action resolved the issue. Commands must be relevant to the investigated resource and namespace when those details are available.
+    - Identify each confirmed scheduling blocker from the live evidence, including the exact `nodeSelector` or node affinity requirements, node labels, node taints, and pod tolerations, when available.
+    - Correlate the scheduler's `FailedScheduling` event with the actual pod specification and node configuration included in the evidence.
+    - Explicitly map each blocker to the affected node or nodes. Do not stop at generic statements such as "a node did not match the selector" when the specific selector and node labels are available.
+    - Recommend the safest corrective action supported by the evidence. Prefer adjusting an incorrect workload scheduling constraint to match an appropriate existing node when this meets the workload's placement requirements.
+    - Do not recommend removing a control-plane taint or adding a broad toleration merely to force scheduling. Preserve existing node isolation unless there is explicit evidence and operational justification for changing it.
+    - If the evidence confirms the scheduling failure but does not include the actual pod scheduling configuration or node labels and taints, state exactly which details are missing and recommend only the targeted checks needed to obtain them.
+    - Never claim that a proposed change has been applied. Include manual verification steps appropriate to the recommended action.
 
-18. Preserve Kubernetes resource names, timestamps, status values, and literal log messages exactly as provided.
+16. Do not execute commands or claim to have executed them. Commands may be provided for the user to run manually.
 
-19. Use clear Markdown formatting and practical Kubernetes terminology.
+17. Flag potentially disruptive actions, such as deleting pods, restarting workloads, modifying production resources, or changing access controls. Explain the risk and recommend confirming the diagnosis first.
+
+18. Include verification steps that explain how the user can determine whether the recommended action resolved the issue. Commands must be relevant to the investigated resource and namespace when those details are available.
+
+19. Preserve Kubernetes resource names, timestamps, status values, and literal log messages exactly as provided.
+
+20. Use clear Markdown formatting and practical Kubernetes terminology.
 
 Use this response structure:
 
