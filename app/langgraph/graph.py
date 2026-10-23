@@ -58,6 +58,18 @@ KUBERNETES_KEYWORDS = (
     "helm",
     "container",
     "node",
+    "deployment",
+    "deployments",
+    "replicaset",
+    "replicasets",
+    "pod",
+    "pods",
+    "service",
+    "services",
+    "statefulset",
+    "daemonset",
+    "persistentvolume",
+    "persistentvolumeclaim",
 )
 
 LIVE_CLUSTER_KEYWORDS = (
@@ -2221,7 +2233,6 @@ async def general_response(state: AgentState) -> dict:
         return {
             "error": "Unable to generate a response.",
         }
-
 
 def remediation_proposal_response(state: AgentState) -> dict:
     """Explain a proposed remediation without executing it."""
