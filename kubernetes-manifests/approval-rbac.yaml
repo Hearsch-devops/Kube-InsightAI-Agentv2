@@ -20,11 +20,17 @@ rules:
     verbs: ["get", "list", "watch"]
 
   # Create, modify, delete, scale, and restart deployments
+  # Manage deployments
   - apiGroups: ["apps"]
     resources:
       - deployments
-      - deployments/scale
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Scale deployments
+  - apiGroups: ["apps"]
+    resources:
+      - deployments/scale
+    verbs: ["get", "patch", "update"]
 
   # View workload controllers and manage their rollout/restart
   - apiGroups: ["apps"]
