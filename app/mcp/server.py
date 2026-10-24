@@ -21,8 +21,26 @@ def get_kubernetes_client():
 @server.tool()
 def get_cluster_metrics() -> dict:
     try:
+        from kubernetes import client
+
         v1 = get_kubernetes_client()
         nodes = v1.list_node()
+
+        # Read live node metrics from Metrics Server.
+        custom_api = client.CustomObjectsApi(
+            api_client=v1.api_client
+        )
+
+        metrics = custom_api.list_cluster_custom_object(
+            group="metrics.k8s.io",
+            version="v1beta1",
+            plural="nodes",
+        )
+
+        metrics_by_node = {
+            item["metadata"]["name"]: item
+            for item in metrics.get("items", [])
+        }
 
         total_nodes = len(nodes.items)
         ready_nodes = 0
@@ -33,7 +51,37 @@ def get_cluster_metrics() -> dict:
         total_memory_capacity = 0
         total_memory_allocatable = 0
 
+        total_cpu_usage_millicores = 0
+        total_memory_usage_bytes = 0
+
         node_details = []
+
+        def cpu_to_millicores(value: str) -> int:
+            if value.endswith("n"):
+                return int(value[:-1]) // 1_000_000
+            if value.endswith("u"):
+                return int(value[:-1]) // 1_000
+            if value.endswith("m"):
+                return int(value[:-1])
+            return int(float(value) * 1000)
+
+        def memory_to_bytes(value: str) -> int:
+            units = {
+                "Ki": 1024,
+                "Mi": 1024**2,
+                "Gi": 1024**3,
+                "Ti": 1024**4,
+                "K": 1000,
+                "M": 1000**2,
+                "G": 1000**3,
+                "T": 1000**4,
+            }
+
+            for unit in ("Ki", "Mi", "Gi", "Ti", "K", "M", "G", "T"):
+                if value.endswith(unit):
+                    return int(float(value[:-len(unit)]) * units[unit])
+
+            return int(value)
 
         for node in nodes.items:
             node_name = node.metadata.name
@@ -43,10 +91,10 @@ def get_cluster_metrics() -> dict:
 
             cpu_capacity = capacity.get("cpu", "0")
             cpu_allocatable = allocatable.get("cpu", "0")
-
             memory_capacity = capacity.get("memory", "0")
             memory_allocatable = allocatable.get("memory", "0")
 
+            # Kubernetes CPU capacity is expressed in cores.
             total_cpu_capacity += int(cpu_capacity)
             total_cpu_allocatable += int(cpu_allocatable)
 
@@ -57,17 +105,51 @@ def get_cluster_metrics() -> dict:
                 memory_allocatable.replace("Ki", "")
             )
 
-            ready = False
-
-            for condition in node.status.conditions or []:
-                if condition.type == "Ready":
-                    ready = condition.status == "True"
-                    break
+            ready = any(
+                condition.type == "Ready"
+                and condition.status == "True"
+                for condition in (node.status.conditions or [])
+            )
 
             if ready:
                 ready_nodes += 1
             else:
                 not_ready_nodes += 1
+
+            node_metric = metrics_by_node.get(node_name)
+            cpu_usage = None
+            memory_usage = None
+            cpu_usage_percent = None
+            memory_usage_percent = None
+
+            if node_metric:
+                usage = node_metric.get("usage", {})
+                cpu_usage = usage.get("cpu")
+                memory_usage = usage.get("memory")
+
+                if cpu_usage is not None:
+                    cpu_millicores = cpu_to_millicores(cpu_usage)
+                    total_cpu_usage_millicores += cpu_millicores
+
+                    allocatable_millicores = int(cpu_allocatable) * 1000
+                    if allocatable_millicores > 0:
+                        cpu_usage_percent = round(
+                            cpu_millicores / allocatable_millicores * 100,
+                            2,
+                        )
+
+                if memory_usage is not None:
+                    memory_bytes = memory_to_bytes(memory_usage)
+                    total_memory_usage_bytes += memory_bytes
+
+                    allocatable_bytes = (
+                        int(memory_allocatable.replace("Ki", "")) * 1024
+                    )
+                    if allocatable_bytes > 0:
+                        memory_usage_percent = round(
+                            memory_bytes / allocatable_bytes * 100,
+                            2,
+                        )
 
             node_details.append({
                 "name": node_name,
@@ -76,7 +158,14 @@ def get_cluster_metrics() -> dict:
                 "cpu_allocatable": cpu_allocatable,
                 "memory_capacity": memory_capacity,
                 "memory_allocatable": memory_allocatable,
+                "cpu_usage": cpu_usage,
+                "memory_usage": memory_usage,
+                "cpu_usage_percent": cpu_usage_percent,
+                "memory_usage_percent": memory_usage_percent,
             })
+
+        total_cpu_allocatable_millicores = total_cpu_allocatable * 1000
+        total_memory_allocatable_bytes = total_memory_allocatable * 1024
 
         return {
             "nodes": {
@@ -86,12 +175,32 @@ def get_cluster_metrics() -> dict:
             },
             "resources": {
                 "cpu": {
-                    "capacity": f"{total_cpu_capacity}",
-                    "allocatable": f"{total_cpu_allocatable}",
+                    "capacity": str(total_cpu_capacity),
+                    "allocatable": str(total_cpu_allocatable),
+                    "usage": f"{total_cpu_usage_millicores}m",
+                    "usage_percent": (
+                        round(
+                            total_cpu_usage_millicores
+                            / total_cpu_allocatable_millicores * 100,
+                            2,
+                        )
+                        if total_cpu_allocatable_millicores > 0
+                        else None
+                    ),
                 },
                 "memory": {
                     "capacity": f"{total_memory_capacity}Ki",
                     "allocatable": f"{total_memory_allocatable}Ki",
+                    "usage": f"{total_memory_usage_bytes}B",
+                    "usage_percent": (
+                        round(
+                            total_memory_usage_bytes
+                            / total_memory_allocatable_bytes * 100,
+                            2,
+                        )
+                        if total_memory_allocatable_bytes > 0
+                        else None
+                    ),
                 },
             },
             "node_details": node_details,
@@ -99,7 +208,9 @@ def get_cluster_metrics() -> dict:
 
     except Exception as exc:
         return {
-            "error": f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+            "error": (
+                f"Kubernetes MCP error: {type(exc).__name__}: {exc}"
+            )
         }
 
 # list_pods
