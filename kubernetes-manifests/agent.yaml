@@ -50,6 +50,21 @@ spec:
                   name: kube-insightai-auth
                   key: AUTH_SECRET_KEY
 
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kube-insightai-db-credentials
+                  key: DB_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kube-insightai-db-credentials
+                  key: DB_PASSWORD
+
+            - name: DATABASE_URL
+              value: "postgresql+psycopg://$(DB_USERNAME):$(DB_PASSWORD)@postgres.postgresql.svc.cluster.local:5432/kube_insightai"
+              
           resources:
             requests:
               cpu: 200m
