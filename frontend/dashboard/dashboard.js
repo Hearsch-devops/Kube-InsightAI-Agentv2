@@ -406,23 +406,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function updateHealthStatus(readyNodes, totalNodes) {
+        const healthScoreElement = document.getElementById("healthScore");
         const healthLabel = document.getElementById("healthLabel");
 
-        if (!healthLabel) {
+        if (!healthScoreElement || !healthLabel) {
             return;
         }
 
         if (totalNodes === 0) {
+            healthScoreElement.textContent = "0";
             healthLabel.textContent = "Unavailable";
             return;
         }
 
-        if (readyNodes === totalNodes) {
+        // Calculate health from the percentage of Ready nodes.
+        const score = Math.round((readyNodes / totalNodes) * 100);
+
+        healthScoreElement.textContent = score;
+
+        if (score === 100) {
             healthLabel.textContent = "Healthy";
-        } else if (readyNodes > 0) {
+        } else if (score >= 50) {
             healthLabel.textContent = "Degraded";
         } else {
-            healthLabel.textContent = "Unavailable";
+            healthLabel.textContent = "Critical";
         }
     }
 
