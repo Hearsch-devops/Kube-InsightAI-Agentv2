@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-// Load Kubernetes namespaces
+    // Load Kubernetes namespaces
     async function loadNamespaces() {
         if (!namespaceSelector) return;
 
@@ -236,7 +236,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-// Load live Kubernetes cluster overview
+    // Initialize the dashboard with live Kubernetes data.
+    await loadNamespaces();
+
+    // Load live Kubernetes cluster overview
     async function loadClusterOverview() {
         if (!namespaceSelector || !namespaceSelector.value) {
             return;
