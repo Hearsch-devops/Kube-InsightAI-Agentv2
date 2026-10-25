@@ -102,10 +102,131 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("clustersDeploymentsTable");
     const clustersServicesTable =
         document.getElementById("clustersServicesTable");
+    const queryPage = document.getElementById("queryPage");
+    const queryForm = document.getElementById("queryForm");
+    const queryInput = document.getElementById("queryInput");
+    const querySubmitButton = document.getElementById("querySubmitButton");
+    const queryStatus = document.getElementById("queryStatus");
+    const queryAnswerPanel = document.getElementById("queryAnswerPanel");
+    const queryAnswer = document.getElementById("queryAnswer");
+    const queryRoute = document.getElementById("queryRoute");
+    const querySourcesSection = document.getElementById("querySourcesSection");
+    const querySources = document.getElementById("querySources");
+    const queryError = document.getElementById("queryError");
+    async function submitQuery(question) {
+        const message = question.trim();
+
+        if (!message || querySubmitButton.disabled) {
+            return;
+        }
+
+        queryInput.value = message;
+        queryAnswerPanel.classList.remove("hidden");
+        queryAnswer.textContent = "";
+        queryRoute.textContent = "";
+        querySources.replaceChildren();
+        querySourcesSection.classList.add("hidden");
+        queryError.textContent = "";
+        queryError.classList.add("hidden");
+
+        queryStatus.textContent = "Kube-InsightAI is thinking...";
+        querySubmitButton.disabled = true;
+        queryInput.disabled = true;
+        querySubmitButton.textContent = "Processing...";
+
+        try {
+            const response = await window.KubeAuth.apiFetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail ||
+                    data.error_message ||
+                    data.error ||
+                    "The AI request failed."
+                );
+            }
+
+            if (!data.response) {
+                throw new Error("The AI returned an empty response.");
+            }
+
+            // Display the answer as plain text for safe rendering.
+            queryAnswer.textContent = data.response;
+
+            if (data.route) {
+                queryRoute.textContent = `Route: ${data.route}`;
+            }
+
+            if (Array.isArray(data.sources) && data.sources.length > 0) {
+                data.sources.forEach(source => {
+                    const item = document.createElement("li");
+                    item.textContent = source;
+                    querySources.appendChild(item);
+                });
+
+                querySourcesSection.classList.remove("hidden");
+            }
+
+            if (data.error || data.error_message) {
+                queryError.textContent =
+                    data.error_message || data.error;
+                queryError.classList.remove("hidden");
+            }
+
+            queryStatus.textContent = "Response received";
+
+        } catch (error) {
+            console.error("Query request failed:", error);
+
+            queryError.textContent = error.message ||
+                "Unable to contact Kube-InsightAI.";
+
+            queryError.classList.remove("hidden");
+            queryStatus.textContent = "Request failed";
+
+        } finally {
+            querySubmitButton.disabled = false;
+            queryInput.disabled = false;
+            querySubmitButton.textContent = "✦ Ask AI";
+            queryInput.focus();
+        }
+    }
+    queryForm.addEventListener("submit", event => {
+        event.preventDefault();
+        submitQuery(queryInput.value);
+    });
+
+    // Suggested questions automatically submit to the AI.
+    document.querySelectorAll(".query-suggestion").forEach(button => {
+        button.addEventListener("click", () => {
+            if (querySubmitButton.disabled) {
+                return;
+            }
+
+            submitQuery(button.dataset.query || "");
+        });
+    });
+
+    // Return to the Dashboard.
+    document.getElementById("backFromQuery").addEventListener(
+        "click",
+        showOverview
+    );
+
     const assistantForm = document.getElementById("assistantForm");
-        const assistantInput = document.getElementById("assistantInput");
-        const assistantSendButton = document.getElementById("assistantSendButton");
-        const assistantMessages = document.getElementById("assistantMessages");
+    const assistantInput = document.getElementById("assistantInput");
+    const assistantSendButton = document.getElementById("assistantSendButton");
+    const assistantMessages = document.getElementById("assistantMessages");
 
         console.log("Assistant launcher:", assistantLauncher);
         console.log("Assistant panel:", assistantPanel);
@@ -149,11 +270,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             item.classList.add("active");
 
             const page = item.dataset.page;
-
+            
             if (page === "overview") {
                 showOverview();
             } else if (page === "clusters") {
                 showClusters();
+            } else if (page === "query") {
+                showQuery();
             } else {
                 showPlaceholder(
                     page.charAt(0).toUpperCase() + page.slice(1)
@@ -714,6 +837,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         secondaryView.classList.add("hidden");
         clustersPage.classList.add("hidden");
         placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
     }
 
     function showClusters() {
@@ -721,8 +845,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         secondaryView.classList.remove("hidden");
         clustersPage.classList.remove("hidden");
         placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
 
         loadClustersPage();
+    }
+    
+    function showQuery() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+        clustersPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+        queryPage.classList.remove("hidden");
     }
 
     function showPlaceholder(title) {

@@ -484,6 +484,82 @@
 
         </section>
 
+        <!-- Query Page -->
+        <section id="queryPage" class="page-view hidden">
+
+            <div class="panel query-hero">
+                <div class="placeholder-icon">✦</div>
+                <h2>Ask Kube-InsightAI</h2>
+                <p>
+                    Ask questions about Kubernetes resources, cluster health,
+                    troubleshooting, and operational best practices.
+                </p>
+
+                <div class="query-suggestions">
+                    <button type="button" class="query-suggestion"
+                        data-query="Explain the current Kubernetes cluster health.">
+                        Explain my cluster health
+                    </button>
+
+                    <button type="button" class="query-suggestion"
+                        data-query="How can I troubleshoot a pod that is not starting?">
+                        Troubleshoot a failing pod
+                    </button>
+
+                    <button type="button" class="query-suggestion"
+                        data-query="Explain Kubernetes CrashLoopBackOff and how to diagnose it.">
+                        Explain CrashLoopBackOff
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel query-workspace">
+                <form id="queryForm">
+                    <label for="queryInput">Your question</label>
+
+                    <textarea
+                        id="queryInput"
+                        rows="4"
+                        placeholder="Ask a Kubernetes question..."
+                        required
+                    ></textarea>
+
+                    <div class="query-actions">
+                        <span id="queryStatus" role="status">
+                            Ready to help
+                        </span>
+
+                        <button type="submit" class="primary-button"
+                            id="querySubmitButton">
+                            ✦ Ask AI
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="panel query-answer-panel hidden" id="queryAnswerPanel">
+                <div class="panel-header">
+                    <h2>AI Response</h2>
+                    <span id="queryRoute"></span>
+                </div>
+
+                <div id="queryAnswer" class="query-answer"></div>
+
+                <div id="querySourcesSection" class="hidden">
+                    <h3>Sources</h3>
+                    <ul id="querySources"></ul>
+                </div>
+
+                <div id="queryError" class="hidden" role="alert"></div>
+            </div>
+
+            <button type="button" class="primary-button"
+                id="backFromQuery">
+                ← Back to Overview
+            </button>
+
+        </section>
+
         <!-- Placeholder for Query, Settings, etc. -->
         <section id="placeholderPage" class="page-view hidden">
             <section class="panel placeholder-panel">
@@ -497,7 +573,6 @@
         </section>
 
         </section>
-
     </main>
 </div>
 
