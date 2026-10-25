@@ -709,13 +709,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     function showOverview() {
         dashboardView.classList.remove("hidden");
         secondaryView.classList.add("hidden");
+        clustersPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+    }
+
+    function showClusters() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+        clustersPage.classList.remove("hidden");
+        placeholderPage.classList.add("hidden");
+
+        loadClustersPage();
     }
 
     function showPlaceholder(title) {
         dashboardView.classList.add("hidden");
         secondaryView.classList.remove("hidden");
+        clustersPage.classList.add("hidden");
+        placeholderPage.classList.remove("hidden");
+
         secondaryTitle.textContent = title;
     }
+
+    backToOverview.addEventListener("click", showOverview);
+
+    document.getElementById("backToOverviewPlaceholder")
+        .addEventListener("click", showOverview);
 
     backToOverview.addEventListener("click", showOverview);
 
@@ -952,5 +971,146 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
         // Load Kubernetes namespaces
-        loadNamespaces();
+        async function loadClustersNamespaces() {
+            if (!clustersNamespaceSelector) return;
+
+            try {
+                clustersNamespaceSelector.innerHTML =
+                    `<option value="">Loading namespaces...</option>`;
+
+                const response = await window.KubeAuth.apiFetch(
+                    "/api/cluster/namespaces"
+                );
+
+                if (!response.ok) {
+                    throw new Error("Failed to load namespaces.");
+                }
+
+                const data = await response.json();
+                const namespaces = data.namespaces || [];
+
+                clustersNamespaceSelector.innerHTML = "";
+
+                if (namespaces.length === 0) {
+                    clustersNamespaceSelector.innerHTML =
+                        `<option value="">No namespaces found</option>`;
+                    return;
+                }
+
+                namespaces.forEach(namespace => {
+                    const option = document.createElement("option");
+                    option.value = namespace.name;
+                    option.textContent = namespace.name;
+                    clustersNamespaceSelector.appendChild(option);
+                });
+
+                // Prefer the namespace already used by the dashboard.
+                const preferredNamespace = namespaceSelector?.value;
+
+                if (
+                    preferredNamespace &&
+                    namespaces.some(ns => ns.name === preferredNamespace)
+                ) {
+                    clustersNamespaceSelector.value = preferredNamespace;
+                } else {
+                    clustersNamespaceSelector.value = namespaces[0].name;
+                }
+
+            } catch (error) {
+                console.error("Failed to load Clusters namespaces:", error);
+
+                clustersNamespaceSelector.innerHTML =
+                    `<option value="">Failed to load namespaces</option>`;
+
+                clustersStatus.textContent =
+                    "Unable to load namespaces. Check the API and try again.";
+            }
+        }
+        
+        async function loadClustersPage() {
+            clustersStatus.textContent = "Loading Kubernetes resources...";
+
+            clustersPodsTable.innerHTML =
+                `<tr><td colspan="4">Loading pods...</td></tr>`;
+
+            clustersDeploymentsTable.innerHTML =
+                `<tr><td colspan="3">Loading deployments...</td></tr>`;
+
+            clustersServicesTable.innerHTML =
+                `<tr><td colspan="3">Loading services...</td></tr>`;
+
+            try {
+                // Load namespaces before retrieving resources.
+                if (!clustersNamespaceSelector.options.length ||
+                    !clustersNamespaceSelector.value) {
+                    await loadClustersNamespaces();
+                }
+
+                const namespace = clustersNamespaceSelector.value;
+
+                if (!namespace) {
+                    throw new Error("No namespace is selected.");
+                }
+
+                const response = await window.KubeAuth.apiFetch(
+                    `/api/cluster/overview?namespace=${encodeURIComponent(namespace)}`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Failed to retrieve cluster resources.");
+                }
+
+                const data = await response.json();
+
+                if (data.detail) {
+                    throw new Error(data.detail);
+                }
+
+                const pods = data.pods || [];
+                const deployments = data.deployments || [];
+                const services = data.services || [];
+
+                // Update summary counts.
+                document.getElementById("clustersPodCount").textContent =
+                    pods.filter(item => !item.error).length;
+
+                document.getElementById("clustersDeploymentCount").textContent =
+                    deployments.filter(item => !item.error).length;
+
+                document.getElementById("clustersServiceCount").textContent =
+                    services.filter(item => !item.error).length;
+
+                // Render resource tables.
+                renderClustersPods(pods);
+                renderClustersDeployments(deployments);
+                renderClustersServices(services);
+
+                clustersStatus.textContent =
+                    `Showing resources in namespace: ${namespace}`;
+
+            } catch (error) {
+                console.error("Failed to load Clusters page:", error);
+
+                clustersStatus.textContent =
+                    `Failed to load resources: ${error.message}`;
+
+                clustersPodsTable.innerHTML =
+                    `<tr><td colspan="4">Unable to load pods.</td></tr>`;
+
+                clustersDeploymentsTable.innerHTML =
+                    `<tr><td colspan="3">Unable to load deployments.</td></tr>`;
+
+                clustersServicesTable.innerHTML =
+                    `<tr><td colspan="3">Unable to load services.</td></tr>`;
+            }
+        }
+
+        clustersNamespaceSelector.addEventListener("change", () => {
+            loadClustersPage();
+        });
+
+        document.getElementById("refreshClusters").addEventListener("click", () => {
+            loadClustersPage();
+        });
+
 });
