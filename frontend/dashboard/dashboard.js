@@ -92,6 +92,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     const dashboardView = document.getElementById("dashboardView");
     const secondaryView = document.getElementById("secondaryView");
     const secondaryTitle = document.getElementById("secondaryTitle");
+    const clustersPage = document.getElementById("clustersPage");
+    const placeholderPage = document.getElementById("placeholderPage");
+    const clustersNamespaceSelector =
+        document.getElementById("clustersNamespaceSelector");
+    const clustersStatus = document.getElementById("clustersStatus");
+    const clustersPodsTable = document.getElementById("clustersPodsTable");
+    const clustersDeploymentsTable =
+        document.getElementById("clustersDeploymentsTable");
+    const clustersServicesTable =
+        document.getElementById("clustersServicesTable");
     const assistantForm = document.getElementById("assistantForm");
         const assistantInput = document.getElementById("assistantInput");
         const assistantSendButton = document.getElementById("assistantSendButton");
@@ -142,6 +152,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (page === "overview") {
                 showOverview();
+            } else if (page === "clusters") {
+                showClusters();
             } else {
                 showPlaceholder(
                     page.charAt(0).toUpperCase() + page.slice(1)

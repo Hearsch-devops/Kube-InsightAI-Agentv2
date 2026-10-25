@@ -366,17 +366,136 @@
                 </section>
 
             </div>
-
         </section>
 
         <!-- Other page content -->
         <section id="secondaryView" class="page-view hidden">
+
+        <!-- Clusters Page -->
+        <section id="clustersPage" class="page-view hidden">
+
+            <div class="panel">
+            <div class="panel-header">
+                <div>
+                <h2>Cluster Inventory</h2>
+                <p>Live Kubernetes resources retrieved through MCP</p>
+                </div>
+
+                <button class="primary-button" id="refreshClusters">
+                ↻ Refresh
+                </button>
+            </div>
+
+            <div class="cluster-summary-grid">
+                <div class="panel">
+                <p>Nodes Ready</p>
+                <h2 id="clustersNodesReady">--</h2>
+                </div>
+
+                <div class="panel">
+                <p>Pods</p>
+                <h2 id="clustersPodCount">--</h2>
+                </div>
+
+                <div class="panel">
+                <p>Deployments</p>
+                <h2 id="clustersDeploymentCount">--</h2>
+                </div>
+
+                <div class="panel">
+                <p>Services</p>
+                <h2 id="clustersServiceCount">--</h2>
+                </div>
+            </div>
+            </div>
+
+            <div class="panel">
+            <div class="panel-header">
+                <h2>Namespace Resources</h2>
+
+                <select id="clustersNamespaceSelector">
+                <option value="">Loading namespaces...</option>
+                </select>
+            </div>
+
+            <p id="clustersStatus" role="status">
+                Select a namespace to load its resources.
+            </p>
+            </div>
+
+            <div class="panel">
+            <h2>Pods</h2>
+            <div class="table-container">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Ready</th>
+                    <th>Restarts</th>
+                    </tr>
+                </thead>
+                <tbody id="clustersPodsTable">
+                    <tr><td colspan="4">No data loaded.</td></tr>
+                </tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class="panel">
+            <h2>Deployments</h2>
+            <div class="table-container">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Ready</th>
+                    <th>Desired</th>
+                    </tr>
+                </thead>
+                <tbody id="clustersDeploymentsTable">
+                    <tr><td colspan="3">No data loaded.</td></tr>
+                </tbody>
+                </table>
+            </div>
+            </div>
+
+            <div class="panel">
+            <h2>Services</h2>
+            <div class="table-container">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Cluster IP</th>
+                    </tr>
+                </thead>
+                <tbody id="clustersServicesTable">
+                    <tr><td colspan="3">No data loaded.</td></tr>
+                </tbody>
+                </table>
+            </div>
+            </div>
+
+            <button class="primary-button" id="backToOverview">
+            ← Back to Overview
+            </button>
+
+        </section>
+
+        <!-- Placeholder for Query, Settings, etc. -->
+        <section id="placeholderPage" class="page-view hidden">
             <section class="panel placeholder-panel">
-                <div class="placeholder-icon">⌁</div>
-                <h2 id="secondaryTitle">Monitoring</h2>
-                <p>This module will be connected to live Kubernetes data in a future phase.</p>
-                <button class="primary-button" id="backToOverview">← Back to Overview</button>
+            <div class="placeholder-icon">⌁</div>
+            <h2 id="secondaryTitle">Monitoring</h2>
+            <p>This module will be connected to live Kubernetes data in a future phase.</p>
+            <button class="primary-button" id="backToOverviewPlaceholder">
+                ← Back to Overview
+            </button>
             </section>
+        </section>
+
         </section>
 
     </main>
