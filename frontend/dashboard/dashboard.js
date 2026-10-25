@@ -1027,6 +1027,75 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         }
         
+        // render Clusters Pods
+        function renderClustersPods(pods) {
+            if (!pods.length || pods.every(p => p.error)) {
+                clustersPodsTable.innerHTML =
+                    `<tr><td colspan="4">No pods found.</td></tr>`;
+                return;
+            }
+
+            clustersPodsTable.innerHTML = pods.map(pod => {
+                const restarts = (pod.containers || []).reduce(
+                    (total, container) => total + (container.restart_count || 0),
+                    0
+                );
+
+                const ready = `${pod.ready_containers || 0}/${pod.total_containers || 0}`;
+
+                return `
+                    <tr>
+                        <td>${escapeHTML(pod.name || "Unknown")}</td>
+                        <td>${escapeHTML(pod.status || "Unknown")}</td>
+                        <td>${ready}</td>
+                        <td>${restarts}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function renderClustersDeployments(deployments) {
+            if (!deployments.length || deployments.every(d => d.error)) {
+                clustersDeploymentsTable.innerHTML =
+                    `<tr><td colspan="3">No deployments found.</td></tr>`;
+                return;
+            }
+
+            clustersDeploymentsTable.innerHTML = deployments.map(deployment => `
+                <tr>
+                    <td>${escapeHTML(deployment.name || "Unknown")}</td>
+                    <td>${deployment.ready_replicas ?? 0}</td>
+                    <td>${deployment.desired_replicas ?? 0}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderClustersServices(services) {
+            if (!services.length || services.every(s => s.error)) {
+                clustersServicesTable.innerHTML =
+                    `<tr><td colspan="3">No services found.</td></tr>`;
+                return;
+            }
+
+            clustersServicesTable.innerHTML = services.map(service => `
+                <tr>
+                    <td>${escapeHTML(service.name || "Unknown")}</td>
+                    <td>${escapeHTML(service.type || "Unknown")}</td>
+                    <td>${escapeHTML(service.cluster_ip || "None")}</td>
+                </tr>
+            `).join("");
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
+        }
+
         async function loadClustersPage() {
             clustersStatus.textContent = "Loading Kubernetes resources...";
 
