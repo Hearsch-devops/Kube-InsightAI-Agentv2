@@ -988,6 +988,7 @@ def list_namespaces() -> list[dict]:
                 )
             }
         ]
+
 # get_pod_scheduling_details
 @server.tool()
 def get_pod_scheduling_details(

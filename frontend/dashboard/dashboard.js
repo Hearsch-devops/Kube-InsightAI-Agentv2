@@ -257,7 +257,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function loadClusterMetrics() {
         try {
-            const response = await window.KubeAuth.apiFetch("/api/cluster/metrics");
+            const response = await window.KubeAuth.apiFetch(
+                "/api/cluster/metrics"
+            );
 
             if (!response.ok) {
                 throw new Error("Failed to load cluster metrics.");
@@ -272,19 +274,34 @@ document.addEventListener("DOMContentLoaded", async () => {
             const notReadyNodes = data.nodes?.not_ready ?? 0;
 
             const cpuCapacity = data.resources?.cpu?.capacity ?? "0";
-            const memoryAllocatable = data.resources?.memory?.allocatable ?? "0Ki";
+            const memoryAllocatable =
+                data.resources?.memory?.allocatable ?? "0Ki";
 
-            const readyNodesElement = document.getElementById("readyNodes");
-            const notReadyNodesElement = document.getElementById("notReadyNodes");
-            const cpuCapacityElement = document.getElementById("cpuCapacity");
-            const memoryAllocatableElement = document.getElementById("memoryAllocatable");
+            const cpuUsagePercent =
+                data.resources?.cpu?.usage_percent;
+            const memoryUsagePercent =
+                data.resources?.memory?.usage_percent;
+
+            const readyNodesElement =
+                document.getElementById("readyNodes");
+            const notReadyNodesElement =
+                document.getElementById("notReadyNodes");
+            const cpuCapacityElement =
+                document.getElementById("cpuCapacity");
+            const memoryAllocatableElement =
+                document.getElementById("memoryAllocatable");
+            const cpuUsageElement =
+                document.getElementById("cpuUsage");
+            const memoryUsageElement =
+                document.getElementById("memoryUsage");
 
             if (readyNodesElement) {
                 readyNodesElement.textContent = `${readyNodes} ready`;
             }
 
             if (notReadyNodesElement) {
-                notReadyNodesElement.textContent = `${notReadyNodes} down`;
+                notReadyNodesElement.textContent =
+                    `${notReadyNodes} down`;
             }
 
             if (cpuCapacityElement) {
@@ -303,10 +320,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                     `${memoryGiB.toFixed(2)} GiB`;
             }
 
+            if (cpuUsageElement) {
+                cpuUsageElement.textContent =
+                    Number.isFinite(Number(cpuUsagePercent))
+                        ? `${Number(cpuUsagePercent).toFixed(1)}%`
+                        : "N/A";
+            }
+
+            if (memoryUsageElement) {
+                memoryUsageElement.textContent =
+                    Number.isFinite(Number(memoryUsagePercent))
+                        ? `${Number(memoryUsagePercent).toFixed(1)}%`
+                        : "N/A";
+            }
+
             updateHealthStatus(readyNodes, totalNodes);
 
         } catch (error) {
-            console.error("Failed to load cluster metrics:", error);
+            console.error(
+                "Failed to load cluster metrics:",
+                error
+            );
         }
     }
 
