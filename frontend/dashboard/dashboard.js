@@ -307,6 +307,66 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
+    // Load namespaces for Logs Explorer
+    async function loadLogsNamespaces() {
+        const logsNamespace = document.getElementById("logsNamespace");
+
+        if (!logsNamespace) return;
+
+        logsNamespace.innerHTML =
+            '<option value="">Loading namespaces...</option>';
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                "/api/cluster/namespaces"
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load namespaces.");
+            }
+
+            const data = await response.json();
+            const namespaces = data.namespaces || [];
+
+            logsNamespace.replaceChildren();
+
+            if (namespaces.length === 0) {
+                logsNamespace.add(
+                    new Option("No namespaces found", "")
+                );
+                return;
+            }
+
+            namespaces.forEach(namespace => {
+                logsNamespace.add(
+                    new Option(namespace.name, namespace.name)
+                );
+            });
+
+            const preferredNamespace = namespaces.find(
+                namespace => namespace.name === "kube-insightaiv2"
+            );
+
+            logsNamespace.value = preferredNamespace
+                ? preferredNamespace.name
+                : namespaces[0].name;
+
+            logsNamespace.dispatchEvent(
+                new Event("change", { bubbles: true })
+            );
+
+        } catch (error) {
+            console.error(
+                "Failed to load Logs namespaces:",
+                error
+            );
+
+            logsNamespace.replaceChildren(
+                new Option("Unable to load namespaces", "")
+            );
+        }
+    }
+
     // Load Kubernetes namespaces
     async function loadNamespaces() {
         if (!namespaceSelector) return;
@@ -364,6 +424,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Initialize the dashboard with live Kubernetes data.
     await loadNamespaces();
+    loadLogsNamespaces();
 
     // Load live Kubernetes cluster overview
     async function loadClusterOverview() {
