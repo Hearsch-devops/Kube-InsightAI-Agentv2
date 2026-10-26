@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     showDashboard();
 
-        const backToOverview = document.getElementById("backToOverview");
+    const backToOverview = document.getElementById("backToOverview");
     const assistantLauncher = document.getElementById("assistantLauncher");
     const assistantPanel = document.getElementById("assistantPanel");
     const closeAssistant = document.getElementById("closeAssistant");
