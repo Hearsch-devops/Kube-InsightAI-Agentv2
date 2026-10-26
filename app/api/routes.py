@@ -421,3 +421,103 @@ async def get_cluster_logs(
             status_code=502,
             detail="Failed to retrieve pod logs from the Kubernetes MCP server.",
         )
+
+
+# ============================================================
+# Read-only Kubernetes Recommendations
+# ============================================================
+@router.get("/recommendations")
+async def get_recommendations(
+    namespace: str | None = None,
+    current_user: User = Depends(get_current_user),
+):
+    """Generate read-only Kubernetes health recommendations."""
+
+    from app.recommendations import build_recommendations
+
+    try:
+        pods_result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "list_pods",
+            {"namespace": namespace},
+        )
+        deployments_result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "list_deployments",
+            {"namespace": namespace},
+        )
+        events_result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "list_events",
+            {"namespace": namespace},
+        )
+
+        pods = parse_mcp_result(pods_result)
+        deployments = parse_mcp_result(deployments_result)
+        events = parse_mcp_result(events_result)
+
+        # MCP parsing can return an error string or another unexpected shape.
+        if not isinstance(pods, list):
+            raise ValueError("Unexpected response from list_pods MCP tool.")
+        if not isinstance(deployments, list):
+            raise ValueError(
+                "Unexpected response from list_deployments MCP tool."
+            )
+        if not isinstance(events, list):
+            raise ValueError("Unexpected response from list_events MCP tool.")
+
+        # Do not silently report healthy if any data source failed.
+        source_errors = [
+            {
+                "source": source,
+                "error": item["error"],
+            }
+            for source, items in (
+                ("pods", pods),
+                ("deployments", deployments),
+                ("events", events),
+            )
+            for item in items
+            if isinstance(item, dict) and item.get("error")
+        ]
+
+        usable_pods = [p for p in pods if not p.get("error")]
+        usable_deployments = [
+            d for d in deployments if not d.get("error")
+        ]
+        usable_events = [e for e in events if not e.get("error")]
+
+        findings = build_recommendations(
+            usable_pods,
+            usable_deployments,
+            usable_events,
+        )
+
+        return {
+            "namespace": namespace,
+            "mode": "read_only",
+            "approval_required_for_changes": True,
+            "summary": {
+                "total": len(findings),
+                "critical": sum(
+                    f["severity"] == "critical" for f in findings
+                ),
+                "warning": sum(
+                    f["severity"] == "warning" for f in findings
+                ),
+            },
+            "data_sources": {
+                "pods": len(usable_pods),
+                "deployments": len(usable_deployments),
+                "events": len(usable_events),
+            },
+            "source_errors": source_errors,
+            "recommendations": findings,
+        }
+
+    except Exception:
+        logger.exception("Failed to generate Kubernetes recommendations")
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to collect Kubernetes data for recommendations.",
+        )

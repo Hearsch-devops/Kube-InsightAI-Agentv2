@@ -303,6 +303,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 showOverview();
             } else if (tab.dataset.tab === "logs") {
                 showLogs();
+            } else if (tab.dataset.tab === "recommendations") {
+                showRecommendations();
             } else {
                 showPlaceholder(
                     tab.textContent.replace(/[^\w\s]/g, "").trim()
