@@ -99,6 +99,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const clustersPage = document.getElementById("clustersPage");
     const placeholderPage = document.getElementById("placeholderPage");
     const logsPage = document.getElementById("logsPage");
+    const recommendationsPage = document.getElementById(
+        "recommendationsPage"
+    );
     const clustersNamespaceSelector =
         document.getElementById("clustersNamespaceSelector");
     const clustersStatus = document.getElementById("clustersStatus");
@@ -1024,6 +1027,170 @@ document.addEventListener("DOMContentLoaded", async () => {
         }).join("");
     }
 
+    function escapeRecommendationHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
+    }
+
+    async function loadRecommendations() {
+        const list = document.getElementById("recommendationsList");
+        const status = document.getElementById("recommendationsStatus");
+        const total = document.getElementById("recommendationTotal");
+        const critical = document.getElementById("recommendationCritical");
+        const warning = document.getElementById("recommendationWarning");
+
+        if (!list || !status) {
+            console.error("Recommendations HTML elements were not found.");
+            return;
+        }
+
+        status.textContent = "Loading recommendations...";
+        list.innerHTML = "";
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                "/api/recommendations"
+            );
+
+            if (!response.ok) {
+                throw new Error(`API request failed: HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const recommendations = data.recommendations || [];
+
+            total.textContent = data.summary?.total ?? recommendations.length;
+            critical.textContent = data.summary?.critical ?? 0;
+            warning.textContent = data.summary?.warning ?? 0;
+
+            const severityFilter =
+                document.getElementById("recommendationSeverity").value;
+            const namespaceFilter =
+                document.getElementById("recommendationNamespace").value;
+
+            const namespaces = [
+                ...new Set(
+                    recommendations
+                        .map(item => item.resource?.namespace)
+                        .filter(Boolean)
+                )
+            ].sort();
+
+            const namespaceSelect =
+                document.getElementById("recommendationNamespace");
+
+            const previousNamespace = namespaceSelect.value;
+
+            namespaceSelect.replaceChildren(
+                new Option("All namespaces", "all"),
+                ...namespaces.map(ns => new Option(ns, ns))
+            );
+
+            if (namespaces.includes(previousNamespace)) {
+                namespaceSelect.value = previousNamespace;
+            }
+
+            const filtered = recommendations.filter(item => {
+                const severityMatches =
+                    severityFilter === "all" ||
+                    item.severity === severityFilter;
+
+                const namespaceMatches =
+                    namespaceSelect.value === "all" ||
+                    item.resource?.namespace === namespaceSelect.value;
+
+                return severityMatches && namespaceMatches;
+            });
+
+            if (!filtered.length) {
+                list.textContent = "No recommendations match these filters.";
+                status.textContent = "No matching recommendations.";
+                return;
+            }
+
+            list.innerHTML = filtered.map((item, index) => {
+                const resource = item.resource || {};
+                const severity = item.severity || "warning";
+                const evidence = (item.evidence || [])
+                    .map(text => `<li>${escapeRecommendationHTML(text)}</li>`)
+                    .join("");
+
+                const causes = (item.likely_causes || [])
+                    .map(text => `<li>${escapeRecommendationHTML(text)}</li>`)
+                    .join("");
+
+                const actions = (item.recommended_actions || [])
+                    .map(text => `<li>${escapeRecommendationHTML(text)}</li>`)
+                    .join("");
+
+                const commands = (item.commands || [])
+                    .map(command => `
+                        <div class="recommendation-command">
+                            <code>${escapeRecommendationHTML(command)}</code>
+                            <button type="button"
+                                    class="copy-recommendation-command"
+                                    data-command="${escapeRecommendationHTML(command)}">
+                                Copy
+                            </button>
+                        </div>
+                    `).join("");
+
+                return `
+                    <article class="panel recommendation-card">
+                        <div class="panel-header">
+                            <div>
+                                <strong>${escapeRecommendationHTML(
+                                    resource.name || "Unknown resource"
+                                )}</strong>
+                                <p>${escapeRecommendationHTML(
+                                    resource.namespace || "Unknown namespace"
+                                )} · ${escapeRecommendationHTML(
+                                    resource.kind || "Resource"
+                                )}</p>
+                            </div>
+                            <span class="recommendation-severity">
+                                ${escapeRecommendationHTML(severity.toUpperCase())}
+                            </span>
+                        </div>
+
+                        <p>${escapeRecommendationHTML(item.observation)}</p>
+
+                        <details>
+                            <summary>Evidence, causes and remediation</summary>
+                            <h4>Evidence</h4>
+                            <ul>${evidence || "<li>No evidence provided.</li>"}</ul>
+
+                            <h4>Likely causes</h4>
+                            <ul>${causes || "<li>No causes provided.</li>"}</ul>
+
+                            <h4>Recommended actions</h4>
+                            <ul>${actions || "<li>No actions provided.</li>"}</ul>
+
+                            <h4>Troubleshooting commands</h4>
+                            ${commands || "<p>No commands provided.</p>"}
+                        </details>
+
+                        <p><small>Read-only recommendations. Changes require approval.</small></p>
+                    </article>
+                `;
+            }).join("");
+
+            status.textContent =
+                `Showing ${filtered.length} of ${recommendations.length} recommendations.`;
+
+        } catch (error) {
+            console.error("Failed to load recommendations:", error);
+            status.textContent =
+                "Unable to load recommendations. Check the API and browser console.";
+            list.textContent = error.message;
+        }
+    }
+
     // Overview
     function showOverview() {
         dashboardView.classList.remove("hidden");
@@ -1032,6 +1199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         logsPage.classList.add("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
+        recommendationsPage.classList.add("hidden");
 
     }
 
@@ -1042,7 +1210,49 @@ document.addEventListener("DOMContentLoaded", async () => {
         logsPage.classList.remove("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
+    } 
+    
+    function showRecommendations() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+        clustersPage.classList.add("hidden");
+        logsPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
+        recommendationsPage.classList.remove("hidden");
+
+        loadRecommendations();
     }
+    
+    document.getElementById("refreshRecommendations")
+        .addEventListener("click", loadRecommendations);
+
+    document.getElementById("recommendationSeverity")
+        .addEventListener("change", loadRecommendations);
+
+    document.getElementById("recommendationNamespace")
+        .addEventListener("change", loadRecommendations);
+
+    document.getElementById("recommendationsList")
+        .addEventListener("click", async event => {
+            const button = event.target.closest(
+                ".copy-recommendation-command"
+            );
+
+            if (!button) return;
+
+            try {
+                await navigator.clipboard.writeText(
+                    button.dataset.command
+                );
+                button.textContent = "Copied!";
+                setTimeout(() => {
+                    button.textContent = "Copy";
+                }, 1500);
+            } catch (error) {
+                console.error("Could not copy command:", error);
+            }
+        });
 
     function showClusters() {
         dashboardView.classList.add("hidden");

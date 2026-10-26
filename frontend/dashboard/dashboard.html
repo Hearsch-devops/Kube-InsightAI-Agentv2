@@ -705,6 +705,64 @@
 
         </section>
 
+        <!-- Recommendations Page -->
+        <section id="recommendationsPage" class="page-view hidden">
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Kubernetes Recommendations</h2>
+                        <p>Actionable, read-only troubleshooting guidance for your cluster.</p>
+                    </div>
+                    <button class="primary-button" id="refreshRecommendations">
+                        Refresh Recommendations
+                    </button>
+                </div>
+            </div>
+
+            <div class="logs-resource-grid">
+                <div class="panel">
+                    <p>Total Recommendations</p>
+                    <h2 id="recommendationTotal">—</h2>
+                </div>
+                <div class="panel">
+                    <p>Critical</p>
+                    <h2 id="recommendationCritical">—</h2>
+                </div>
+                <div class="panel">
+                    <p>Warnings</p>
+                    <h2 id="recommendationWarning">—</h2>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="logs-resource-grid">
+                    <div class="logs-field">
+                        <label for="recommendationSeverity">Severity</label>
+                        <select id="recommendationSeverity">
+                            <option value="all">All severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="warning">Warning</option>
+                        </select>
+                    </div>
+
+                    <div class="logs-field">
+                        <label for="recommendationNamespace">Namespace</label>
+                        <select id="recommendationNamespace">
+                            <option value="all">All namespaces</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p id="recommendationsStatus" role="status">
+                    Recommendations have not been loaded yet.
+                </p>
+
+                <div id="recommendationsList"></div>
+            </div>
+
+        </section>
+
         <!-- Query Page -->
         <section id="queryPage" class="page-view hidden">
 
