@@ -99,6 +99,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const clustersPage = document.getElementById("clustersPage");
     const placeholderPage = document.getElementById("placeholderPage");
     const historyPage = document.getElementById("historyPage");
+    const historyList = document.getElementById("historyList");
+    const historyStatus = document.getElementById("historyStatus");
+    const historySearch = document.getElementById("historySearch");
+    const refreshHistoryButton = document.getElementById("refreshHistory");
+
+    let investigationHistory = [];
     const logsPage = document.getElementById("logsPage");
     const recommendationsPage = document.getElementById(
         "recommendationsPage"
@@ -1227,8 +1233,185 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         historyPage.classList.remove("hidden");
 
-        document.getElementById("secondaryTitle").textContent =
-            "Investigation History";
+        secondaryTitle.textContent = "Investigation History";
+
+        loadInvestigationHistory();
+    }
+
+    function renderHistory() {
+        if (!historyList || !historySearch) return;
+
+        const searchTerm = historySearch.value.trim().toLowerCase();
+
+        const filteredHistory = investigationHistory.filter(item => {
+            return (
+                (item.question || "").toLowerCase().includes(searchTerm) ||
+                (item.response || "").toLowerCase().includes(searchTerm) ||
+                (item.route || "").toLowerCase().includes(searchTerm) ||
+                (item.namespace || "").toLowerCase().includes(searchTerm)
+            );
+        });
+
+        historyList.replaceChildren();
+
+        if (filteredHistory.length === 0) {
+            const emptyMessage = document.createElement("p");
+
+            emptyMessage.textContent = investigationHistory.length
+                ? "No investigations match your search."
+                : "No investigation history found yet.";
+
+            historyList.appendChild(emptyMessage);
+            return;
+        }
+
+        filteredHistory.forEach(item => {
+            const card = document.createElement("article");
+            card.className = "history-card";
+
+            const question = document.createElement("h3");
+            question.className = "history-question";
+            question.textContent = item.question || "Untitled investigation";
+
+            const timestamp = document.createElement("p");
+            timestamp.className = "history-timestamp";
+
+            const date = item.timestamp ? new Date(item.timestamp) : null;
+
+            timestamp.textContent = date && !Number.isNaN(date.getTime())
+                ? date.toLocaleString()
+                : "Date unavailable";
+
+            const metadata = document.createElement("p");
+            metadata.className = "history-metadata";
+
+            const details = [];
+
+            if (item.route) details.push(`Route: ${item.route}`);
+            if (item.namespace) details.push(`Namespace: ${item.namespace}`);
+
+            metadata.textContent = details.join(" • ");
+
+            const answer = document.createElement("p");
+            answer.className = "history-response";
+            answer.textContent = item.response || "No response recorded.";
+
+            const toggleButton = document.createElement("button");
+            toggleButton.type = "button";
+            toggleButton.className = "history-toggle";
+            toggleButton.textContent = "View response";
+
+            const answerContainer = document.createElement("div");
+            answerContainer.className = "history-answer hidden";
+            answerContainer.appendChild(answer);
+
+            if (Array.isArray(item.sources) && item.sources.length > 0) {
+                const sourcesHeading = document.createElement("h4");
+                sourcesHeading.textContent = "Sources";
+
+                const sourcesList = document.createElement("ul");
+
+                item.sources.forEach(source => {
+                    const li = document.createElement("li");
+                    li.textContent = typeof source === "string"
+                        ? source
+                        : JSON.stringify(source);
+
+                    sourcesList.appendChild(li);
+                });
+
+                answerContainer.append(sourcesHeading, sourcesList);
+            }
+
+            toggleButton.addEventListener("click", () => {
+                const isHidden = answerContainer.classList.toggle("hidden");
+
+                toggleButton.textContent = isHidden
+                    ? "View response"
+                    : "Hide response";
+            });
+
+            card.append(
+                question,
+                timestamp,
+                metadata,
+                toggleButton,
+                answerContainer
+            );
+
+            historyList.appendChild(card);
+        });
+    }
+
+    async function loadInvestigationHistory() {
+        if (!historyList || !historyStatus) return;
+
+        if (refreshHistoryButton) {
+            refreshHistoryButton.disabled = true;
+            refreshHistoryButton.textContent = "Loading...";
+        }
+
+        historyStatus.textContent = "Loading investigation history...";
+
+        try {
+            const response = await window.KubeAuth.apiFetch("/api/history");
+
+            if (!response.ok) {
+                let message = "Unable to load investigation history.";
+
+                try {
+                    const errorData = await response.json();
+                    message = errorData.detail || message;
+                } catch {
+                    // Keep the default error message.
+                }
+
+                throw new Error(message);
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data.history)) {
+                throw new Error("Unexpected response from the History API.");
+            }
+
+            investigationHistory = data.history;
+
+            historyStatus.textContent =
+                `${investigationHistory.length} investigation(s) loaded.`;
+
+            renderHistory();
+
+        } catch (error) {
+            console.error("Failed to load investigation history:", error);
+
+            historyStatus.textContent =
+                error.message || "Unable to load investigation history.";
+
+            historyList.replaceChildren();
+
+            const errorMessage = document.createElement("p");
+            errorMessage.textContent =
+                "Please check your session and try refreshing.";
+
+            historyList.appendChild(errorMessage);
+
+        } finally {
+            if (refreshHistoryButton) {
+                refreshHistoryButton.disabled = false;
+                refreshHistoryButton.textContent = "↻ Refresh";
+            }
+        }
+    }
+    if (refreshHistoryButton) {
+        refreshHistoryButton.addEventListener(
+            "click",
+            loadInvestigationHistory
+        );
+    }
+
+    if (historySearch) {
+        historySearch.addEventListener("input", renderHistory);
     }
 
     function showRecommendations() {

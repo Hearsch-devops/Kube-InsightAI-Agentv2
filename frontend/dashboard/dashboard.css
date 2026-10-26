@@ -2010,3 +2010,68 @@ button:disabled { cursor: not-allowed; opacity: .5; }
         width: 100%;
     }
 }
+
+
+#historyPage .history-card {
+    padding: 18px;
+    margin-bottom: 14px;
+    background: #111c32;
+    border: 1px solid #293852;
+    border-radius: 10px;
+}
+
+#historyPage .history-card:last-child {
+    margin-bottom: 0;
+}
+
+#historyPage .history-question {
+    margin: 0 0 8px;
+    color: #f1f5f9;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#historyPage .history-timestamp,
+#historyPage .history-metadata {
+    margin: 6px 0;
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+#historyPage .history-response {
+    color: #dbe4f0;
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#historyPage .history-toggle {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #201641;
+    color: #c4b5fd;
+    border: 1px solid #493477;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+#historyPage .history-toggle:hover {
+    background: #302057;
+    border-color: #8b5cf6;
+}
+
+#historyPage .history-answer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #293852;
+}
+
+#historyPage .history-answer li {
+    margin: 6px 0;
+    color: #a5b4fc;
+    overflow-wrap: anywhere;
+}
