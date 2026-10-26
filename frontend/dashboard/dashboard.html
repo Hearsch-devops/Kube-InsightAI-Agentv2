@@ -485,18 +485,224 @@
         
         <!-- Logs Explorer Page -->
         <section id="logsPage" class="page-view hidden">
-            <div class="panel">
+
+            <!-- Logs Header -->
+            <div class="panel logs-header">
                 <div class="panel-header">
                     <div>
                         <h2>Logs Explorer</h2>
-                        <p>Search and inspect Kubernetes pod logs</p>
+                        <p>View and filter Kubernetes pod logs to troubleshoot issues</p>
+                    </div>
+
+                    <div class="logs-live-status">
+                        <span class="logs-live-indicator"></span>
+                        <span id="logsLiveStatus">Ready</span>
+                        <span id="logsLastRefreshed">Not refreshed yet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Selectors -->
+            <div class="panel">
+                <div class="logs-resource-grid">
+
+                    <div class="logs-field">
+                        <label for="logsNamespace">Namespace</label>
+                        <select id="logsNamespace">
+                            <option value="">Loading namespaces...</option>
+                        </select>
+                    </div>
+
+                    <div class="logs-field">
+                        <label for="logsPod">Pod</label>
+                        <select id="logsPod" disabled>
+                            <option value="">Select a namespace first</option>
+                        </select>
+                    </div>
+
+                    <div class="logs-field">
+                        <label for="logsContainer">Container</label>
+                        <select id="logsContainer" disabled>
+                            <option value="">Select a pod first</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Time Range and Refresh Controls -->
+            <div class="logs-controls-grid">
+
+                <!-- Absolute Time Range -->
+                <div class="panel logs-time-panel">
+                    <h3>Absolute time range</h3>
+
+                    <div class="logs-time-fields">
+                        <div class="logs-field">
+                            <label for="logsFrom">From</label>
+                            <input
+                                type="datetime-local"
+                                id="logsFrom"
+                                step="1"
+                            >
+                        </div>
+
+                        <div class="logs-field">
+                            <label for="logsTo">To</label>
+                            <input
+                                type="datetime-local"
+                                id="logsTo"
+                                step="1"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="logs-time-actions">
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            id="logsCopyRange"
+                            title="Copy time range"
+                            aria-label="Copy time range"
+                        >▢</button>
+
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            id="logsPasteRange"
+                            title="Paste time range"
+                            aria-label="Paste time range"
+                        >▤</button>
+
+                        <button
+                            type="button"
+                            class="primary-button"
+                            id="logsApplyRange"
+                        >Apply time range</button>
+                    </div>
+
+                    <p id="logsRangeStatus" class="logs-muted" role="status">
+                        Select a time range to query logs.
+                    </p>
+                </div>
+
+                <!-- Quick Ranges -->
+                <div class="panel logs-quick-panel">
+                    <h3>Quick ranges</h3>
+
+                    <div class="logs-quick-ranges">
+                        <button type="button" class="logs-range-button" data-range="5m">5m</button>
+                        <button type="button" class="logs-range-button" data-range="15m">15m</button>
+                        <button type="button" class="logs-range-button" data-range="30m">30m</button>
+                        <button type="button" class="logs-range-button active" data-range="1h">1h</button>
+                        <button type="button" class="logs-range-button" data-range="3h">3h</button>
+                        <button type="button" class="logs-range-button" data-range="6h">6h</button>
+                        <button type="button" class="logs-range-button" data-range="12h">12h</button>
+                        <button type="button" class="logs-range-button" data-range="24h">24h</button>
                     </div>
                 </div>
 
-                <p id="logsStatus" role="status">
-                    Logs Explorer is ready to be configured.
-                </p>
+                <!-- Auto Refresh -->
+                <div class="panel logs-auto-panel">
+                    <h3>Auto-refresh</h3>
+
+                    <div class="logs-auto-controls">
+                        <label class="logs-switch" for="logsAutoRefresh">
+                            <input type="checkbox" id="logsAutoRefresh">
+                            <span class="logs-switch-slider"></span>
+                        </label>
+
+                        <select id="logsRefreshInterval" aria-label="Auto-refresh interval">
+                            <option value="5">5 seconds</option>
+                            <option value="10" selected>10 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                        </select>
+                    </div>
+
+                    <p class="logs-muted">
+                        Refresh logs automatically using the selected time range.
+                    </p>
+                </div>
+
             </div>
+
+            <!-- Search and Actions -->
+            <div class="panel">
+                <div class="logs-search-grid">
+
+                    <div class="logs-field">
+                        <label for="logsSearch">Search logs</label>
+                        <input
+                            type="search"
+                            id="logsSearch"
+                            placeholder="Search logs (e.g. error, warning, connection)"
+                        >
+                    </div>
+
+                    <div class="logs-field">
+                        <label for="logsLevel">Log level</label>
+                        <select id="logsLevel">
+                            <option value="all">All levels</option>
+                            <option value="error">Error</option>
+                            <option value="warn">Warning</option>
+                            <option value="info">Info</option>
+                            <option value="debug">Debug</option>
+                        </select>
+                    </div>
+
+                    <div class="logs-action-buttons">
+                        <button
+                            type="button"
+                            class="primary-button"
+                            id="logsRefreshButton"
+                        >↻ Refresh logs</button>
+
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            id="logsDownloadButton"
+                        >⇩ Download</button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Log Entries -->
+            <div class="panel logs-entries-panel">
+
+                <div class="panel-header">
+                    <h3>Log entries</h3>
+                    <span id="logsEntryCount" class="logs-muted">
+                        No logs loaded
+                    </span>
+                </div>
+
+                <div id="logsLoading" class="logs-message hidden" role="status">
+                    Loading Kubernetes logs...
+                </div>
+
+                <div id="logsError" class="logs-message logs-error hidden" role="alert"></div>
+
+                <div id="logsEmpty" class="logs-message">
+                    Select a namespace and pod, then apply a time range to load logs.
+                </div>
+
+                <div class="table-container logs-table-container hidden" id="logsTableContainer">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Level</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+
         </section>
 
         <!-- Query Page -->
