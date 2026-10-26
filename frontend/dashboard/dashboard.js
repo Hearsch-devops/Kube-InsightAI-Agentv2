@@ -1197,6 +1197,315 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Initialize the default range to the last hour.
     setLogsTimeRange("1h");
 
+    // ==========================================
+    // LOGS EXPLORER: FETCH, FILTER, AND DISPLAY
+    // ==========================================
+    const logsRefreshButton = document.getElementById("logsRefreshButton");
+    const logsApplyRange = document.getElementById("logsApplyRange");
+    const logsTableBody = document.getElementById("logsTableBody");
+    const logsTableContainer = document.getElementById("logsTableContainer");
+    const logsEntryCount = document.getElementById("logsEntryCount");
+    const logsLoading = document.getElementById("logsLoading");
+    const logsError = document.getElementById("logsError");
+    const logsEmpty = document.getElementById("logsEmpty");
+    const logsSearch = document.getElementById("logsSearch");
+    const logsLevel = document.getElementById("logsLevel");
+    const logsDownloadButton = document.getElementById("logsDownloadButton");
+    const logsAutoRefresh = document.getElementById("logsAutoRefresh");
+    const logsRefreshInterval = document.getElementById("logsRefreshInterval");
+
+    let fetchedLogEntries = [];
+    let logsAutoRefreshTimer = null;
+    let logsRequestInProgress = false;
+
+    function setLogsMessage(element, message, visible) {
+        if (!element) return;
+        element.textContent = message;
+        element.classList.toggle("hidden", !visible);
+    }
+
+    function parseLogEntries(rawLogs) {
+        const text = String(rawLogs || "");
+        const marker = "\nLogs:";
+        const markerIndex = text.indexOf(marker);
+
+        // Remove the MCP tool's metadata header when present.
+        const body = markerIndex >= 0
+            ? text.slice(markerIndex + marker.length)
+            : text;
+
+        return body
+            .split(/\r?\n/)
+            .filter(line => line.trim().length > 0)
+            .map(line => {
+                const match = line.match(
+                    /^(\d{4}-\d{2}-\d{2}T\S+)\s+(.*)$/
+                );
+
+                const timestamp = match ? match[1] : "";
+                const message = match ? match[2] : line;
+                const levelMatch = message.match(
+                    /\b(CRITICAL|FATAL|ERROR|WARN(?:ING)?|INFO|DEBUG|TRACE)\b/i
+                );
+
+                let level = levelMatch
+                    ? levelMatch[1].toUpperCase()
+                    : "OTHER";
+
+                if (level === "WARNING") level = "WARN";
+
+                return { timestamp, level, message };
+            });
+    }
+
+    function renderLogs() {
+        if (!logsTableBody) return;
+
+        const searchTerm = (logsSearch?.value || "").trim().toLowerCase();
+        const selectedLevel = (logsLevel?.value || "all").toLowerCase();
+
+        const filteredLogs = fetchedLogEntries.filter(entry => {
+            const matchesSearch =
+                !searchTerm ||
+                `${entry.timestamp} ${entry.level} ${entry.message}`
+                    .toLowerCase()
+                    .includes(searchTerm);
+
+            const matchesLevel =
+                selectedLevel === "all" ||
+                entry.level.toLowerCase() === selectedLevel;
+
+            return matchesSearch && matchesLevel;
+        });
+
+        logsTableBody.replaceChildren();
+
+        filteredLogs.forEach(entry => {
+            const row = document.createElement("tr");
+
+            const timestampCell = document.createElement("td");
+            timestampCell.textContent = entry.timestamp || "—";
+
+            const levelCell = document.createElement("td");
+            levelCell.textContent = entry.level;
+            levelCell.className = `log-level-${entry.level.toLowerCase()}`;
+
+            const messageCell = document.createElement("td");
+            messageCell.textContent = entry.message;
+
+            row.append(timestampCell, levelCell, messageCell);
+            logsTableBody.appendChild(row);
+        });
+
+        if (logsEntryCount) {
+            logsEntryCount.textContent =
+                `${filteredLogs.length} of ${fetchedLogEntries.length} log entries`;
+        }
+
+        logsTableContainer?.classList.toggle(
+            "hidden",
+            filteredLogs.length === 0
+        );
+
+        setLogsMessage(
+            logsEmpty,
+            fetchedLogEntries.length === 0
+                ? "No log entries returned for this pod and time range."
+                : "No logs match the current search or level filter.",
+            filteredLogs.length === 0
+        );
+    }
+
+    async function loadLogs() {
+        if (logsRequestInProgress) return;
+
+        const namespace = logsNamespace?.value;
+        const podName = logsPod?.value;
+
+        if (!namespace || !podName) {
+            fetchedLogEntries = [];
+            renderLogs();
+            setLogsMessage(
+                logsError,
+                "Select a namespace and pod before loading logs.",
+                true
+            );
+            return;
+        }
+
+        const startValue = logsFrom?.value;
+        const endValue = logsTo?.value;
+
+        if (!startValue || !endValue) {
+            setLogsMessage(
+                logsError,
+                "Select both the start and end times.",
+                true
+            );
+            return;
+        }
+
+        const startDate = new Date(startValue);
+        const endDate = new Date(endValue);
+
+        if (
+            Number.isNaN(startDate.getTime()) ||
+            Number.isNaN(endDate.getTime()) ||
+            startDate > endDate
+        ) {
+            setLogsMessage(
+                logsError,
+                "Enter a valid time range where From is earlier than To.",
+                true
+            );
+            return;
+        }
+
+        const params = new URLSearchParams({
+            pod_name: podName,
+            namespace,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString()
+        });
+
+        if (logsContainer?.value) {
+            params.set("container", logsContainer.value);
+        }
+
+        logsRequestInProgress = true;
+        if (logsRefreshButton) logsRefreshButton.disabled = true;
+
+        setLogsMessage(logsError, "", false);
+        setLogsMessage(logsEmpty, "", false);
+        setLogsMessage(logsLoading, "Loading Kubernetes logs...", true);
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                `/api/cluster/logs?${params.toString()}`
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                    errorData.detail || `Log request failed (${response.status}).`
+                );
+            }
+
+            const data = await response.json();
+            fetchedLogEntries = parseLogEntries(data.logs);
+
+            renderLogs();
+
+            if (logsRangeStatus) {
+                logsRangeStatus.textContent =
+                    `Loaded ${fetchedLogEntries.length} log entries for ${podName}.`;
+            }
+        } catch (error) {
+            console.error("Failed to load Kubernetes logs:", error);
+            setLogsMessage(
+                logsError,
+                error.message || "Unable to load Kubernetes logs.",
+                true
+            );
+        } finally {
+            logsRequestInProgress = false;
+            if (logsRefreshButton) logsRefreshButton.disabled = false;
+            setLogsMessage(logsLoading, "", false);
+        }
+    }
+
+    // Refresh and apply selected time range.
+    logsRefreshButton?.addEventListener("click", loadLogs);
+    logsApplyRange?.addEventListener("click", loadLogs);
+
+    // Re-render locally when search or level filters change.
+    logsSearch?.addEventListener("input", renderLogs);
+    logsLevel?.addEventListener("change", renderLogs);
+
+    // Clear stale entries when the selected pod or namespace changes.
+    function clearDisplayedLogs() {
+        fetchedLogEntries = [];
+        if (logsTableBody) logsTableBody.replaceChildren();
+        if (logsEntryCount) logsEntryCount.textContent = "No logs loaded";
+
+        logsTableContainer?.classList.add("hidden");
+        setLogsMessage(logsError, "", false);
+        setLogsMessage(logsLoading, "", false);
+        setLogsMessage(
+            logsEmpty,
+            "Select a namespace and pod, then apply a time range to load logs.",
+            true
+        );
+    }
+
+    logsNamespace?.addEventListener("change", clearDisplayedLogs);
+    logsPod?.addEventListener("change", clearDisplayedLogs);
+    logsContainer?.addEventListener("change", clearDisplayedLogs);
+
+    // Automatically refresh at the selected interval.
+    function configureLogsAutoRefresh() {
+        if (logsAutoRefreshTimer !== null) {
+            clearInterval(logsAutoRefreshTimer);
+            logsAutoRefreshTimer = null;
+        }
+
+        if (logsAutoRefresh?.checked) {
+            const seconds = Math.max(
+                5,
+                Number(logsRefreshInterval?.value || 10)
+            );
+
+            logsAutoRefreshTimer = setInterval(loadLogs, seconds * 1000);
+        }
+    }
+
+    logsAutoRefresh?.addEventListener("change", configureLogsAutoRefresh);
+    logsRefreshInterval?.addEventListener("change", configureLogsAutoRefresh);
+
+    // Download the currently filtered entries.
+    logsDownloadButton?.addEventListener("click", () => {
+        const searchTerm = (logsSearch?.value || "").trim().toLowerCase();
+        const selectedLevel = (logsLevel?.value || "all").toLowerCase();
+
+        const entries = fetchedLogEntries.filter(entry => {
+            const matchesSearch =
+                !searchTerm ||
+                `${entry.timestamp} ${entry.level} ${entry.message}`
+                    .toLowerCase()
+                    .includes(searchTerm);
+
+            const matchesLevel =
+                selectedLevel === "all" ||
+                entry.level.toLowerCase() === selectedLevel;
+
+            return matchesSearch && matchesLevel;
+        });
+
+        if (entries.length === 0) {
+            setLogsMessage(
+                logsError,
+                "There are no log entries to download.",
+                true
+            );
+            return;
+        }
+
+        const content = entries.map(entry =>
+            `${entry.timestamp || "—"} [${entry.level}] ${entry.message}`
+        ).join("\n");
+
+        const blob = new Blob([content], {
+            type: "text/plain;charset=utf-8"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "kube-insightai-pod-logs.txt";
+        link.click();
+        URL.revokeObjectURL(url);
+    });
+
         // ==========================================
         // AI ASSISTANT INTEGRATION
         // ==========================================
@@ -1590,5 +1899,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("refreshClusters").addEventListener("click", () => {
             loadClustersPage();
         });
+
+
 
 });
