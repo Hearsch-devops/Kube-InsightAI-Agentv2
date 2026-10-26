@@ -544,15 +544,12 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
 
         namespace_match = re.search(
-            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\b"
-            r"|\b[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\s+namespace\b",
+            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\b",
             question_lower,
         )
 
         if namespace_match:
-            requested_namespace = (
-                namespace_match.group(1) or namespace_match.group(2)
-            )
+            requested_namespace = namespace_match.group(1)
         else:
             requested_namespace = "kube-insightaiv2"
 
@@ -644,7 +641,21 @@ async def mcp_response(state: AgentState) -> dict:
                 requested_pod,
             )
 
-            # First check whether the user explicitly provided a pod name.
+            explicit_pod_match = re.search(
+                r"\bpod\s+[`']?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)[`']?\b",
+                question_lower,
+            )
+
+            # First, extract an explicitly named pod.
+            explicit_pod_match = re.search(
+                r"\bpod\s+[`']?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)[`']?\b",
+                question_lower,
+            )
+
+            if explicit_pod_match:
+                requested_pod = explicit_pod_match.group(1)
+
+            # Fallback: recognize patterns such as "pod-name crashing" or "pod-name logs".
             pod_name_match = re.search(
                 r"\b(?:pod\s+)?([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)\s+"
                 r"(?:pod\s+)?(?:crashing|crashed|failing|failed|logs?|events?)\b",
@@ -660,6 +671,10 @@ async def mcp_response(state: AgentState) -> dict:
                     "frontend",
                     "pod",
                     "pods",
+                    "and",
+                    "or",
+                    "in",
+                    "the",
                 }:
                     requested_pod = candidate_pod
 
