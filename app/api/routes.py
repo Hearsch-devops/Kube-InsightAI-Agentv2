@@ -156,6 +156,18 @@ async def chat(
         )
 
         # Save successful investigations separately from chat processing.
+        
+        chat_response = ChatResponse(
+            response=answer,
+            route=result.get("route"),
+            analysis=result.get("analysis"),
+            sources=result.get("sources", []),
+            error=result.get("error"),
+            error_message=result.get("error_message"),
+            remediation_proposal=result.get("remediation_proposal"),
+        )
+
+        # Save successful investigations without failing the chat request
         if not chat_response.error:
             try:
                 with SessionLocal() as db:
@@ -167,10 +179,8 @@ async def chat(
                         namespace=result.get("namespace"),
                         sources=chat_response.sources or [],
                     )
-
                     db.add(history_record)
                     db.commit()
-
             except Exception:
                 logger.exception(
                     "Failed to save investigation history for user %s",
