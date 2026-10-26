@@ -1610,10 +1610,14 @@ async def mcp_response(state: AgentState) -> dict:
 
                 if not namespace_wide_investigation:
                     mcp_context = {
+                        "namespace": requested_namespace,
+                        "requested_pod": requested_pod,
                         "pod": pod_context,
                         "owner": investigation_owner,
                         "events": investigation_events,
                         "logs": investigation_logs,
+                        "scheduling_details": scheduling_details,
+                        "node_scheduling_details": node_scheduling_details,
                     }
 
             if (
