@@ -544,8 +544,8 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
 
         namespace_match = re.search(
-            r"\bnamespace\s+`?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)`?\b"
-            r"|\b`([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)`\s+namespace\b",
+            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\b"
+            r"|\b[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\s+namespace\b",
             question_lower,
         )
 
