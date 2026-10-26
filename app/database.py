@@ -44,10 +44,8 @@ SessionLocal = sessionmaker(
 class Base(DeclarativeBase):
     pass
 
-
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
 
 class User(Base):
     __tablename__ = "users"
@@ -63,7 +61,6 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
-
 
 class RemediationProposal(Base):
     __tablename__ = "remediation_proposals"
@@ -100,7 +97,6 @@ class RemediationProposal(Base):
         DateTime(timezone=True), nullable=False, default=utc_now
     )
 
-
 class ApprovalDecision(Base):
     __tablename__ = "approval_decisions"
 
@@ -114,7 +110,6 @@ class ApprovalDecision(Base):
     decided_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
-
 
 class AuditEvent(Base):
     __tablename__ = "audit_events"
@@ -130,7 +125,29 @@ class AuditEvent(Base):
         DateTime(timezone=True), nullable=False, default=utc_now
     )
 
+class InvestigationHistory(Base):
+    __tablename__ = "investigation_history"
 
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, index=True
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    response: Mapped[str] = mapped_column(Text, nullable=False)
+    route: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
+    namespace: Mapped[str | None] = mapped_column(
+        String(63), nullable=True
+    )
+    sources: Mapped[list] = mapped_column(
+        JSON, nullable=False, default=list
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
 def init_db() -> None:
     """Create tables and safely migrate existing remediation proposals."""
