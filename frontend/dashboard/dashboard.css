@@ -1860,3 +1860,153 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     }
 }
 
+
+/* ==========================================
+   INVESTIGATION HISTORY
+   ========================================== */
+
+#historyPage {
+    width: 100%;
+    color: #f1f5f9;
+    padding-bottom: 24px;
+}
+
+#historyPage .panel {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 24px;
+    background: #0f172a;
+    border: 1px solid #26334d;
+    border-radius: 14px;
+    color: #f1f5f9;
+}
+
+#historyPage .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+#historyPage .panel-header h2 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+#historyPage #historyStatus {
+    margin: 0 0 18px;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Search field */
+
+#historyPage #historySearch {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    margin: 0 0 20px;
+
+    background: #080f20;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+    border-radius: 8px;
+
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#historyPage #historySearch::placeholder {
+    color: #64748b;
+}
+
+#historyPage #historySearch:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgb(139 92 246 / 15%);
+}
+
+/* Refresh button */
+
+#historyPage #refreshHistory {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 38px;
+    padding: 9px 15px;
+
+    background: #201641;
+    color: #c4b5fd;
+    border: 1px solid #493477;
+    border-radius: 8px;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+#historyPage #refreshHistory:hover {
+    background: #302057;
+    border-color: #8b5cf6;
+}
+
+#historyPage #refreshHistory:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 3px;
+}
+
+#historyPage #refreshHistory:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Empty state */
+
+#historyPage #historyList {
+    min-height: 100px;
+    padding: 20px;
+    background: #0b1325;
+    border: 1px dashed #334155;
+    border-radius: 10px;
+}
+
+#historyPage #historyList > p {
+    margin: 16px 0;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* Responsive layout */
+
+@media (max-width: 600px) {
+    #historyPage .panel {
+        padding: 16px;
+    }
+
+    #historyPage .panel-header {
+        align-items: flex-start;
+    }
+
+    #historyPage .panel-header h2 {
+        font-size: 19px;
+    }
+
+    #historyPage #refreshHistory {
+        width: 100%;
+    }
+}
