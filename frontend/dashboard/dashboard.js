@@ -94,6 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const secondaryTitle = document.getElementById("secondaryTitle");
     const clustersPage = document.getElementById("clustersPage");
     const placeholderPage = document.getElementById("placeholderPage");
+    const logsPage = document.getElementById("logsPage");
     const clustersNamespaceSelector =
         document.getElementById("clustersNamespaceSelector");
     const clustersStatus = document.getElementById("clustersStatus");
@@ -285,7 +286,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-// Top tabs
+    // Top tabs
     document.querySelectorAll(".page-tab[data-tab]").forEach(tab => {
         tab.addEventListener("click", () => {
             document.querySelectorAll(".page-tab").forEach(t => {
@@ -296,6 +297,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (tab.dataset.tab === "overview") {
                 showOverview();
+            } else if (tab.dataset.tab === "logs") {
+                showLogs();
             } else {
                 showPlaceholder(
                     tab.textContent.replace(/[^\w\s]/g, "").trim()
@@ -836,6 +839,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         dashboardView.classList.remove("hidden");
         secondaryView.classList.add("hidden");
         clustersPage.classList.add("hidden");
+        logsPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
+
+    }
+
+    function showLogs() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+        clustersPage.classList.add("hidden");
+        logsPage.classList.remove("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
     }
@@ -863,6 +877,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         secondaryView.classList.remove("hidden");
         clustersPage.classList.add("hidden");
         placeholderPage.classList.remove("hidden");
+        logsPage.classList.add("hidden");
 
         secondaryTitle.textContent = title;
     }
