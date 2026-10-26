@@ -120,7 +120,6 @@ async def chat(
 # ============================================================
 # helper to persist proposals
 # ============================================================
-
 def persist_remediation_proposal(
     proposal: dict,
     requested_by: str,
@@ -218,7 +217,6 @@ def persist_remediation_proposal(
 # ============================================================
 # Kubernetes MCP Configuration
 # ============================================================
-
 KUBERNETES_MCP_URL = os.getenv(
     "KUBERNETES_MCP_URL",
     "http://kube-insightaiv2-mcp:8001/mcp",
@@ -227,7 +225,6 @@ KUBERNETES_MCP_URL = os.getenv(
 # ============================================================
 # Kubernetes Namespaces
 # ============================================================
-
 @router.get("/cluster/namespaces")
 async def get_namespaces(
     current_user: User = Depends(get_current_user),
@@ -261,7 +258,6 @@ async def get_namespaces(
 # ============================================================
 # Kubernetes Cluster Overview
 # ============================================================
-
 @router.get("/cluster/overview")
 async def get_cluster_overview(
     namespace: str = "kube-insightaiv2",
@@ -325,7 +321,6 @@ async def get_cluster_overview(
 # ============================================================
 # Kubernetes Cluster Metrics
 # ============================================================
-
 @router.get("/cluster/metrics")
 async def get_cluster_metrics(
     current_user: User = Depends(get_current_user),
@@ -354,7 +349,6 @@ async def get_cluster_metrics(
 # ============================================================
 # Kubernetes Ingresses
 # ============================================================
-
 @router.get("/cluster/ingresses")
 async def get_cluster_ingresses(
     namespace: str | None = None,
@@ -382,4 +376,48 @@ async def get_cluster_ingresses(
         raise HTTPException(
             status_code=500,
             detail=str(exc),
+        )
+
+# ============================================================
+# Kubernetes Pod Logs
+# ============================================================
+@router.get("/cluster/logs")
+async def get_cluster_logs(
+    pod_name: str,
+    namespace: str = "default",
+    start_time: str | None = None,
+    end_time: str | None = None,
+    container: str | None = None,
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve Kubernetes pod logs through the MCP server."""
+
+    try:
+        result = await call_mcp_tool(
+            KUBERNETES_MCP_URL,
+            "get_pod_logs_by_time",
+            {
+                "pod_name": pod_name,
+                "namespace": namespace,
+                "start_time": start_time,
+                "end_time": end_time,
+                "container": container,
+            },
+        )
+
+        return {
+            "pod_name": pod_name,
+            "namespace": namespace,
+            "logs": parse_mcp_result(result),
+        }
+
+    except Exception:
+        logger.exception(
+            "Failed to retrieve logs for pod %s in namespace %s",
+            pod_name,
+            namespace,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to retrieve pod logs from the Kubernetes MCP server.",
         )
