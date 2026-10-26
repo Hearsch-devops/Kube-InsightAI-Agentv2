@@ -98,6 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const secondaryTitle = document.getElementById("secondaryTitle");
     const clustersPage = document.getElementById("clustersPage");
     const placeholderPage = document.getElementById("placeholderPage");
+    const historyPage = document.getElementById("historyPage");
     const logsPage = document.getElementById("logsPage");
     const recommendationsPage = document.getElementById(
         "recommendationsPage"
@@ -308,6 +309,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 showLogs();
             } else if (tab.dataset.tab === "recommendations") {
                 showRecommendations();
+            } else if (tab.dataset.tab === "history") {
+                showHistory();
             } else {
                 showPlaceholder(
                     tab.textContent.replace(/[^\w\s]/g, "").trim()
@@ -1212,6 +1215,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         queryPage.classList.add("hidden");
     } 
     
+    function showHistory() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+
+        clustersPage.classList.add("hidden");
+        logsPage.classList.add("hidden");
+        recommendationsPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
+
+        historyPage.classList.remove("hidden");
+
+        document.getElementById("secondaryTitle").textContent =
+            "Investigation History";
+    }
+
     function showRecommendations() {
         dashboardView.classList.add("hidden");
         secondaryView.classList.remove("hidden");
