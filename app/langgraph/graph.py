@@ -544,20 +544,19 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
 
         namespace_match = re.search(
-            r"\bnamespace\s+`?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)`?\b",
+            r"\bnamespace\s+`?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)`?\b"
+            r"|\b`([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)`\s+namespace\b",
             question_lower,
         )
 
         if namespace_match:
-            requested_namespace = namespace_match.group(1)
-
+            requested_namespace = (
+                namespace_match.group(1) or namespace_match.group(2)
+            )
         else:
             requested_namespace = "kube-insightaiv2"
 
-        logger.info(
-            "Requested namespace: %s",
-            requested_namespace,
-        )
+        logger.info("Requested namespace: %s", requested_namespace)
 
         # =========================================================
         # Select the MCP tool based on the user's Kubernetes intent
