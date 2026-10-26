@@ -4,6 +4,20 @@ from app.database import (
     AuditEvent,
 )
 
+from app.database import (
+    SessionLocal,
+    RemediationProposal,
+    AuditEvent,
+    InvestigationHistory,
+    User,
+)
+
+from app.database import (
+    SessionLocal,
+    RemediationProposal,
+    AuditEvent,
+)
+
 from app.mcp_client import (
     call_mcp_tool,
     parse_mcp_result,
@@ -17,7 +31,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from app.auth import get_current_user
-from app.database import User
 
 from app.mcp_client import call_mcp_tool
 
@@ -38,6 +51,42 @@ class ChatResponse(BaseModel):
     error: str | None = None
     error_message: str | None = None
     remediation_proposal: dict | None = None
+
+# ============================================================
+# Investigation History API
+# ============================================================
+@router.get("/history")
+async def get_investigation_history(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the authenticated user's investigation history."""
+
+    with SessionLocal() as db:
+        records = (
+            db.query(InvestigationHistory)
+            .filter(
+                InvestigationHistory.user_id == current_user.id
+            )
+            .order_by(InvestigationHistory.created_at.desc())
+            .limit(100)
+            .all()
+        )
+
+        return {
+            "history": [
+                {
+                    "id": record.id,
+                    "question": record.question,
+                    "response": record.response,
+                    "route": record.route,
+                    "namespace": record.namespace,
+                    "sources": record.sources or [],
+                    "timestamp": record.created_at.isoformat(),
+                }
+                for record in records
+            ],
+            "count": len(records),
+        }
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
@@ -96,7 +145,7 @@ async def chat(
             else:
                 answer = "The agent could not generate a response."
 
-        return ChatResponse(
+                chat_response = ChatResponse(
             response=answer,
             route=result.get("route"),
             analysis=result.get("analysis"),
@@ -105,6 +154,30 @@ async def chat(
             error_message=result.get("error_message"),
             remediation_proposal=result.get("remediation_proposal"),
         )
+
+        # Save successful investigations separately from chat processing.
+        if not chat_response.error:
+            try:
+                with SessionLocal() as db:
+                    history_record = InvestigationHistory(
+                        user_id=current_user.id,
+                        question=request.message,
+                        response=chat_response.response,
+                        route=chat_response.route,
+                        namespace=result.get("namespace"),
+                        sources=chat_response.sources or [],
+                    )
+
+                    db.add(history_record)
+                    db.commit()
+
+            except Exception:
+                logger.exception(
+                    "Failed to save investigation history for user %s",
+                    current_user.username,
+                )
+
+        return chat_response
 
     except HTTPException:
         raise
