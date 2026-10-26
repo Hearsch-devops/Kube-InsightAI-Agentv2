@@ -939,6 +939,76 @@ document.addEventListener("DOMContentLoaded", async () => {
         URL.revokeObjectURL(url);
     });
 
+    // Logs Explorer: time-range controls
+    const logsFrom = document.getElementById("logsFrom");
+    const logsTo = document.getElementById("logsTo");
+    const logsRangeStatus = document.getElementById("logsRangeStatus");
+    const logsRangeButtons = document.querySelectorAll(
+        "#logsPage .logs-range-button"
+    );
+
+    function formatDateTimeLocal(date) {
+        const pad = value => String(value).padStart(2, "0");
+
+        return (
+            `${date.getFullYear()}-${pad(date.getMonth() + 1)}-` +
+            `${pad(date.getDate())}T${pad(date.getHours())}:` +
+            `${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+        );
+    }
+
+    function setLogsTimeRange(range, updateStatus = true) {
+        const durations = {
+            "5m": 5,
+            "15m": 15,
+            "30m": 30,
+            "1h": 60,
+            "3h": 180,
+            "6h": 360,
+            "12h": 720,
+            "24h": 1440
+        };
+
+        const minutes = durations[range];
+
+        if (!minutes || !logsFrom || !logsTo) {
+            return;
+        }
+
+        const end = new Date();
+        const start = new Date(end.getTime() - minutes * 60 * 1000);
+
+        logsFrom.value = formatDateTimeLocal(start);
+        logsTo.value = formatDateTimeLocal(end);
+
+        logsRangeButtons.forEach(button => {
+            const active = button.dataset.range === range;
+
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+        });
+
+        if (updateStatus && logsRangeStatus) {
+            logsRangeStatus.textContent =
+                `Selected range: last ${range}. Apply the range to query logs.`;
+        }
+    }
+
+    // Quick-range buttons
+    logsRangeButtons.forEach(button => {
+        button.setAttribute(
+            "aria-pressed",
+            String(button.classList.contains("active"))
+        );
+
+        button.addEventListener("click", () => {
+            setLogsTimeRange(button.dataset.range);
+        });
+    });
+
+    // Initialize the default range to the last hour.
+    setLogsTimeRange("1h");
+
         // ==========================================
         // AI ASSISTANT INTEGRATION
         // ==========================================
