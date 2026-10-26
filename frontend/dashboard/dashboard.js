@@ -4,6 +4,10 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+    
+    const logsNamespace = document.getElementById("logsNamespace");
+    const logsPod = document.getElementById("logsPod");
+    const logsContainer = document.getElementById("logsContainer");
     const loginView = document.getElementById("loginView");
     const loginForm = document.getElementById("loginForm");
     const loginUsername = document.getElementById("loginUsername");
@@ -366,6 +370,129 @@ document.addEventListener("DOMContentLoaded", async () => {
             );
         }
     }
+
+    async function loadLogsPods() {
+        if (!logsNamespace || !logsPod || !logsContainer) return;
+
+        const namespace = logsNamespace.value;
+
+        logsPod.replaceChildren(
+            new Option(
+                namespace ? "Loading pods..." : "Select a namespace first",
+                ""
+            )
+        );
+        logsPod.disabled = true;
+
+        logsContainer.replaceChildren(
+            new Option("Select a pod first", "")
+        );
+        logsContainer.disabled = true;
+
+        if (!namespace) return;
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                `/api/cluster/overview?namespace=${encodeURIComponent(namespace)}`
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load pods.");
+            }
+
+            const data = await response.json();
+            const pods = data.pods || [];
+
+            logsPod.replaceChildren();
+
+            if (pods.some(pod => pod.error)) {
+                throw new Error(pods.find(pod => pod.error).error);
+            }
+
+            if (pods.length === 0) {
+                logsPod.add(new Option("No pods found", ""));
+                return;
+            }
+
+            logsPod.add(new Option("Select a pod", ""));
+
+            pods.forEach(pod => {
+                logsPod.add(new Option(pod.name, pod.name));
+            });
+
+            logsPod.disabled = false;
+
+        } catch (error) {
+            console.error("Failed to load Logs pods:", error);
+            logsPod.replaceChildren(
+                new Option("Unable to load pods", "")
+            );
+        }
+    }
+
+    function loadLogsContainers() {
+        if (!logsPod || !logsContainer) return;
+
+        const namespace = logsNamespace.value;
+        const podName = logsPod.value;
+
+        logsContainer.replaceChildren(
+            new Option(
+                podName ? "Loading containers..." : "Select a pod first",
+                ""
+            )
+        );
+        logsContainer.disabled = true;
+
+        if (!namespace || !podName) return;
+
+        // The existing overview response includes container names.
+        // Fetch it again for the selected namespace to find this pod.
+        window.KubeAuth.apiFetch(
+            `/api/cluster/overview?namespace=${encodeURIComponent(namespace)}`
+        )
+            .then(async response => {
+                if (!response.ok) {
+                    throw new Error("Failed to load container details.");
+                }
+
+                const data = await response.json();
+                const pod = (data.pods || []).find(
+                    item => item.name === podName
+                );
+
+                logsContainer.replaceChildren();
+
+                const containers = pod?.containers || [];
+
+                if (containers.length === 0) {
+                    logsContainer.add(
+                        new Option("No container details available", "")
+                    );
+                    return;
+                }
+
+                logsContainer.add(new Option("Select a container", ""));
+
+                containers.forEach(container => {
+                    logsContainer.add(
+                        new Option(container.name, container.name)
+                    );
+                });
+
+                logsContainer.disabled = false;
+            })
+            .catch(error => {
+                console.error("Failed to load Logs containers:", error);
+                logsContainer.replaceChildren(
+                    new Option("Unable to load containers", "")
+                );
+            });
+    }
+
+    // Update dependent selectors when selections change.
+    logsNamespace.addEventListener("change", loadLogsPods);
+    logsPod.addEventListener("change", loadLogsContainers);
 
     // Load Kubernetes namespaces
     async function loadNamespaces() {
