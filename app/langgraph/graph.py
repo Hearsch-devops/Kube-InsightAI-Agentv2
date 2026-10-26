@@ -710,9 +710,13 @@ async def mcp_response(state: AgentState) -> dict:
             
             if explicit_pod_name:
                 requested_pod = explicit_pod_name
-            elif requested_pod not in available_pod_names:
-                # Ignore regex guesses that are not real pods in this namespace.
-                requested_pod = None
+            elif requested_pod and requested_pod not in available_pod_names:
+                logger.warning(
+                    "Requested pod '%s' was not found in namespace '%s'. "
+                    "Preserving the explicit name for further resolution.",
+                    requested_pod,
+                    requested_namespace,
+                )
 
             logger.info(
                 "Resolved explicit pod candidate: %s",
