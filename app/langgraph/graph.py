@@ -1597,6 +1597,11 @@ async def mcp_response(state: AgentState) -> dict:
                         {},
                     )
 
+                    logger.info(
+                        "RAW NODE SCHEDULING MCP RESPONSE: %s",
+                        nodes_result
+                    )
+
                     if nodes_result.is_error:
                         logger.warning(
                             "Node scheduling details retrieval failed: %s",
@@ -1607,6 +1612,12 @@ async def mcp_response(state: AgentState) -> dict:
                             if hasattr(item, "text"):
                                 node_scheduling_details = item.text
                                 break
+
+                    # Log the parsed result AFTER processing
+                    logger.info(
+                        "PARSED NODE SCHEDULING DETAILS: %s",
+                        node_scheduling_details
+                    )
 
                 if not namespace_wide_investigation:
                     mcp_context = {
