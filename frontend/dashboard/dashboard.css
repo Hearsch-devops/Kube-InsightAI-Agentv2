@@ -2327,3 +2327,41 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 #settingsPage #addUserStatus {
     color: #fbbf24;
 }
+
+
+/* Settings — Add User button */
+#settingsPage #addUserButton {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid #6557d9;
+    border-radius: 10px;
+    background: #5145cd;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgb(81 69 205 / 20%);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#settingsPage #addUserButton:hover {
+    background: #6255e7;
+    transform: translateY(-1px);
+}
+
+#settingsPage #addUserButton:active {
+    transform: translateY(0);
+}
+
+#settingsPage #addUserButton:focus-visible {
+    outline: 2px solid #a99fff;
+    outline-offset: 3px;
+}

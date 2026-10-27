@@ -874,9 +874,8 @@
                         <p>Manage access to Kube-InsightAI</p>
                     </div>
 
-                    <button id="addUserButton" type="button">
-                        + Add User
-                    </button>
+                    <button id="addUserButton" type="button">+ Add User</button>
+
                 </div>
 
                 <p id="usersStatus" role="status">
@@ -940,7 +939,9 @@
                         <label for="newUserRole">Role</label>
                         <select id="newUserRole" name="role" required>
                             <option value="user">Standard User</option>
+                            <option value="approver">Approver</option>
                             <option value="admin">Admin</option>
+
                         </select>
                     </div>
 
