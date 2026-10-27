@@ -1249,63 +1249,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         loadInvestigationHistory();
     }
-
-
-    async function loadRegisteredUsers() {
-        usersStatus.textContent = "Loading registered users...";
-        usersTableBody.replaceChildren();
-
-        try {
-            const response = await window.KubeAuth.apiFetch("/api/admin/users");
-
-            if (!response.ok) {
-                throw new Error(
-                    response.status === 403
-                        ? "Only administrators can view registered users."
-                        : `Failed to load users (HTTP ${response.status}).`
-                );
-            }
-
-            const users = await response.json();
-
-            if (!Array.isArray(users) || users.length === 0) {
-                usersStatus.textContent = "No registered users found.";
-                return;
-            }
-
-            usersStatus.textContent = `${users.length} registered user(s).`;
-
-            users.forEach((user) => {
-                const row = document.createElement("tr");
-
-                const usernameCell = document.createElement("td");
-                usernameCell.textContent = user.username;
-
-                const roleCell = document.createElement("td");
-                roleCell.textContent =
-                    user.role === "admin" ? "Admin" :
-                    user.role === "approver" ? "Approver" : "Standard User";
-
-                const statusCell = document.createElement("td");
-                statusCell.textContent = user.is_active ? "Active" : "Inactive";
-
-                const actionCell = document.createElement("td");
-                actionCell.textContent = "Delete action will be added next.";
-
-                row.append(
-                    usernameCell,
-                    roleCell,
-                    statusCell,
-                    actionCell
-                );
-
-                usersTableBody.appendChild(row);
-            });
-        } catch (error) {
-            console.error("Unable to load registered users:", error);
-            usersStatus.textContent = error.message || "Unable to load users.";
-        }
-    }
     
     async function loadRegisteredUsers() {
         usersStatus.textContent = "Loading registered users...";
@@ -1351,8 +1294,55 @@ document.addEventListener("DOMContentLoaded", async () => {
                     user.is_active ? "Active" : "Inactive";
 
                 const actionCell = document.createElement("td");
-                actionCell.textContent = "—";
+                const deleteButton = document.createElement("button");
 
+                deleteButton.type = "button";
+                deleteButton.textContent = "Delete";
+                deleteButton.className = "settings-delete-button";
+
+                const currentUser = window.KubeAuth.getUser();
+
+                if (currentUser && currentUser.id === user.id) {
+                    deleteButton.disabled = true;
+                    deleteButton.title = "You cannot delete your own account";
+                }
+
+                deleteButton.addEventListener("click", async () => {
+                    const confirmed = window.confirm(
+                        `Permanently delete user "${user.username}"?\n\n` +
+                        "This cannot be undone. Users with investigation history " +
+                        "cannot be deleted."
+                    );
+
+                    if (!confirmed) return;
+
+                    deleteButton.disabled = true;
+
+                    try {
+                        const response = await window.KubeAuth.apiFetch(
+                            `/api/admin/users/${user.id}`,
+                            { method: "DELETE" }
+                        );
+
+                        const result = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            throw new Error(
+                                typeof result.detail === "string"
+                                    ? result.detail
+                                    : `Deletion failed (HTTP ${response.status}).`
+                            );
+                        }
+
+                        await loadRegisteredUsers();
+                    } catch (error) {
+                        window.alert(error.message || "Unable to delete user.");
+                        deleteButton.disabled = false;
+                    }
+                });
+
+                actionCell.appendChild(deleteButton);
+                
                 row.append(
                     usernameCell,
                     roleCell,
@@ -1368,6 +1358,63 @@ document.addEventListener("DOMContentLoaded", async () => {
                 error.message || "Unable to load registered users.";
         }
     }
+
+    addUserButton.addEventListener("click", () => {
+        addUserForm.reset();
+        addUserStatus.textContent = "";
+        addUserPanel.classList.remove("hidden");
+        document.getElementById("newUsername").focus();
+    });
+
+    cancelAddUserButton.addEventListener("click", () => {
+        addUserPanel.classList.add("hidden");
+        addUserForm.reset();
+        addUserStatus.textContent = "";
+    });
+
+    addUserForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const saveButton = document.getElementById("saveUserButton");
+        const username = document.getElementById("newUsername").value.trim();
+        const password = document.getElementById("newUserPassword").value;
+        const role = document.getElementById("newUserRole").value;
+
+        saveButton.disabled = true;
+        addUserStatus.textContent = "Creating user...";
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                "/api/admin/users",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password, role })
+                }
+            );
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    typeof result.detail === "string"
+                        ? result.detail
+                        : `Failed to create user (HTTP ${response.status}).`
+                );
+            }
+
+            addUserStatus.textContent =
+                `User "${result.username}" created successfully.`;
+            addUserForm.reset();
+
+            await loadRegisteredUsers();
+        } catch (error) {
+            addUserStatus.textContent =
+                error.message || "Unable to create user.";
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
 
     function showSettings() {
         dashboardView.classList.add("hidden");
@@ -1398,6 +1445,74 @@ document.addEventListener("DOMContentLoaded", async () => {
                 "Administrator access is required to manage users.";
         }
     }
+
+    // Open the Add User form
+    addUserButton.addEventListener("click", () => {
+        addUserForm.reset();
+        addUserStatus.textContent = "";
+        addUserPanel.classList.remove("hidden");
+        document.getElementById("newUsername").focus();
+    });
+
+    // Close the Add User form
+    cancelAddUserButton.addEventListener("click", () => {
+        addUserPanel.classList.add("hidden");
+        addUserForm.reset();
+        addUserStatus.textContent = "";
+    });
+
+    // Create a user through the existing admin API
+    addUserForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const saveButton = document.getElementById("saveUserButton");
+        const username = document.getElementById("newUsername").value.trim();
+        const password = document.getElementById("newUserPassword").value;
+        const role = document.getElementById("newUserRole").value;
+
+        addUserStatus.textContent = "Creating user...";
+        saveButton.disabled = true;
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                "/api/admin/users",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        role
+                    })
+                }
+            );
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const detail = result.detail;
+                throw new Error(
+                    typeof detail === "string"
+                        ? detail
+                        : `Failed to create user (HTTP ${response.status}).`
+                );
+            }
+
+            addUserForm.reset();
+            addUserStatus.textContent =
+                `User "${result.username}" created successfully.`;
+
+            await loadRegisteredUsers();
+        } catch (error) {
+            console.error("Create user failed:", error);
+            addUserStatus.textContent =
+                error.message || "Unable to create user.";
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
 
     function renderHistory() {
         if (!historyList || !historySearch) return;

@@ -1,18 +1,15 @@
 
+
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from fastapi import Query
-from sqlalchemy import select
-from app.auth import require_roles
-from app.database import AuditEvent
 
-from app.auth import get_current_user, get_db, hash_password, require_roles
-from app.database import AuditEvent, User
+from app.auth import get_db, hash_password, require_roles
+from app.database import AuditEvent, InvestigationHistory, User
 
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -24,7 +21,6 @@ class CreateUserRequest(BaseModel):
     username: str = Field(min_length=3, max_length=100, pattern=r"^[a-zA-Z0-9_.-]+$")
     password: str = Field(min_length=12, max_length=128)
     role: RoleName = "user"
-
 
 class ChangeRoleRequest(BaseModel):
     role: RoleName
@@ -113,6 +109,82 @@ def list_users(
     users = db.scalars(select(User).order_by(User.id)).all()
     return [user_response(user) for user in users]
 
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    user = db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You cannot delete your own account",
+        )
+
+    # Protect the last active administrator.
+    if user.role == "admin" and user.is_active:
+        active_admin_count = db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(
+                User.role == "admin",
+                User.is_active.is_(True),
+            )
+        )
+
+        if active_admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cannot delete the last active administrator",
+            )
+
+    # Preserve investigation history rather than deleting it implicitly.
+    history_count = db.scalar(
+        select(func.count())
+        .select_from(InvestigationHistory)
+        .where(InvestigationHistory.user_id == user.id)
+    )
+
+    if history_count:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This user has investigation history. "
+                "Deactivate the account instead to preserve its records."
+            ),
+        )
+
+    deleted_user = {
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role,
+    }
+
+    try:
+        record_audit(
+            db,
+            current_user.username,
+            "user_deleted",
+            deleted_user,
+        )
+        db.delete(user)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": "User deleted successfully",
+        **deleted_user,
+    }
 
 @router.patch("/users/{user_id}/role", response_model=UserResponse)
 def change_user_role(
@@ -191,7 +263,6 @@ def change_user_status(
     db.commit()
     db.refresh(user)
     return user_response(user)
-
 
 @router.get("/audit")
 def list_audit_events(
