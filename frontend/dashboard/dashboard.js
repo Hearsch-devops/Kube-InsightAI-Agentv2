@@ -97,6 +97,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const secondaryView = document.getElementById("secondaryView");
     const secondaryTitle = document.getElementById("secondaryTitle");
     const clustersPage = document.getElementById("clustersPage");
+    const settingsPage = document.getElementById("settingsPage");
     const placeholderPage = document.getElementById("placeholderPage");
     const historyPage = document.getElementById("historyPage");
     const historyList = document.getElementById("historyList");
@@ -292,6 +293,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 showClusters();
             } else if (page === "query") {
                 showQuery();
+            } else if (page === "settings") {
+                showSettings();
             } else {
                 showPlaceholder(
                     page.charAt(0).toUpperCase() + page.slice(1)
@@ -1236,6 +1239,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         secondaryTitle.textContent = "Investigation History";
 
         loadInvestigationHistory();
+    }
+
+    function showSettings() {
+        dashboardView.classList.add("hidden");
+        secondaryView.classList.remove("hidden");
+
+        clustersPage.classList.add("hidden");
+        logsPage.classList.add("hidden");
+        recommendationsPage.classList.add("hidden");
+        historyPage.classList.add("hidden");
+        placeholderPage.classList.add("hidden");
+        queryPage.classList.add("hidden");
+
+        settingsPage.classList.remove("hidden");
+        secondaryTitle.textContent = "Settings";
     }
 
     function renderHistory() {

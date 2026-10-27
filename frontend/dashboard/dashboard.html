@@ -865,6 +865,92 @@
 
         </section>
 
+        <!-- Settings Page -->
+        <section id="settingsPage" class="page-view hidden">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>User Management</h2>
+                        <p>Manage access to Kube-InsightAI</p>
+                    </div>
+
+                    <button id="addUserButton" type="button">
+                        + Add User
+                    </button>
+                </div>
+
+                <p id="usersStatus" role="status">
+                    Registered users will appear here.
+                </p>
+
+                <div class="settings-table-wrapper">
+                    <table class="settings-users-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="4">Users have not been loaded yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add User Form -->
+            <div id="addUserPanel" class="panel hidden">
+                <div class="panel-header">
+                    <h2>Add User</h2>
+                </div>
+
+                <form id="addUserForm">
+                    <label for="newUsername">Username</label>
+                    <input
+                        id="newUsername"
+                        name="username"
+                        type="text"
+                        minlength="3"
+                        maxlength="100"
+                        pattern="[a-zA-Z0-9_.-]+"
+                        required
+                    />
+
+                    <label for="newUserPassword">Initial password</label>
+                    <input
+                        id="newUserPassword"
+                        name="password"
+                        type="password"
+                        minlength="12"
+                        maxlength="128"
+                        autocomplete="new-password"
+                        required
+                    />
+
+                    <label for="newUserRole">Role</label>
+                    <select id="newUserRole" name="role" required>
+                        <option value="user">Standard User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+
+                    <p id="addUserStatus" role="status"></p>
+
+                    <div class="settings-form-actions">
+                        <button type="submit" id="saveUserButton">
+                            Create User
+                        </button>
+                        <button type="button" id="cancelAddUserButton">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
         <!-- Placeholder for Query, Settings, etc. -->
         <section id="placeholderPage" class="page-view hidden">
             <section class="panel placeholder-panel">
