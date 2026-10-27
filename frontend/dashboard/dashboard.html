@@ -909,43 +909,46 @@
                 </div>
 
                 <form id="addUserForm">
-                    <label for="newUsername">Username</label>
-                    <input
-                        id="newUsername"
-                        name="username"
-                        type="text"
-                        minlength="3"
-                        maxlength="100"
-                        pattern="[a-zA-Z0-9_.-]+"
-                        required
-                    />
+                    <div class="settings-form-field">
+                        <label for="newUsername">Username</label>
+                        <input
+                            id="newUsername"
+                            name="username"
+                            type="text"
+                            minlength="3"
+                            maxlength="100"
+                            pattern="[a-zA-Z0-9_.-]+"
+                            autocomplete="off"
+                            required
+                        />
+                    </div>
 
-                    <label for="newUserPassword">Initial password</label>
-                    <input
-                        id="newUserPassword"
-                        name="password"
-                        type="password"
-                        minlength="12"
-                        maxlength="128"
-                        autocomplete="new-password"
-                        required
-                    />
+                    <div class="settings-form-field">
+                        <label for="newUserPassword">Initial password</label>
+                        <input
+                            id="newUserPassword"
+                            name="password"
+                            type="password"
+                            minlength="12"
+                            maxlength="128"
+                            autocomplete="new-password"
+                            required
+                        />
+                    </div>
 
-                    <label for="newUserRole">Role</label>
-                    <select id="newUserRole" name="role" required>
-                        <option value="user">Standard User</option>
-                        <option value="admin">Admin</option>
-                    </select>
+                    <div class="settings-form-field">
+                        <label for="newUserRole">Role</label>
+                        <select id="newUserRole" name="role" required>
+                            <option value="user">Standard User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
 
-                    <p id="addUserStatus" role="status"></p>
+                    <p id="addUserStatus" role="status" aria-live="polite"></p>
 
                     <div class="settings-form-actions">
-                        <button type="submit" id="saveUserButton">
-                            Create User
-                        </button>
-                        <button type="button" id="cancelAddUserButton">
-                            Cancel
-                        </button>
+                        <button type="submit" id="saveUserButton">Create User</button>
+                        <button type="button" id="cancelAddUserButton">Cancel</button>
                     </div>
                 </form>
             </div>

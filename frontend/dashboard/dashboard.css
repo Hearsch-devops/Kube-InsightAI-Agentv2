@@ -2194,3 +2194,136 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     cursor: not-allowed;
 }
 
+
+/* Settings — Add User form layout */
+#settingsPage #addUserPanel {
+    margin-top: 20px;
+    padding: 28px 32px;
+}
+
+#settingsPage #addUserPanel .panel-header {
+    margin-bottom: 22px;
+}
+
+#settingsPage #addUserPanel .panel-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text, #eef2ff);
+}
+
+#settingsPage #addUserForm {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 20px;
+    align-items: center;
+}
+
+#settingsPage #addUserForm label {
+    display: block;
+    margin: 0 0 4px;
+    color: var(--text-muted, #9aa9c7);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#settingsPage #addUserForm input,
+#settingsPage #addUserForm select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    color: var(--text, #eef2ff);
+    background: var(--logs-input, #0f172a);
+    border: 1px solid #343e5b;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+}
+
+#settingsPage #addUserForm input:focus,
+#settingsPage #addUserForm select:focus {
+    outline: none;
+    border-color: #8175ff;
+    box-shadow: 0 0 0 3px rgb(129 117 255 / 14%);
+}
+
+#settingsPage #addUserStatus {
+    grid-column: 1 / -1;
+    min-height: 18px;
+    margin: 4px 0;
+    color: var(--text-muted, #9aa9c7);
+    font-size: 13px;
+}
+
+#settingsPage .settings-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+#settingsPage #saveUserButton,
+#settingsPage #cancelAddUserButton {
+    min-height: 40px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#settingsPage #saveUserButton {
+    border: 1px solid #6557d9;
+    background: #5145cd;
+    color: #ffffff;
+}
+
+#settingsPage #saveUserButton:hover:not(:disabled) {
+    background: #6255e7;
+}
+
+#settingsPage #saveUserButton:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+#settingsPage #cancelAddUserButton {
+    border: 1px solid #343e5b;
+    background: #151d31;
+    color: #e2e8f0;
+}
+
+#settingsPage #cancelAddUserButton:hover {
+    background: #202a42;
+}
+
+@media (max-width: 640px) {
+    #settingsPage #addUserPanel {
+        padding: 20px;
+    }
+
+    #settingsPage #addUserForm {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    #settingsPage #addUserStatus,
+    #settingsPage .settings-form-actions {
+        grid-column: 1;
+    }
+}
+
+#settingsPage .settings-form-field {
+    min-width: 0;
+}
+
+#settingsPage #addUserStatus:empty {
+    display: none;
+}
+
+#settingsPage #addUserStatus {
+    color: #fbbf24;
+}
