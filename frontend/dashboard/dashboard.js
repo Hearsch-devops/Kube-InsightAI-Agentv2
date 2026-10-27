@@ -1242,6 +1242,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         recommendationsPage.classList.add("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
+        settingsPage.classList.add("hidden");
   
         historyPage.classList.remove("hidden");
 
@@ -1699,6 +1700,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
         recommendationsPage.classList.remove("hidden");
+        settingsPage.classList.add("hidden");
 
         loadRecommendations();
     }
@@ -1739,6 +1741,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         clustersPage.classList.remove("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
+        settingsPage.classList.add("hidden");
 
         loadClustersPage();
     }
@@ -1749,6 +1752,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         clustersPage.classList.add("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.remove("hidden");
+        settingsPage.classList.add("hidden");
     }
 
     function showPlaceholder(title) {
@@ -1757,6 +1761,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         clustersPage.classList.add("hidden");
         placeholderPage.classList.remove("hidden");
         logsPage.classList.add("hidden");
+        settingsPage.classList.add("hidden");
 
         secondaryTitle.textContent = title;
     }
