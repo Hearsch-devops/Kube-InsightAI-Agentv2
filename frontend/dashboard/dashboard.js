@@ -1209,7 +1209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
         recommendationsPage.classList.add("hidden");
-
+        historyPage.classList.add("hidden");
     }
 
     function showLogs() {
@@ -1230,7 +1230,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         recommendationsPage.classList.add("hidden");
         placeholderPage.classList.add("hidden");
         queryPage.classList.add("hidden");
-
+  
         historyPage.classList.remove("hidden");
 
         secondaryTitle.textContent = "Investigation History";
