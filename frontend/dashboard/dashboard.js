@@ -1415,6 +1415,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function showRecommendations() {
+        historyPage.classList.add("hidden");
         dashboardView.classList.add("hidden");
         secondaryView.classList.remove("hidden");
         clustersPage.classList.add("hidden");
