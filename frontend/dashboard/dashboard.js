@@ -1351,7 +1351,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     user.is_active ? "Active" : "Inactive";
 
                 const actionCell = document.createElement("td");
-                actionCell.textContent = "Delete action coming next";
+                actionCell.textContent = "—";
 
                 row.append(
                     usernameCell,

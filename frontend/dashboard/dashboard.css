@@ -2088,81 +2088,89 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     overflow-wrap: anywhere;
 }
 
-/* Settings — User Management refinements */
-#settingsPage .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
+
+/* Settings — User Management table */
+#settingsPage .settings-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 18px;
 }
 
-#settingsPage .panel-header h2 {
-    margin: 0;
+#settingsPage .settings-users-table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    text-align: left;
 }
 
-#settingsPage .panel-header p {
-    margin: 6px 0 0;
-    color: var(--text-muted, #9aa9c7);
-    font-size: 14px;
+#settingsPage .settings-users-table th,
+#settingsPage .settings-users-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color, #293651);
+    vertical-align: middle;
+    overflow-wrap: anywhere;
 }
 
-#settingsPage #addUserButton,
-#settingsPage #saveUserButton {
-    padding: 10px 16px;
-    border: 1px solid #6557d9;
-    border-radius: 8px;
-    background: #5145cd;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-#settingsPage #addUserButton:hover,
-#settingsPage #saveUserButton:hover {
-    background: #6255e7;
-}
-
-#settingsPage #cancelAddUserButton {
-    padding: 10px 16px;
-    border: 1px solid #343e5b;
-    border-radius: 8px;
-    background: #151d31;
-    color: #e2e8f0;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-#settingsPage #usersStatus,
-#settingsPage #addUserStatus {
-    color: var(--text-muted, #9aa9c7);
-    font-size: 13px;
-    margin: 12px 0;
-}
-
-#settingsPage #addUserForm label {
+#settingsPage .settings-users-table th {
     color: var(--text-muted, #9aa9c7);
     font-size: 13px;
     font-weight: 600;
+    background: rgb(15 23 42 / 45%);
 }
 
-#settingsPage #addUserForm input:focus,
-#settingsPage #addUserForm select:focus {
-    outline: none;
-    border-color: #8175ff;
-    box-shadow: 0 0 0 2px rgb(129 117 255 / 15%);
+#settingsPage .settings-users-table td {
+    color: var(--text, #eef2ff);
+    font-size: 14px;
+}
+
+#settingsPage .settings-users-table th:nth-child(1),
+#settingsPage .settings-users-table td:nth-child(1) {
+    width: 30%;
+}
+
+#settingsPage .settings-users-table th:nth-child(2),
+#settingsPage .settings-users-table td:nth-child(2) {
+    width: 22%;
+}
+
+#settingsPage .settings-users-table th:nth-child(3),
+#settingsPage .settings-users-table td:nth-child(3) {
+    width: 20%;
+}
+
+#settingsPage .settings-users-table th:nth-child(4),
+#settingsPage .settings-users-table td:nth-child(4) {
+    width: 28%;
+}
+
+#settingsPage .settings-users-table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 #settingsPage .settings-users-table tbody tr:hover {
     background: rgb(129 117 255 / 5%);
 }
 
-#settingsPage .settings-form-actions button {
-    min-height: 38px;
+@media (max-width: 600px) {
+    #settingsPage .settings-users-table {
+        min-width: 560px;
+    }
+
+    #settingsPage .settings-users-table th,
+    #settingsPage .settings-users-table td {
+        padding: 12px;
+    }
 }
 
-#settingsPage .hidden {
-    display: none !important;
+/* User status */
+#settingsPage .settings-users-table td:nth-child(3) {
+    font-weight: 500;
 }
+
+#settingsPage .settings-users-table td:nth-child(3) {
+    color: #34d399;
+}
+
 
