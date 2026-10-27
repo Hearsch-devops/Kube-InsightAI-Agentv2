@@ -1607,11 +1607,14 @@ async def mcp_response(state: AgentState) -> dict:
                             "Node scheduling details retrieval failed: %s",
                             nodes_result,
                         )
-                    elif nodes_result.content:
-                        for item in nodes_result.content:
-                            if hasattr(item, "text"):
-                                node_scheduling_details = item.text
-                                break
+                    else:
+                        structured = getattr(nodes_result, "structured_content", None) or {}
+                        node_scheduling_details = structured.get("result", [])
+
+                        logger.info(
+                            "PARSED NODE SCHEDULING DETAILS: %s",
+                            node_scheduling_details
+                        )
 
                     # Log the parsed result AFTER processing
                     logger.info(
