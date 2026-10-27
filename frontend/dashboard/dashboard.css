@@ -1720,25 +1720,26 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     line-height: 1.2;
 }
 
-/* Filters and findings container */
-#recommendationsPage #recommendationsSeverity,
+/* Recommendations severity and namespace filters */
+#recommendationsPage #recommendationSeverity,
 #recommendationsPage #recommendationNamespace {
+    display: block;
     width: 100%;
     min-height: 40px;
     box-sizing: border-box;
     padding: 8px 12px;
     color: var(--text, #eef2ff);
-    background: var(--logs-input, #0f172a);
+    background-color: var(--logs-input, #0f172a);
     border: 1px solid #343e5b;
     border-radius: 8px;
     font: inherit;
     color-scheme: dark;
 }
 
-#recommendationsPage #recommendationsSeverity option,
+#recommendationsPage #recommendationSeverity option,
 #recommendationsPage #recommendationNamespace option {
     color: #eef2ff;
-    background: #0f172a;
+    background-color: #0f172a;
 }
 
 #recommendationsPage #recommendationsStatus {
