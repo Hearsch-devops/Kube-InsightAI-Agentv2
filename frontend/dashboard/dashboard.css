@@ -2088,55 +2088,81 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     overflow-wrap: anywhere;
 }
 
-
-/* Settings — User Management */
-#settingsPage .settings-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
+/* Settings — User Management refinements */
+#settingsPage .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
-#settingsPage .settings-users-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
+#settingsPage .panel-header h2 {
+    margin: 0;
 }
 
-#settingsPage .settings-users-table th,
-#settingsPage .settings-users-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border-color, #293651);
-}
-
-#settingsPage .settings-users-table th {
+#settingsPage .panel-header p {
+    margin: 6px 0 0;
     color: var(--text-muted, #9aa9c7);
-    font-size: 12px;
+    font-size: 14px;
+}
+
+#settingsPage #addUserButton,
+#settingsPage #saveUserButton {
+    padding: 10px 16px;
+    border: 1px solid #6557d9;
+    border-radius: 8px;
+    background: #5145cd;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#settingsPage #addUserButton:hover,
+#settingsPage #saveUserButton:hover {
+    background: #6255e7;
+}
+
+#settingsPage #cancelAddUserButton {
+    padding: 10px 16px;
+    border: 1px solid #343e5b;
+    border-radius: 8px;
+    background: #151d31;
+    color: #e2e8f0;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#settingsPage #usersStatus,
+#settingsPage #addUserStatus {
+    color: var(--text-muted, #9aa9c7);
+    font-size: 13px;
+    margin: 12px 0;
+}
+
+#settingsPage #addUserForm label {
+    color: var(--text-muted, #9aa9c7);
+    font-size: 13px;
     font-weight: 600;
 }
 
-#settingsPage .settings-users-table td {
-    color: var(--text, #eef2ff);
-    font-size: 13px;
+#settingsPage #addUserForm input:focus,
+#settingsPage #addUserForm select:focus {
+    outline: none;
+    border-color: #8175ff;
+    box-shadow: 0 0 0 2px rgb(129 117 255 / 15%);
 }
 
-#settingsPage #addUserForm {
-    display: grid;
-    gap: 10px;
+#settingsPage .settings-users-table tbody tr:hover {
+    background: rgb(129 117 255 / 5%);
 }
 
-#settingsPage #addUserForm input,
-#settingsPage #addUserForm select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 12px;
-    color: var(--text, #eef2ff);
-    background: var(--logs-input, #0f172a);
-    border: 1px solid #343e5b;
-    border-radius: 8px;
+#settingsPage .settings-form-actions button {
+    min-height: 38px;
 }
 
-#settingsPage .settings-form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 8px;
+#settingsPage .hidden {
+    display: none !important;
 }
+

@@ -87,6 +87,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     showDashboard();
 
+    // Settings — User Management
+    const usersTableBody = document.getElementById("usersTableBody");
+    const usersStatus = document.getElementById("usersStatus");
+    const addUserButton = document.getElementById("addUserButton");
+    const addUserPanel = document.getElementById("addUserPanel");
+    const addUserForm = document.getElementById("addUserForm");
+    const addUserStatus = document.getElementById("addUserStatus");
+    const cancelAddUserButton = document.getElementById("cancelAddUserButton");
+
     const backToOverview = document.getElementById("backToOverview");
     const assistantLauncher = document.getElementById("assistantLauncher");
     const assistantPanel = document.getElementById("assistantPanel");
@@ -1241,6 +1250,125 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadInvestigationHistory();
     }
 
+
+    async function loadRegisteredUsers() {
+        usersStatus.textContent = "Loading registered users...";
+        usersTableBody.replaceChildren();
+
+        try {
+            const response = await window.KubeAuth.apiFetch("/api/admin/users");
+
+            if (!response.ok) {
+                throw new Error(
+                    response.status === 403
+                        ? "Only administrators can view registered users."
+                        : `Failed to load users (HTTP ${response.status}).`
+                );
+            }
+
+            const users = await response.json();
+
+            if (!Array.isArray(users) || users.length === 0) {
+                usersStatus.textContent = "No registered users found.";
+                return;
+            }
+
+            usersStatus.textContent = `${users.length} registered user(s).`;
+
+            users.forEach((user) => {
+                const row = document.createElement("tr");
+
+                const usernameCell = document.createElement("td");
+                usernameCell.textContent = user.username;
+
+                const roleCell = document.createElement("td");
+                roleCell.textContent =
+                    user.role === "admin" ? "Admin" :
+                    user.role === "approver" ? "Approver" : "Standard User";
+
+                const statusCell = document.createElement("td");
+                statusCell.textContent = user.is_active ? "Active" : "Inactive";
+
+                const actionCell = document.createElement("td");
+                actionCell.textContent = "Delete action will be added next.";
+
+                row.append(
+                    usernameCell,
+                    roleCell,
+                    statusCell,
+                    actionCell
+                );
+
+                usersTableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error("Unable to load registered users:", error);
+            usersStatus.textContent = error.message || "Unable to load users.";
+        }
+    }
+    
+    async function loadRegisteredUsers() {
+        usersStatus.textContent = "Loading registered users...";
+        usersTableBody.replaceChildren();
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                "/api/admin/users"
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    response.status === 403
+                        ? "Administrator access required."
+                        : `Failed to load users (HTTP ${response.status}).`
+                );
+            }
+
+            const users = await response.json();
+
+            if (users.length === 0) {
+                usersStatus.textContent = "No registered users found.";
+                return;
+            }
+
+            usersStatus.textContent =
+                `${users.length} registered user(s).`;
+
+            users.forEach(user => {
+                const row = document.createElement("tr");
+
+                const usernameCell = document.createElement("td");
+                usernameCell.textContent = user.username;
+
+                const roleCell = document.createElement("td");
+                roleCell.textContent =
+                    user.role === "admin" ? "Admin" :
+                    user.role === "approver" ? "Approver" :
+                    "Standard User";
+
+                const statusCell = document.createElement("td");
+                statusCell.textContent =
+                    user.is_active ? "Active" : "Inactive";
+
+                const actionCell = document.createElement("td");
+                actionCell.textContent = "Delete action coming next";
+
+                row.append(
+                    usernameCell,
+                    roleCell,
+                    statusCell,
+                    actionCell
+                );
+
+                usersTableBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error("Failed to load registered users:", error);
+            usersStatus.textContent =
+                error.message || "Unable to load registered users.";
+        }
+    }
+
     function showSettings() {
         dashboardView.classList.add("hidden");
         secondaryView.classList.remove("hidden");
@@ -1254,6 +1382,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         settingsPage.classList.remove("hidden");
         secondaryTitle.textContent = "Settings";
+
+        addUserPanel.classList.add("hidden");
+
+        const user = window.KubeAuth.getUser();
+        const isAdmin = user?.role === "admin";
+
+        addUserButton.classList.toggle("hidden", !isAdmin);
+
+        if (isAdmin) {
+            loadRegisteredUsers();
+        } else {
+            usersTableBody.replaceChildren();
+            usersStatus.textContent =
+                "Administrator access is required to manage users.";
+        }
     }
 
     function renderHistory() {
