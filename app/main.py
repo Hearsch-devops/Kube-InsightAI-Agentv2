@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+import app.monitoring.llm_metrics
+
 from app.api.routes import router
 from app.database import init_db
 from app.api.auth_routes import router as auth_router
