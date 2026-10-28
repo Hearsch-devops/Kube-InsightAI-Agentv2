@@ -16,3 +16,4 @@ sqlalchemy
 pwdlib[argon2]
 PyJWT
 psycopg[binary]==3.3.6
+prometheus-client
