@@ -134,3 +134,12 @@ def get_llm_response(message: str) -> str:
     llm = get_chat_model()
     response = llm.invoke(message)
     return response.content
+
+# Initialize metric series so they appear on /metrics before the first request.
+LLM_REQUESTS.labels(model="models/gemini-2.5-flash", status="success")
+LLM_REQUESTS.labels(model="models/gemini-2.5-flash", status="error")
+
+LLM_INPUT_TOKENS.labels(model="models/gemini-2.5-flash")
+LLM_OUTPUT_TOKENS.labels(model="models/gemini-2.5-flash")
+LLM_TOKEN_USAGE_UNAVAILABLE.labels(model="models/gemini-2.5-flash")
+LLM_REQUEST_DURATION.labels(model="models/gemini-2.5-flash")
