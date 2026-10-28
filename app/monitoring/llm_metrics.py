@@ -29,3 +29,15 @@ LLM_REQUEST_DURATION = Histogram(
     "LLM request duration in seconds",
     ["model"],
 )
+
+
+# Initialize metric series so they appear on /metrics before the first request.
+MODEL = "models/gemini-2.5-flash"
+
+LLM_REQUESTS.labels(model=MODEL, status="success")
+LLM_REQUESTS.labels(model=MODEL, status="error")
+
+LLM_INPUT_TOKENS.labels(model=MODEL)
+LLM_OUTPUT_TOKENS.labels(model=MODEL)
+LLM_TOKEN_USAGE_UNAVAILABLE.labels(model=MODEL)
+LLM_REQUEST_DURATION.labels(model=MODEL)
