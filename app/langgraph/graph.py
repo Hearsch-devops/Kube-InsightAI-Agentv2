@@ -212,14 +212,21 @@ async def retrieve_context(state: AgentState) -> dict:
     """Retrieve relevant Kubernetes SOP content from the vector database."""
 
     question = extract_question(state)
+    retrieval_succeeded = False
 
     try:
         logger.info("Retrieving RAG context for question")
 
-        documents = await asyncio.to_thread(
-            retriever.invoke,
-            question,
-        )
+        # Measure vector database retrieval duration.
+        with RAG_RETRIEVAL_DURATION.time():
+            documents = await asyncio.to_thread(
+                retriever.invoke,
+                question,
+            )
+
+        RAG_RETRIEVALS.labels(status="success").inc()
+        RAG_DOCUMENTS_RETRIEVED.observe(len(documents))
+        retrieval_succeeded = True
 
         context = format_documents(documents)
 
@@ -239,6 +246,11 @@ async def retrieve_context(state: AgentState) -> dict:
         }
 
     except Exception:
+        if not retrieval_succeeded:
+            RAG_RETRIEVALS.labels(status="error").inc()
+
+        RAG_ERRORS.inc()
+
         logger.exception("RAG context retrieval failed")
 
         return {
