@@ -2470,8 +2470,8 @@ def build_graph():
     builder = StateGraph(AgentState)
 
     builder.add_node(
-    "analyze",
-    instrument_node("analyze", analyze_question),
+        "analyze",
+        instrument_node("analyze", analyze_question),
     )
 
     builder.add_node(
