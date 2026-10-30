@@ -41,6 +41,7 @@ remediation proposals.
 -   [RAG and Knowledge Retrieval](#rag-and-knowledge-retrieval)
 -   [MCP and Live Kubernetes
     Investigation](#mcp-and-live-kubernetes-investigation)
+-   [Observability and Monitoring](#observability-and-monitoring)
 -   [Remediation Safety](#remediation-safety)
 -   [Running Locally](#running-locally)
 -   [Kubernetes Deployment](#kubernetes-deployment)
@@ -97,6 +98,10 @@ appropriate response path.
     documentation-focused answers.
 -   **MCP integration** for retrieving live Kubernetes information
     through a dedicated server.
+-   **Prometheus-based observability** for LLM requests, agent runs,
+    LangGraph nodes, RAG retrievals, and MCP tool executions.
+-   **Grafana Cloud dashboards** for visualizing application and
+    retrieval/tool-level metrics.
 -   **Evidence-based RCA** that distinguishes confirmed evidence, likely
     causes, possible contributing factors, and uncertainty.
 -   **LLM integration** through LangChain's `ChatOpenAI` interface,
@@ -503,6 +508,56 @@ For requests involving logs, health checks, ownership, or investigation,
 the workflow first retrieves pods from the selected namespace and uses
 that information to resolve the requested pod or component.
 
+------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------
+
+## Observability, Grafana and Monitoring
+
+Kube-InsightAI includes Prometheus instrumentation across the main
+AI-agent execution path. The metrics help make LLM usage, graph execution,
+knowledge retrieval, and live Kubernetes tool calls measurable.
+
+The application exposes its Prometheus metrics through the `/metrics`
+endpoint. Prometheus can scrape the application metrics, and the collected
+data can be visualized in Grafana. The current monitoring setup also uses
+Grafana Cloud dashboards.
+
+### Observability coverage
+
+| Layer | What is measured | Example Prometheus metrics |
+|---|---|---|
+| LLM | Request counts by model and status, input/output token usage, token-usage-unavailable events, and request duration | `kube_insightai_llm_requests_total`, `kube_insightai_llm_input_tokens_total`, `kube_insightai_llm_output_tokens_total`, `kube_insightai_llm_request_duration_seconds` |
+| Agent | Agent run counts by status, run duration, and errors by error type | `kube_insightai_agent_runs_total`, `kube_insightai_agent_run_duration_seconds`, `kube_insightai_agent_errors_total` |
+| LangGraph | Execution counts, duration, and errors for individual graph nodes | `kube_insightai_agent_node_executions_total`, `kube_insightai_agent_node_duration_seconds`, `kube_insightai_agent_node_errors_total` |
+| RAG | Retrieval outcomes, retrieval duration, number of retrieved documents, and retrieval/processing errors | `kube_insightai_rag_retrievals_total`, `kube_insightai_rag_retrieval_duration_seconds`, `kube_insightai_rag_documents_retrieved`, `kube_insightai_rag_errors_total` |
+| MCP | Tool invocation counts by server/tool/status, invocation duration, and errors | `kube_insightai_mcp_tool_calls_total`, `kube_insightai_mcp_tool_duration_seconds`, `kube_insightai_mcp_tool_errors_total` |
+
+The LangGraph node metrics identify activity in the instrumented nodes,
+including `analyze`, `router`, `retrieve_context`, `kubernetes`, `mcp`,
+`rca`, `general`, and `remediation`.
+
+MCP duration measures the complete client-side invocation, including
+session initialization, the tool call, and session cleanup. It should
+therefore be interpreted as end-to-end MCP client invocation time rather
+than only the remote tool's internal processing time.
+
+### Monitoring architecture
+
+```mermaid
+flowchart LR
+    APP[Kube-InsightAI FastAPI Agent]
+    METRICS["/metrics endpoint"]
+    PROM[Prometheus]
+    CLOUD[Grafana Cloud]
+    DASH[Observability Dashboards]
+
+    APP --> METRICS
+    PROM -->|Scrapes metrics| METRICS
+    PROM -->|Remote write| CLOUD
+    CLOUD --> DASH
+```
 ------------------------------------------------------------------------
 
 ## Remediation Safety
