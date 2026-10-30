@@ -102,7 +102,7 @@ async def call_mcp_tool(
                 )
 
         # Detect application-level MCP errors.
-        if getattr(result, "isError", False):
+        if getattr(result, "is_error", getattr(result, "isError", False)):
 
             MCP_TOOL_CALLS.labels(
                 server=server,
