@@ -23,6 +23,13 @@ from app.mcp_client import (
     parse_mcp_result,
     KUBERNETES_MCP_URL,
 )
+
+from app.monitoring.agent_metrics import (
+    AGENT_RUNS,
+    AGENT_RUN_DURATION,
+    AGENT_ERRORS,
+)
+
 import json
 import logging
 import os
@@ -99,14 +106,27 @@ async def chat(
         # Import the graph only when a chat request is processed.
         from app.langgraph.graph import graph
 
-        result = await graph.ainvoke(
-            {
-                "messages": [
-                    HumanMessage(content=request.message)
-                ],
-                "question": request.message,
-            }
-        )
+        with AGENT_RUN_DURATION.time():
+            try:
+                result = await graph.ainvoke(
+                    {
+                        "messages": [
+                            HumanMessage(content=request.message)
+                        ],
+                        "question": request.message,
+                    }
+                )
+
+                if result.get("error"):
+                    AGENT_RUNS.labels(status="error").inc()
+                    AGENT_ERRORS.labels(error_type="application").inc()
+                else:
+                    AGENT_RUNS.labels(status="success").inc()
+
+            except Exception:
+                AGENT_RUNS.labels(status="error").inc()
+                AGENT_ERRORS.labels(error_type="exception").inc()
+                raise
 
         proposal = result.get("remediation_proposal")
 
