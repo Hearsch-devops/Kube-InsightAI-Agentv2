@@ -99,3 +99,41 @@ RAG_ERRORS = Counter(
 # Initialize metric series.
 RAG_RETRIEVALS.labels(status="success")
 RAG_RETRIEVALS.labels(status="error")
+
+# ============================================================
+# MCP Tool Metrics
+# ============================================================
+
+MCP_TOOL_CALLS = Counter(
+    "kube_insightai_mcp_tool_calls_total",
+    "Total number of MCP tool invocations",
+    ["server", "tool", "status"],
+)
+
+MCP_TOOL_DURATION = Histogram(
+    "kube_insightai_mcp_tool_duration_seconds",
+    "MCP tool execution duration in seconds",
+    ["server", "tool"],
+)
+
+MCP_TOOL_ERRORS = Counter(
+    "kube_insightai_mcp_tool_errors_total",
+    "Total number of MCP tool execution errors",
+    ["server", "tool", "error_type"],
+)
+
+
+# Initialize known MCP server metric series.
+MCP_SERVERS = (
+    "kubernetes",
+    "calculator",
+    "weather",
+    "unknown",
+)
+
+for server in MCP_SERVERS:
+    MCP_TOOL_ERRORS.labels(
+        server=server,
+        tool="unknown",
+        error_type="exception",
+    )
