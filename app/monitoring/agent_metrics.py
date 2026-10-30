@@ -69,3 +69,33 @@ for node in GRAPH_NODES:
     AGENT_NODE_EXECUTIONS.labels(node=node)
     AGENT_NODE_DURATION.labels(node=node)
     AGENT_NODE_ERRORS.labels(node=node)
+
+# ============================================================
+# RAG Metrics
+# ============================================================
+
+RAG_RETRIEVALS = Counter(
+    "kube_insightai_rag_retrievals_total",
+    "Total number of RAG retrieval operations",
+    ["status"],
+)
+
+RAG_RETRIEVAL_DURATION = Histogram(
+    "kube_insightai_rag_retrieval_duration_seconds",
+    "RAG vector retrieval duration in seconds",
+)
+
+RAG_DOCUMENTS_RETRIEVED = Histogram(
+    "kube_insightai_rag_documents_retrieved",
+    "Number of documents returned by RAG retrieval",
+)
+
+RAG_ERRORS = Counter(
+    "kube_insightai_rag_errors_total",
+    "Total number of RAG retrieval errors",
+)
+
+
+# Initialize metric series.
+RAG_RETRIEVALS.labels(status="success")
+RAG_RETRIEVALS.labels(status="error")
