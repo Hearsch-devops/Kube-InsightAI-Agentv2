@@ -3,6 +3,15 @@ import os
 import json
 from contextlib import asynccontextmanager
 
+import logging
+logger = logging.getLogger(__name__)
+
+from app.monitoring.agent_metrics import (
+    MCP_TOOL_CALLS,
+    MCP_TOOL_DURATION,
+    MCP_TOOL_ERRORS,
+)
+
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
@@ -53,6 +62,19 @@ async def list_mcp_tools(server_url: str):
 
         return result.tools
 
+def get_mcp_server_name(server_url: str) -> str:
+    """Return a bounded MCP server label."""
+
+    if server_url == KUBERNETES_MCP_URL:
+        return "kubernetes"
+
+    if server_url == CALCULATOR_MCP_URL:
+        return "calculator"
+
+    if server_url == WEATHER_MCP_URL:
+        return "weather"
+
+    return "unknown"
 
 async def call_mcp_tool(
     server_url: str,
@@ -60,17 +82,71 @@ async def call_mcp_tool(
     arguments: dict,
 ):
     """
-    Call a tool on an MCP server and return its result.
+    Call an MCP tool with Prometheus observability.
     """
 
-    async with get_mcp_session(server_url) as session:
+    server = get_mcp_server_name(server_url)
 
-        result = await session.call_tool(
-            tool_name,
-            arguments=arguments,
-        )
+    try:
+        # Measure complete MCP invocation duration.
+        with MCP_TOOL_DURATION.labels(
+            server=server,
+            tool=tool_name,
+        ).time():
+
+            async with get_mcp_session(server_url) as session:
+
+                result = await session.call_tool(
+                    tool_name,
+                    arguments=arguments,
+                )
+
+        # Detect application-level MCP errors.
+        if getattr(result, "isError", False):
+
+            MCP_TOOL_CALLS.labels(
+                server=server,
+                tool=tool_name,
+                status="error",
+            ).inc()
+
+            MCP_TOOL_ERRORS.labels(
+                server=server,
+                tool=tool_name,
+                error_type="application",
+            ).inc()
+
+        else:
+
+            MCP_TOOL_CALLS.labels(
+                server=server,
+                tool=tool_name,
+                status="success",
+            ).inc()
 
         return result
+
+    except Exception:
+
+        MCP_TOOL_CALLS.labels(
+            server=server,
+            tool=tool_name,
+            status="error",
+        ).inc()
+
+        MCP_TOOL_ERRORS.labels(
+            server=server,
+            tool=tool_name,
+            error_type="exception",
+        ).inc()
+
+        logger.exception(
+            "MCP tool execution failed: server=%s, tool=%s",
+            server,
+            tool_name,
+        )
+
+        raise
 
 def parse_mcp_result(result):
     """
