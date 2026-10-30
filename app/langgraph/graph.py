@@ -4,6 +4,16 @@ from app.mcp_client import (
     KUBERNETES_MCP_URL,
 )
 
+from app.monitoring.agent_metrics import (
+    AGENT_NODE_EXECUTIONS,
+    AGENT_NODE_DURATION,
+    AGENT_NODE_ERRORS,
+    RAG_RETRIEVALS,
+    RAG_RETRIEVAL_DURATION,
+    RAG_DOCUMENTS_RETRIEVED,
+    RAG_ERRORS,
+)
+
 import inspect
 import time
 from functools import wraps
