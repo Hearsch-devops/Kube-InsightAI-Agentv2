@@ -2419,6 +2419,51 @@ def choose_mcp_next(state: AgentState) -> str:
 
     return "end"
 
+def instrument_node(node_name: str, node_function):
+    """Instrument synchronous and asynchronous LangGraph nodes."""
+
+    if inspect.iscoroutinefunction(node_function):
+
+        @wraps(node_function)
+        async def async_wrapper(state):
+            AGENT_NODE_EXECUTIONS.labels(node=node_name).inc()
+
+            try:
+                with AGENT_NODE_DURATION.labels(
+                    node=node_name
+                ).time():
+                    return await node_function(state)
+
+            except Exception:
+                AGENT_NODE_ERRORS.labels(node=node_name).inc()
+                logger.exception(
+                    "LangGraph node '%s' failed",
+                    node_name,
+                )
+                raise
+
+        return async_wrapper
+
+    @wraps(node_function)
+    def sync_wrapper(state):
+        AGENT_NODE_EXECUTIONS.labels(node=node_name).inc()
+
+        try:
+            with AGENT_NODE_DURATION.labels(
+                node=node_name
+            ).time():
+                return node_function(state)
+
+        except Exception:
+            AGENT_NODE_ERRORS.labels(node=node_name).inc()
+            logger.exception(
+                "LangGraph node '%s' failed",
+                node_name,
+            )
+            raise
+
+    return sync_wrapper
+
 def build_graph():
     """Build and compile the Kube-InsightAI LangGraph workflow."""
 
