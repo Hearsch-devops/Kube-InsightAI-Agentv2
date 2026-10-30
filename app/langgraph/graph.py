@@ -2469,21 +2469,47 @@ def build_graph():
 
     builder = StateGraph(AgentState)
 
-    builder.add_node("analyze", analyze_question)
-    builder.add_node("router", route_question)
+    builder.add_node(
+    "analyze",
+    instrument_node("analyze", analyze_question),
+    )
 
-    builder.add_node("retrieve_context", retrieve_context)
-    builder.add_node("kubernetes", kubernetes_response)
+    builder.add_node(
+        "router",
+        instrument_node("router", route_question),
+    )
 
-    builder.add_node("mcp", mcp_response)
-    builder.add_node("rca", rca_response)
+    builder.add_node(
+        "retrieve_context",
+        instrument_node("retrieve_context", retrieve_context),
+    )
 
-    builder.add_node("general", general_response)
+    builder.add_node(
+        "kubernetes",
+        instrument_node("kubernetes", kubernetes_response),
+    )
 
-    # Phase 5: proposal-only remediation
+    builder.add_node(
+        "mcp",
+        instrument_node("mcp", mcp_response),
+    )
+
+    builder.add_node(
+        "rca",
+        instrument_node("rca", rca_response),
+    )
+
+    builder.add_node(
+        "general",
+        instrument_node("general", general_response),
+    )
+
     builder.add_node(
         "remediation",
-        remediation_proposal_response,
+        instrument_node(
+            "remediation",
+            remediation_proposal_response,
+        ),
     )
 
     builder.add_edge(START, "analyze")
