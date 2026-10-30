@@ -3,6 +3,16 @@ from app.mcp_client import (
     parse_mcp_result,
     KUBERNETES_MCP_URL,
 )
+
+import inspect
+import time
+from functools import wraps
+from app.monitoring.agent_metrics import (
+    AGENT_NODE_EXECUTIONS,
+    AGENT_NODE_DURATION,
+    AGENT_NODE_ERRORS,
+)
+
 import asyncio
 import logging
 import re
