@@ -954,6 +954,59 @@
                     </div>
                 </form>
             </div>
+
+            <!-- Password Management — Admin Only -->
+            <div id="passwordManagementPanel" class="panel hidden">
+                <div class="panel-header">
+                    <div>
+                        <h2>Password Management</h2>
+                        <p>Reset passwords for registered users</p>
+                    </div>
+                </div>
+
+                <form id="adminPasswordForm">
+                    <div class="form-group">
+                        <label for="passwordUserSelect">
+                            Select User
+                        </label>
+                        <select id="passwordUserSelect" required>
+                            <option value="">Select a user</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminNewPassword">
+                            New Password
+                        </label>
+                        <input
+                            type="password"
+                            id="adminNewPassword"
+                            minlength="8"
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adminConfirmPassword">
+                            Confirm New Password
+                        </label>
+                        <input
+                            type="password"
+                            id="adminConfirmPassword"
+                            minlength="8"
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+
+                    <button type="submit" id="updatePasswordButton">
+                        Update Password
+                    </button>
+
+                    <p id="passwordUpdateStatus" role="status"></p>
+                </form>
+            </div>
         </section>
 
         <!-- Placeholder for Query, Settings, etc. -->
