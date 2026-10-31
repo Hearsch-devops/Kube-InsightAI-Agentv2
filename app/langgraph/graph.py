@@ -109,6 +109,12 @@ LIVE_CLUSTER_KEYWORDS = (
     "events in",
     "what is running",
     "which pods",
+    "list pods",
+    "list all pods",
+    "show pods",
+    "show all pods",
+    "pods in",
+    "all pods in",
     "which deployments",
 
     # Services — only live-cluster intent
@@ -164,6 +170,12 @@ INVESTIGATION_KEYWORDS = (
     "prioritize",
     "prioritise",
     "main problems",
+    "list all pods",
+    "list pods",
+    "show all pods",
+    "show pods",
+    "pods in",
+    "all pods in",
 )
 
 def extract_question(state: AgentState) -> str:
@@ -338,21 +350,54 @@ def route_question(state: AgentState) -> dict:
         }
     
     investigation_intent = (
-        any(keyword in question for keyword in INVESTIGATION_KEYWORDS)
-        and any(keyword in question for keyword in (
-            "pod", "pods", "deployment", "deployments",
-            "container", "containers",
-            "abnormal behavior", "abnormal",
-            "unhealthy", "not healthy",
-            "unexpected behavior",
-            "historical events", "history of events",
-            "recent events", "current health", "health of",
-            "readiness", "readiness failure", "readiness probe",
-            "unschedulable", "imagepullbackoff", "errimagepull",
-            "crashloopbackoff", "root cause",
-            "investigate", "troubleshoot", "diagnose",
-            "logs", "events",
-        ))
+        any(
+            keyword in question
+            for keyword in INVESTIGATION_KEYWORDS
+        )
+        and any(
+            keyword in question
+            for keyword in (
+                "pod",
+                "pods",
+                "deployment",
+                "deployments",
+                "container",
+                "containers",
+                "abnormal behavior",
+                "abnormal",
+                "unhealthy",
+                "not healthy",
+                "unexpected behavior",
+                "historical events",
+                "history of events",
+                "recent events",
+                "current health",
+                "health of",
+                "readiness failure",
+                "readiness probe",
+                "pod not ready"
+                "pods not ready"
+                "unschedulable",
+                "imagepullbackoff",
+                "errimagepull",
+                "crashloopbackoff",
+                "root cause",
+                "investigate",
+                "troubleshoot",
+                "diagnose",
+                "logs",
+                "events",
+            )
+        )
+        and not any(
+            phrase in question
+            for phrase in (
+                "list pods",
+                "list all pods",
+                "show pods",
+                "show all pods",
+            )
+        )
     )
 
     ownership_intent = (
