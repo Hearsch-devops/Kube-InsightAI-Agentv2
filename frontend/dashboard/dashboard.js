@@ -1292,6 +1292,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const users = await response.json();
 
+            // Populate Password Management user dropdown
+            passwordUserSelect.replaceChildren();
+
+            const defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.textContent = "Select a user";
+            passwordUserSelect.appendChild(defaultOption);
+
+            users.forEach(user => {
+                const option = document.createElement("option");
+
+                option.value = user.id;
+                option.textContent = `${user.username} (${user.role})`;
+
+                passwordUserSelect.appendChild(option);
+            });
+
             if (users.length === 0) {
                 usersStatus.textContent = "No registered users found.";
                 return;
