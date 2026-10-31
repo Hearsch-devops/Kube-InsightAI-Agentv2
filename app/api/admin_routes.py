@@ -29,6 +29,9 @@ class ChangeRoleRequest(BaseModel):
 class ChangeStatusRequest(BaseModel):
     is_active: bool
 
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=12, max_length=128)
+
 class UserResponse(BaseModel):
     id: int
     username: str
