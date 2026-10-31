@@ -621,14 +621,37 @@ async def mcp_response(state: AgentState) -> dict:
         # =========================================================
 
         namespace_match = re.search(
-            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\b",
+            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?(?=\s|$)",
             question_lower,
         )
 
         if namespace_match:
-            requested_namespace = namespace_match.group(1)
+            candidate_namespace = namespace_match.group(1)
+
+            reserved_words = {
+                "and",
+                "or",
+                "the",
+                "a",
+                "an",
+                "show",
+                "list",
+                "with",
+                "their",
+                "its",
+                "current",
+                "status",
+            }
+
+            if candidate_namespace not in reserved_words:
+                requested_namespace = candidate_namespace
+            else:
+                requested_namespace = None
         else:
-            requested_namespace = "kube-insightaiv2"
+            requested_namespace = None
+
+        if not requested_namespace:
+            requested_namespace = os.getenv("DEFAULT_KUBERNETES_NAMESPACE", "default")
 
         logger.info("Requested namespace: %s", requested_namespace)
 
