@@ -190,6 +190,44 @@ def delete_user(
         **deleted_user,
     }
 
+@router.put("/users/{user_id}/password")
+def reset_user_password(
+    user_id: int,
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin")),
+):
+    user = db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    try:
+        user.password_hash = hash_password(payload.new_password)
+
+        record_audit(
+            db,
+            current_user.username,
+            "user_password_reset",
+            {
+                "user_id": user.id,
+                "username": user.username,
+            },
+        )
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": f"Password updated successfully for {user.username}",
+    }
+
 @router.patch("/users/{user_id}/role", response_model=UserResponse)
 def change_user_role(
     user_id: int,
