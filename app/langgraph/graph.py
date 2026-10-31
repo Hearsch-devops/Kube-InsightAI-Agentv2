@@ -632,38 +632,46 @@ async def mcp_response(state: AgentState) -> dict:
         # Resolve namespace for pod investigation/log request
         # =========================================================
 
-        namespace_match = re.search(
-            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?(?=\s|$)",
-            question_lower,
-        )
+        namespace_patterns = [
+            # Example: pods in the kube-insightaiv2 namespace
+            r"\bin\s+(?:the\s+)?[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\s+namespace\b",
 
-        if namespace_match:
-            candidate_namespace = namespace_match.group(1)
+            # Example: pods in namespace kube-insightaiv2
+            r"\bnamespace\s+[`']?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)[`']?\b",
+        ]
 
-            reserved_words = {
-                "and",
-                "or",
-                "the",
-                "a",
-                "an",
-                "show",
-                "list",
-                "with",
-                "their",
-                "its",
-                "current",
-                "status",
-            }
+        reserved_words = {
+            "and",
+            "or",
+            "the",
+            "a",
+            "an",
+            "show",
+            "list",
+            "with",
+            "their",
+            "its",
+            "current",
+            "status",
+        }
 
-            if candidate_namespace not in reserved_words:
-                requested_namespace = candidate_namespace
-            else:
-                requested_namespace = None
-        else:
-            requested_namespace = None
+        requested_namespace = None
+
+        for pattern in namespace_patterns:
+            namespace_match = re.search(pattern, question_lower)
+
+            if namespace_match:
+                candidate_namespace = namespace_match.group(1)
+
+                if candidate_namespace not in reserved_words:
+                    requested_namespace = candidate_namespace
+                    break
 
         if not requested_namespace:
-            requested_namespace = os.getenv("DEFAULT_KUBERNETES_NAMESPACE", "default")
+            requested_namespace = os.getenv(
+                "DEFAULT_KUBERNETES_NAMESPACE",
+                "default",
+            )
 
         logger.info("Requested namespace: %s", requested_namespace)
 
