@@ -2446,3 +2446,51 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     margin: 0;
     font-size: 14px;
 }
+
+/* Password Management — Dark Theme Controls */
+
+#settingsPage #adminPasswordForm input,
+#settingsPage #adminPasswordForm select {
+    background: var(--input-bg, #151d32);
+    color: var(--text-color, #f1f5ff);
+    border: 1px solid var(--border-color, #303b56);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#settingsPage #adminPasswordForm input:focus,
+#settingsPage #adminPasswordForm select:focus {
+    border-color: #635bdb;
+    box-shadow: 0 0 0 3px rgba(99, 91, 219, 0.2);
+}
+
+#settingsPage #adminPasswordForm input::placeholder {
+    color: var(--text-muted, #9aa9c7);
+}
+
+/* Update Password Button */
+#settingsPage #updatePasswordButton {
+    background: #5145cd;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#settingsPage #updatePasswordButton:hover {
+    background: #6255e7;
+    transform: translateY(-1px);
+}
+
+#settingsPage #updatePasswordButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
