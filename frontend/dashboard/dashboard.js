@@ -1458,14 +1458,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         const user = window.KubeAuth.getUser();
         const isAdmin = user?.role === "admin";
 
+        // Admin-only User Management
         addUserButton.classList.toggle("hidden", !isAdmin);
+
+        // Admin-only Password Management
+        passwordManagementPanel.classList.toggle("hidden", !isAdmin);
 
         if (isAdmin) {
             loadRegisteredUsers();
         } else {
             usersTableBody.replaceChildren();
+
             usersStatus.textContent =
                 "Administrator access is required to manage users.";
+
+            passwordUserSelect.replaceChildren();
+
+            adminPasswordForm.reset();
+
+            passwordUpdateStatus.textContent = "";
         }
     }
 
