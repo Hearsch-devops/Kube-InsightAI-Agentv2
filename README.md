@@ -382,7 +382,7 @@ Create a local `.env` file using the example below, then fill in your
 own values:
 
 ``` dotenv
-LLMFOUNDRY_TOKEN=your_token_here
+LLM_TOKEN=your_token_here
 PROJECT_NAME=your_project_name
 ```
 
@@ -596,8 +596,8 @@ setup for the FastAPI application.
 ### 1. Clone the repository
 
 ``` bash
-git clone <your-repository-url>
-cd <your-repository-directory>
+git clone (https://github.com/Hearsch-devops/Kube-InsightAI-Agentv2)
+cd <repository-directory>
 ```
 
 Replace the placeholders with your repository URL and directory name.
