@@ -2366,7 +2366,6 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     outline-offset: 3px;
 }
 
-
 /* Settings — User Management header */
 #settingsPage .settings-users-header {
     display: flex;
@@ -2397,4 +2396,53 @@ button:disabled { cursor: not-allowed; opacity: .5; }
     #settingsPage .settings-users-header {
         align-items: flex-start;
     }
+}
+
+/* Settings — Password Management */
+#settingsPage #passwordManagementPanel {
+    margin-top: 24px;
+}
+
+#settingsPage #passwordManagementPanel h2 {
+    margin: 0;
+}
+
+#settingsPage #passwordManagementPanel .panel-header p {
+    margin: 6px 0 0;
+    color: var(--text-muted, #9aa9c7);
+    font-size: 14px;
+}
+
+#settingsPage #adminPasswordForm {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 480px;
+}
+
+#settingsPage #adminPasswordForm .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#settingsPage #adminPasswordForm label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#settingsPage #adminPasswordForm input,
+#settingsPage #adminPasswordForm select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#settingsPage #updatePasswordButton {
+    align-self: flex-start;
+    min-width: 160px;
+}
+
+#settingsPage #passwordUpdateStatus {
+    margin: 0;
+    font-size: 14px;
 }
