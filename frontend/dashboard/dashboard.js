@@ -1399,6 +1399,77 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
+    // Admin Password Management
+    adminPasswordForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const userId = passwordUserSelect.value;
+        const newPassword = adminNewPassword.value;
+        const confirmPassword = adminConfirmPassword.value;
+
+        passwordUpdateStatus.textContent = "";
+
+        if (!userId) {
+            passwordUpdateStatus.textContent = "Please select a user.";
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            passwordUpdateStatus.textContent =
+                "Passwords do not match.";
+            return;
+        }
+
+        if (newPassword.length < 12 || newPassword.length > 128) {
+            passwordUpdateStatus.textContent =
+                "Password must be between 12 and 128 characters.";
+            return;
+        }
+
+        updatePasswordButton.disabled = true;
+        updatePasswordButton.textContent = "Updating...";
+
+        try {
+            const response = await window.KubeAuth.apiFetch(
+                `/api/admin/users/${userId}/password`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        new_password: newPassword
+                    })
+                }
+            );
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    typeof result.detail === "string"
+                        ? result.detail
+                        : `Password update failed (HTTP ${response.status}).`
+                );
+            }
+
+            passwordUpdateStatus.textContent =
+                result.message || "Password updated successfully.";
+
+            adminPasswordForm.reset();
+
+        } catch (error) {
+            console.error("Password update failed:", error);
+
+            passwordUpdateStatus.textContent =
+                error.message || "Unable to update password.";
+
+        } finally {
+            updatePasswordButton.disabled = false;
+            updatePasswordButton.textContent = "Update Password";
+        }
+    });
+
     addUserButton.addEventListener("click", () => {
         addUserForm.reset();
         addUserStatus.textContent = "";
