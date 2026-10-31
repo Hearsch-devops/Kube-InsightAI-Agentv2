@@ -596,8 +596,8 @@ setup for the FastAPI application.
 ### 1. Clone the repository
 
 ``` bash
-git clone (https://github.com/Hearsch-devops/Kube-InsightAI-Agentv2)
-cd <repository-directory>
+git clone https://github.com/Hearsch-devops/Kube-InsightAI-Agentv2
+cd Kube-InsightAI-Agentv2
 ```
 
 Replace the placeholders with your repository URL and directory name.
@@ -636,7 +636,7 @@ current environment. Ensure at least the required LLM variables are
 configured:
 
 ``` dotenv
-LLMFOUNDRY_TOKEN=your_token_here
+LLM_TOKEN=your_token_here
 PROJECT_NAME=your_project_name
 ```
 
