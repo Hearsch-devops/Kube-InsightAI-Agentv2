@@ -91,6 +91,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     const usersTableBody = document.getElementById("usersTableBody");
     const usersStatus = document.getElementById("usersStatus");
     const addUserButton = document.getElementById("addUserButton");
+    // Admin Password Management
+    const passwordManagementPanel = document.getElementById(
+        "passwordManagementPanel"
+    );
+    const passwordUserSelect = document.getElementById(
+        "passwordUserSelect"
+    );
+    const adminPasswordForm = document.getElementById(
+        "adminPasswordForm"
+    );
+    const adminNewPassword = document.getElementById(
+        "adminNewPassword"
+    );
+    const adminConfirmPassword = document.getElementById(
+        "adminConfirmPassword"
+    );
+    const updatePasswordButton = document.getElementById(
+        "updatePasswordButton"
+    );
+    const passwordUpdateStatus = document.getElementById(
+        "passwordUpdateStatus"
+    );
     const addUserPanel = document.getElementById("addUserPanel");
     const addUserForm = document.getElementById("addUserForm");
     const addUserStatus = document.getElementById("addUserStatus");
